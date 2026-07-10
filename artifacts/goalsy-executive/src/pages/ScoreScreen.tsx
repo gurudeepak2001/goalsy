@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   ArrowLeft,
@@ -17,6 +18,28 @@ import CircularScoreRing from '@/components/CircularScoreRing';
 import ProgressBar from '@/components/ProgressBar';
 import DarkInfoCard from '@/components/DarkInfoCard';
 import SectionLabel from '@/components/SectionLabel';
+
+function TabBar({ active, onChange }: { active: string; onChange: (tab: string) => void }) {
+  const tabs = ['Score', 'Credit', 'Alerts'];
+  return (
+    <div className="flex items-center gap-2 mt-6">
+      {tabs.map((tab) => {
+        const isActive = active === tab;
+        return (
+          <button
+            key={tab}
+            onClick={() => onChange(tab)}
+            className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors ${
+              isActive ? 'bg-[#2563EB] text-white' : 'bg-[#0F1625] text-[#94A3B8] border border-[#1A2238]'
+            }`}
+          >
+            {tab}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function DriverBar({
   label,
@@ -42,6 +65,7 @@ function DriverBar({
 
 export default function ScoreScreen() {
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState('Score');
 
   return (
     <AppShell showBottomNav={false}>
@@ -59,7 +83,11 @@ export default function ScoreScreen() {
         <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">Goalsy Score</h1>
         <p className="text-[#94A3B8] text-sm mt-2">Comprehensive financial wellness assessment.</p>
 
-        <div className="mt-6 bg-[#0F1625] border border-[#1A2238] rounded-2xl p-6 flex flex-col items-center">
+        <TabBar active={activeTab} onChange={setActiveTab} />
+
+        {activeTab === 'Score' && (
+          <>
+            <div className="mt-6 bg-[#0F1625] border border-[#1A2238] rounded-2xl p-6 flex flex-col items-center">
           <CircularScoreRing value={78} size={180} strokeWidth={12} color="#22C55E" label="78" sublabel="EXCELLENT" />
           <div className="flex items-center gap-2 mt-4">
             <TrendingUp size={16} className="text-[#22C55E]" />
@@ -183,6 +211,27 @@ export default function ScoreScreen() {
             Refresh
           </button>
         </div>
+          </>
+        )}
+
+        {activeTab === 'Credit' && (
+          <div className="mt-8 bg-[#0F1625] border border-[#1A2238] rounded-2xl p-6 flex flex-col items-center">
+            <CircularScoreRing value={740} size={160} strokeWidth={12} color="#2563EB" label="740" sublabel="EXPERIAN" showGlow={false} />
+            <div className="flex items-center gap-2 mt-4">
+              <TrendingUp size={16} className="text-[#22C55E]" />
+              <span className="text-[#22C55E] text-sm font-semibold">+18 points this year</span>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Alerts' && (
+          <div className="mt-8 bg-[#0F1625] border border-[#1A2238] rounded-2xl p-6">
+            <div className="text-white font-semibold text-sm">No new alerts</div>
+            <p className="text-[#64748B] text-xs mt-2">
+              Your credit report is being monitored. You’ll be notified of any significant changes.
+            </p>
+          </div>
+        )}
       </div>
     </AppShell>
   );

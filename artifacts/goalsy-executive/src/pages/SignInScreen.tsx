@@ -1,74 +1,74 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
-import { PieChart, ShieldCheck, Target } from 'lucide-react';
-import AppHeader from '@/components/AppHeader';
-import ExecutiveInput from '@/components/ExecutiveInput';
-import ExecutiveButton from '@/components/ExecutiveButton';
 
 export default function SignInScreen() {
   const [, navigate] = useLocation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#09090C] max-w-md mx-auto flex flex-col overflow-y-auto">
-      <div className="px-6 pt-12 pb-10 flex-1 flex flex-col">
-        <AppHeader />
-        
-        <h1 className="text-white font-black text-4xl mt-12 tracking-tight">Welcome Back.</h1>
-        <p className="text-[#94A3B8] text-sm mt-3">Access your financial cockpit.</p>
-        
-        <div className="mt-10 flex flex-col gap-5">
-          <ExecutiveInput 
-            label="EMAIL ADDRESS" 
-            type="email" 
-            placeholder="executive@domain.com"
-            leftIcon={<PieChart size={20} />}
-          />
-          
-          <ExecutiveInput 
-            label="PASSWORD" 
-            type="password" 
-            placeholder="••••••••"
-            leftIcon={<ShieldCheck size={20} />}
-            rightElement={
-              <button
-                type="button"
-                onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
-                className="text-[#2563EB] text-xs font-semibold tracking-widest hover:text-[#1D4ED8] transition-colors"
-              >
-                FORGOT?
-              </button>
-            }
-          />
-        </div>
-        
-        <ExecutiveButton
-          text="Sign In"
-          className="mt-8"
-          onClick={() => navigate('/financial-connection')}
-        />
-        
-        <div className="mt-10 flex items-center gap-4">
-          <div className="bg-[#1E2D45] h-px flex-1"></div>
-          <span className="text-[#475569] text-xs tracking-widest uppercase font-medium">SECURE BIOMETRIC</span>
-          <div className="bg-[#1E2D45] h-px flex-1"></div>
-        </div>
-        
-        <div className="mt-8 flex flex-col items-center">
-          <button
-            onClick={() => navigate('/goals')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-4 w-16 h-16 flex items-center justify-center hover:bg-[#131E35] transition-colors"
-            aria-label="Sign in with FaceID"
-            data-testid="button-faceid"
-          >
-            <Target size={28} className="text-white" strokeWidth={1.5} aria-hidden="true" />
-          </button>
-          <span className="text-white font-semibold text-sm mt-3">Use FaceID</span>
-        </div>
-        
-        <div className="mt-auto pt-12 text-[#475569] text-[10px] tracking-[0.2em] uppercase text-center font-medium">
-          PRECISION INTELLIGENCE SYSTEM V4.2
-        </div>
-      </div>
+    <div className="min-h-[100dvh] w-full max-w-md mx-auto relative overflow-hidden bg-black">
+      <img
+        src="/signin-bg.png"
+        alt="Sign In"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
+      {/* Back to Welcome */}
+      <button
+        onClick={() => navigate('/welcome')}
+        className="absolute top-12 left-6 z-10 w-12 h-12 flex items-center justify-center"
+        aria-label="Back"
+      />
+
+      {/* Email input */}
+      <label htmlFor="signin-email" className="sr-only">Email address</label>
+      <input
+        id="signin-email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="absolute top-[260px] left-6 right-6 h-12 bg-transparent text-white text-base outline-none placeholder-transparent z-10"
+        autoComplete="email"
+        aria-label="Email address"
+      />
+
+      {/* Password input */}
+      <label htmlFor="signin-password" className="sr-only">Password</label>
+      <input
+        id="signin-password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="absolute top-[330px] left-6 right-6 h-12 bg-transparent text-white text-base outline-none placeholder-transparent z-10"
+        autoComplete="current-password"
+        aria-label="Password"
+      />
+
+      {/* Sign In button */}
+      <button
+        onClick={() => navigate('/financial-connection')}
+        className="absolute top-[440px] left-6 right-6 h-14 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-full z-10 transition-colors"
+      >
+        Sign In
+      </button>
+
+      {/* Forgot Password */}
+      <button
+        onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
+        className="absolute top-[520px] left-6 right-6 h-10 text-white text-sm font-medium z-10"
+      >
+        Forgot Password?
+      </button>
+
+      {/* Create Account link */}
+      <button
+        onClick={() => navigate('/create-account')}
+        className="absolute top-[600px] left-6 right-6 h-10 text-white text-sm font-medium z-10"
+      >
+        Don’t have an account? Sign Up
+      </button>
     </div>
   );
 }

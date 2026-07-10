@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import AppHeader from './AppHeader';
 import BottomNav from './BottomNav';
 
 interface AppShellProps {

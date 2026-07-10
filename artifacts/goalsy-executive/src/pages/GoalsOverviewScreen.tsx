@@ -27,9 +27,8 @@ export default function GoalsOverviewScreen() {
   return (
     <AppShell activeTab="goals" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
-        <p className="text-[#94A3B8] text-sm">Objectives</p>
-        <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">Goals Overview</h1>
-        <p className="text-[#94A3B8] text-sm mt-2">Track progress toward your strategic objectives.</p>
+        <h1 className="text-white font-black text-3xl leading-tight tracking-tight">Goals</h1>
+        <p className="text-[#94A3B8] text-sm mt-2">Your financial targets</p>
       </div>
 
       <div className="flex gap-3 mt-6">

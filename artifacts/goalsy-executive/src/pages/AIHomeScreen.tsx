@@ -30,7 +30,7 @@ export default function AIHomeScreen({ activeTab = 'ai' }: AIHomeScreenProps) {
       <div className="pt-2">
         <p className="text-[#94A3B8] text-sm">Executive Briefing</p>
         <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">
-          Strategic Intelligence
+          Good morning, Alexander
         </h1>
       </div>
 
