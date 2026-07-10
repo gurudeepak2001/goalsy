@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import {
   User,
@@ -30,13 +30,35 @@ function Toggle({ defaultOn = false }: { defaultOn?: boolean }) {
       role="switch"
       aria-checked={on}
       onClick={() => setOn(!on)}
-      className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${on ? 'bg-[#2563EB]' : 'bg-[#1A2238]'}`}
+      className={`w-[52px] h-8 rounded-full transition-colors relative flex-shrink-0 ${on ? 'bg-[#2563EB]' : 'bg-[#1A2238]'}`}
       data-testid="toggle-button"
     >
       <span
-        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`}
+        className={`absolute top-0.5 left-0.5 w-7 h-7 rounded-full bg-white transition-transform ${on ? 'translate-x-5' : 'translate-x-0'}`}
       />
     </button>
+  );
+}
+
+interface PreferenceRowProps {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  rightElement: ReactNode;
+}
+
+function PreferenceRow({ icon, title, subtitle, rightElement }: PreferenceRowProps) {
+  return (
+    <div className="bg-[#0F1625] rounded-3xl p-5 min-h-[80px] flex items-center justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <div className="text-[#94A3B8]">{icon}</div>
+        <div>
+          <div className="text-white text-base font-bold">{title}</div>
+          <div className="text-[#64748B] text-sm mt-1">{subtitle}</div>
+        </div>
+      </div>
+      <div>{rightElement}</div>
+    </div>
   );
 }
 
@@ -99,21 +121,21 @@ export default function ProfileScreen() {
 
       <div className="mt-8">
         <SectionLabel text="Preferences" accentBar />
-        <div className="flex flex-col gap-2">
-          <ListRow
-            icon={<Bell size={18} />}
+        <div className="flex flex-col gap-4">
+          <PreferenceRow
+            icon={<Bell size={20} />}
             title="Notifications"
             subtitle="Push, email, SMS"
             rightElement={<Toggle defaultOn />}
           />
-          <ListRow
-            icon={<Moon size={18} />}
+          <PreferenceRow
+            icon={<Moon size={20} />}
             title="Dark Mode"
             subtitle="Always-on executive theme"
             rightElement={<Toggle defaultOn />}
           />
-          <ListRow
-            icon={<Fingerprint size={18} />}
+          <PreferenceRow
+            icon={<Fingerprint size={20} />}
             title="Biometric Unlock"
             subtitle="FaceID / TouchID"
             rightElement={<Toggle defaultOn />}
