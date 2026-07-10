@@ -18,11 +18,15 @@ import Avatar from '@/components/Avatar';
 import SectionLabel from '@/components/SectionLabel';
 import InsightCard from '@/components/InsightCard';
 
-export default function AIHomeScreen() {
+interface AIHomeScreenProps {
+  activeTab?: 'today' | 'ai';
+}
+
+export default function AIHomeScreen({ activeTab = 'ai' }: AIHomeScreenProps) {
   const [, navigate] = useLocation();
 
   return (
-    <AppShell activeTab="today" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
+    <AppShell activeTab={activeTab} header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
         <p className="text-[#94A3B8] text-sm">Executive Briefing</p>
         <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">

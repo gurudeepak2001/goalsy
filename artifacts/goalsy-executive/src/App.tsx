@@ -19,6 +19,14 @@ import ScoreScreen from '@/pages/ScoreScreen';
 
 const queryClient = new QueryClient();
 
+function TodayScreen() {
+  return <AIHomeScreen activeTab="today" />;
+}
+
+function AIHomeRoute() {
+  return <AIHomeScreen activeTab="ai" />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -27,7 +35,8 @@ function Router() {
       <Route path="/signin" component={SignInScreen} />
       <Route path="/create-account" component={CreateAccountScreen} />
       <Route path="/financial-connection" component={FinancialConnectionScreen} />
-      <Route path="/ai-home" component={AIHomeScreen} />
+      <Route path="/today" component={TodayScreen} />
+      <Route path="/ai-home" component={AIHomeRoute} />
       <Route path="/financial-health" component={FinancialHealthScreen} />
       <Route path="/calendar" component={CalendarScreen} />
       <Route path="/goals" component={GoalsOverviewScreen} />
