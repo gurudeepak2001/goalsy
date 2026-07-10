@@ -47,7 +47,6 @@ export default function CreateAccountScreen() {
           variant="outline"
           text="Already have an account? Sign In" 
           className="mt-4"
-          icon={<></>}
           onClick={() => setLocation('/signin')}
         />
         

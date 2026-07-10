@@ -1,4 +1,5 @@
 import { Target, Shield, Plane, TrendingUp, Plus } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
@@ -40,7 +41,10 @@ export default function GoalsOverviewScreen() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <SectionLabel text="ACTIVE GOALS" accentBar className="mb-0" />
-          <button className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2 transition-colors">
+          <button
+            onClick={() => toast({ title: 'New Goal', description: 'Goal creation form coming soon.' })}
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2 transition-colors"
+          >
             <Plus size={16} />
           </button>
         </div>
@@ -123,7 +127,12 @@ export default function GoalsOverviewScreen() {
             <div className="text-white font-semibold text-sm">Create a new goal</div>
             <div className="text-[#64748B] text-xs">Define a target and timeline</div>
           </div>
-          <button className="text-[#2563EB] text-sm font-semibold">Add</button>
+          <button
+            onClick={() => toast({ title: 'New Goal', description: 'Goal creation form coming soon.' })}
+            className="text-[#2563EB] text-sm font-semibold"
+          >
+            Add
+          </button>
         </div>
       </div>
     </AppShell>

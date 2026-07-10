@@ -44,7 +44,6 @@ export default function WelcomeScreen() {
           variant="outline" 
           text="Sign In" 
           className="mt-3"
-          icon={<></>}
           onClick={() => setLocation('/signin')} 
         />
         <div className="text-[#475569] text-xs tracking-widest uppercase text-center mt-8">

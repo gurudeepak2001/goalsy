@@ -10,11 +10,12 @@ import {
   ArrowUpRight,
   Minus,
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
 import SectionLabel from '@/components/SectionLabel';
-import CircularProgress from '@/components/CircularProgress';
+import CircularScoreRing from '@/components/CircularScoreRing';
 import ProgressBar from '@/components/ProgressBar';
 import FeatureCard from '@/components/FeatureCard';
 
@@ -60,7 +61,7 @@ export default function FinancialHealthScreen() {
 
       <div className="mt-6 flex flex-col items-center">
         <div className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-6 w-full flex flex-col items-center">
-          <CircularProgress value={78} size={140} strokeWidth={10} color="#22C55E" label="78" sublabel="HEALTH SCORE" />
+          <CircularScoreRing value={78} size={140} strokeWidth={10} color="#22C55E" label="78" sublabel="HEALTH SCORE" showGlow={false} />
           <div className="flex items-center gap-2 mt-4">
             <div className="w-2 h-2 bg-[#22C55E] rounded-full" />
             <span className="text-[#22C55E] text-sm font-semibold">Excellent Standing</span>
@@ -124,7 +125,10 @@ export default function FinancialHealthScreen() {
           <div className="text-white font-semibold text-sm">Download Full Report</div>
           <div className="text-[#64748B] text-xs">PDF · Updated today</div>
         </div>
-        <button className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl p-2.5 transition-colors">
+        <button
+          onClick={() => toast({ title: 'Report Downloaded', description: 'Your full financial report is ready.' })}
+          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl p-2.5 transition-colors"
+        >
           <ArrowRight size={18} />
         </button>
       </div>

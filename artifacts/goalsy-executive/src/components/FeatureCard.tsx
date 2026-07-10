@@ -8,7 +8,7 @@ interface FeatureCardProps {
 
 export default function FeatureCard({ icon, title, subtitle }: FeatureCardProps) {
   return (
-    <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center gap-4 mb-3">
+    <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center gap-4">
       <div className="bg-[#131E35] rounded-xl p-3 flex-shrink-0 text-white">
         {icon}
       </div>

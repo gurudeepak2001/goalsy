@@ -1,4 +1,5 @@
 import { useLocation } from 'wouter';
+import { toast } from '@/hooks/use-toast';
 import { PieChart, ShieldCheck, Target } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
@@ -29,7 +30,11 @@ export default function SignInScreen() {
             placeholder="••••••••"
             leftIcon={<ShieldCheck size={20} />}
             rightElement={
-              <button type="button" className="text-[#2563EB] text-xs font-semibold tracking-widest hover:text-[#1D4ED8] transition-colors">
+              <button
+                type="button"
+                onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
+                className="text-[#2563EB] text-xs font-semibold tracking-widest hover:text-[#1D4ED8] transition-colors"
+              >
                 FORGOT?
               </button>
             }
@@ -50,6 +55,7 @@ export default function SignInScreen() {
         
         <div className="mt-8 flex flex-col items-center">
           <button
+            onClick={() => navigate('/goals')}
             className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-4 w-16 h-16 flex items-center justify-center hover:bg-[#131E35] transition-colors"
             aria-label="Sign in with FaceID"
             data-testid="button-faceid"

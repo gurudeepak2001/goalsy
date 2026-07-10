@@ -20,7 +20,7 @@ export default function ExecutiveButton({ variant = 'primary', text, icon, class
       {...props}
     >
       {text}
-      {icon ? icon : isPrimary ? <ArrowRight size={20} /> : null}
+      {icon !== undefined ? icon : isPrimary ? <ArrowRight size={20} /> : null}
     </button>
   );
 }

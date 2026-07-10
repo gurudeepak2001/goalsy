@@ -1,4 +1,5 @@
 import { useLocation } from 'wouter';
+import { toast } from '@/hooks/use-toast';
 import { Target, Shield, Zap, PieChart, Layers } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import FeatureCard from '@/components/FeatureCard';
@@ -27,21 +28,21 @@ export default function FinancialConnectionScreen() {
           </div>
         </div>
         
-        <div className="mt-10">
-          <FeatureCard 
-            icon={<Target size={20} strokeWidth={2} />} 
-            title="Real-time Analysis" 
-            subtitle="Continuous cockpit updates" 
+        <div className="mt-10 flex flex-col gap-3">
+          <FeatureCard
+            icon={<Target size={20} strokeWidth={2} />}
+            title="Real-time Analysis"
+            subtitle="Continuous cockpit updates"
           />
-          <FeatureCard 
-            icon={<Shield size={20} strokeWidth={2} />} 
-            title="Bank-level Security" 
-            subtitle="Verified Plaid protocols" 
+          <FeatureCard
+            icon={<Shield size={20} strokeWidth={2} />}
+            title="Bank-level Security"
+            subtitle="Verified Plaid protocols"
           />
-          <FeatureCard 
-            icon={<Zap size={20} strokeWidth={2} />} 
-            title="256-bit Encryption" 
-            subtitle="AES-256 standard active" 
+          <FeatureCard
+            icon={<Zap size={20} strokeWidth={2} />}
+            title="256-bit Encryption"
+            subtitle="AES-256 standard active"
           />
         </div>
         
@@ -56,15 +57,14 @@ export default function FinancialConnectionScreen() {
         <ExecutiveButton
           text="Connect Accounts"
           className="mt-8"
-          onClick={() => navigate('/ai-home')}
+          onClick={() => navigate('/goals')}
         />
 
         <ExecutiveButton
           variant="outline"
           text="Skip for Now"
           className="mt-3"
-          icon={<></>}
-          onClick={() => navigate('/ai-home')}
+          onClick={() => navigate('/goals')}
         />
         
         <div className="mt-auto pt-10 flex flex-col items-center">

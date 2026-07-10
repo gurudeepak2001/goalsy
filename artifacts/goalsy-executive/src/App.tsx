@@ -14,6 +14,8 @@ import AIHomeScreen from '@/pages/AIHomeScreen';
 import FinancialHealthScreen from '@/pages/FinancialHealthScreen';
 import CalendarScreen from '@/pages/CalendarScreen';
 import GoalsOverviewScreen from '@/pages/GoalsOverviewScreen';
+import ProfileScreen from '@/pages/ProfileScreen';
+import ScoreScreen from '@/pages/ScoreScreen';
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/financial-health" component={FinancialHealthScreen} />
       <Route path="/calendar" component={CalendarScreen} />
       <Route path="/goals" component={GoalsOverviewScreen} />
+      <Route path="/profile" component={ProfileScreen} />
+      <Route path="/score" component={ScoreScreen} />
       <Route component={NotFound} />
     </Switch>
   );

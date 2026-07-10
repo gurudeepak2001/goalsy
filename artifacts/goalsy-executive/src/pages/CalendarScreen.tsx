@@ -1,48 +1,59 @@
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Bell, Wallet, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
 import SectionLabel from '@/components/SectionLabel';
 
-const days = [
-  { day: 29, prev: true },
-  { day: 30, prev: true },
-  { day: 1 },
-  { day: 2 },
-  { day: 3, events: ['green'] },
-  { day: 4 },
-  { day: 5 },
-  { day: 6 },
-  { day: 7, events: ['amber'] },
-  { day: 8 },
-  { day: 9 },
-  { day: 10, events: ['red'] },
-  { day: 11 },
-  { day: 12 },
-  { day: 13 },
-  { day: 14, events: ['green', 'amber'] },
-  { day: 15 },
-  { day: 16 },
-  { day: 17 },
-  { day: 18, events: ['amber'] },
-  { day: 19 },
-  { day: 20 },
-  { day: 21 },
-  { day: 22, events: ['green'] },
-  { day: 23 },
-  { day: 24 },
-  { day: 25 },
-  { day: 26 },
-  { day: 27, events: ['red'] },
-  { day: 28 },
-  { day: 29 },
-  { day: 30 },
-  { day: 31 },
-  { day: 1, next: true },
-  { day: 2, next: true },
-];
-
 const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const octoberEvents: Record<number, string[]> = {
+  3: ['green'],
+  7: ['amber'],
+  10: ['red'],
+  14: ['green', 'amber'],
+  18: ['amber'],
+  22: ['green'],
+  27: ['red'],
+};
+
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay();
+}
+
+function generateCalendarDays(year: number, month: number) {
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const daysInPrevMonth = getDaysInMonth(year, month - 1);
+
+  const days: Array<{ day: number; prev?: boolean; next?: boolean; events?: string[] }> = [];
+
+  for (let i = firstDay - 1; i >= 0; i--) {
+    days.push({ day: daysInPrevMonth - i, prev: true });
+  }
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const events = year === 2024 && month === 9 ? octoberEvents[i] : undefined;
+    days.push({ day: i, events });
+  }
+
+  const remaining = 42 - days.length;
+  for (let i = 1; i <= remaining; i++) {
+    days.push({ day: i, next: true });
+  }
+
+  return days;
+}
+
+const months = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 const events = [
   {
@@ -96,6 +107,30 @@ function EventIcon({ type }: { type: string }) {
 }
 
 export default function CalendarScreen() {
+  const [monthIndex, setMonthIndex] = useState(9);
+  const [year, setYear] = useState(2024);
+  const [selectedDay, setSelectedDay] = useState(14);
+
+  const prevMonth = () => {
+    if (monthIndex === 0) {
+      setMonthIndex(11);
+      setYear((y) => y - 1);
+    } else {
+      setMonthIndex((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (monthIndex === 11) {
+      setMonthIndex(0);
+      setYear((y) => y + 1);
+    } else {
+      setMonthIndex((m) => m + 1);
+    }
+  };
+
+  const calendarDays = generateCalendarDays(year, monthIndex);
+
   return (
     <AppShell activeTab="calendar" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
@@ -106,11 +141,11 @@ export default function CalendarScreen() {
 
       <div className="mt-6 bg-[#0F1625] border border-[#1A2238] rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
-          <button className="text-[#94A3B8] hover:text-white transition-colors p-1">
+          <button onClick={prevMonth} className="text-[#94A3B8] hover:text-white transition-colors p-1">
             <ChevronLeft size={20} />
           </button>
-          <span className="text-white font-bold text-base">October 2024</span>
-          <button className="text-[#94A3B8] hover:text-white transition-colors p-1">
+          <span className="text-white font-bold text-base">{months[monthIndex]} {year}</span>
+          <button onClick={nextMonth} className="text-[#94A3B8] hover:text-white transition-colors p-1">
             <ChevronRight size={20} />
           </button>
         </div>
@@ -124,17 +159,18 @@ export default function CalendarScreen() {
         </div>
 
         <div className="grid grid-cols-7 gap-1">
-          {days.map((d, i) => {
-            const isSelected = d.day === 14 && !d.prev && !d.next;
+          {calendarDays.map((d, i) => {
+            const isSelected = d.day === selectedDay && !d.prev && !d.next;
             return (
-              <div
+              <button
                 key={i}
+                onClick={() => !d.prev && !d.next && setSelectedDay(d.day)}
                 className={`aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-semibold relative ${
                   d.prev || d.next
                     ? 'text-[#475569]'
                     : isSelected
                     ? 'bg-[#2563EB] text-white'
-                    : 'text-white bg-[#131E35]/50'
+                    : 'text-white bg-[#131E35]/50 hover:bg-[#1A2238]'
                 }`}
               >
                 <span>{d.day}</span>
@@ -145,7 +181,7 @@ export default function CalendarScreen() {
                     ))}
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -214,7 +250,10 @@ export default function CalendarScreen() {
           <div className="text-white text-sm font-semibold">Reminders enabled</div>
           <div className="text-[#64748B] text-xs">3 days before each due date</div>
         </div>
-        <button className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2 transition-colors">
+        <button
+          onClick={() => toast({ title: 'New Event', description: 'Event creation form coming soon.' })}
+          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2 transition-colors"
+        >
           <Plus size={16} />
         </button>
       </div>

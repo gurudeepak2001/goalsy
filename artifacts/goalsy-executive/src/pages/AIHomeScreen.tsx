@@ -10,6 +10,8 @@ import {
   BarChart3,
   ArrowUpRight,
 } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
@@ -17,6 +19,8 @@ import SectionLabel from '@/components/SectionLabel';
 import InsightCard from '@/components/InsightCard';
 
 export default function AIHomeScreen() {
+  const [, navigate] = useLocation();
+
   return (
     <AppShell activeTab="today" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
@@ -65,7 +69,10 @@ export default function AIHomeScreen() {
         <SectionLabel
           text="RECOMMENDATIONS"
           rightElement={
-            <button className="text-[#2563EB] text-xs font-semibold tracking-wider flex items-center gap-1">
+            <button
+              onClick={() => navigate('/goals')}
+              className="text-[#2563EB] text-xs font-semibold tracking-wider flex items-center gap-1"
+            >
               View All <ArrowRight size={12} />
             </button>
           }
@@ -130,19 +137,31 @@ export default function AIHomeScreen() {
       <div className="mt-8">
         <SectionLabel text="QUICK ACTIONS" accentBar />
         <div className="grid grid-cols-2 gap-3">
-          <button className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors">
+          <button
+            onClick={() => navigate('/financial-health')}
+            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
+          >
             <span className="text-white text-sm font-semibold">Review Budget</span>
             <ChevronRight size={16} className="text-[#64748B]" />
           </button>
-          <button className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors">
+          <button
+            onClick={() => navigate('/goals')}
+            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
+          >
             <span className="text-white text-sm font-semibold">Invest Now</span>
             <ChevronRight size={16} className="text-[#64748B]" />
           </button>
-          <button className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors">
+          <button
+            onClick={() => navigate('/calendar')}
+            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
+          >
             <span className="text-white text-sm font-semibold">Transfer Funds</span>
             <ChevronRight size={16} className="text-[#64748B]" />
           </button>
-          <button className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors">
+          <button
+            onClick={() => navigate('/score')}
+            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
+          >
             <span className="text-white text-sm font-semibold">Credit Report</span>
             <PieChart size={16} className="text-[#64748B]" />
           </button>
@@ -159,10 +178,13 @@ export default function AIHomeScreen() {
             <div className="text-[#64748B] text-xs">Get personalized financial guidance</div>
           </div>
         </div>
-        <div className="bg-[#09090C] border border-[#1A2238] rounded-xl px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => toast({ title: 'Goalsy AI', description: 'AI assistant is ready to help.' })}
+          className="w-full bg-[#09090C] border border-[#1A2238] rounded-xl px-4 py-3 flex items-center justify-between hover:bg-[#131E35] transition-colors"
+        >
           <span className="text-[#475569] text-sm">How can I optimize my portfolio?</span>
           <ArrowRight size={16} className="text-[#2563EB]" />
-        </div>
+        </button>
       </div>
     </AppShell>
   );

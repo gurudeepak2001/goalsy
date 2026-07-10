@@ -3,7 +3,7 @@ import { User } from 'lucide-react';
 interface AvatarProps {
   src?: string;
   fallback?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export default function Avatar({ src, fallback, size = 'md' }: AvatarProps) {
@@ -11,6 +11,7 @@ export default function Avatar({ src, fallback, size = 'md' }: AvatarProps) {
     sm: 'w-8 h-8 text-xs',
     md: 'w-9 h-9 text-sm',
     lg: 'w-11 h-11 text-base',
+    xl: 'w-20 h-20 text-xl',
   };
 
   return (

@@ -1,45 +1,55 @@
-# [Project name]
+# Goalsy Executive
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A dark, mobile-first executive finance application with a complete onboarding flow, AI-driven dashboard, financial health tracking, calendar, goals, and profile/score screens. Built to match the provided Figma reference pixel-for-pixel.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/goalsy-executive run dev` — run the Goalsy Executive web app
+- `pnpm --filter @workspace/api-server run dev` — run the shared API server (not used by the frontend)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React 19 + Vite + Tailwind CSS v4 + wouter
+- UI: Custom dark executive design system built on top of the scaffold
+- API: Shared Express server (currently unused by the frontend; all screens are static)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- Onboarding screens: `artifacts/goalsy-executive/src/pages/SplashScreen.tsx`, `WelcomeScreen.tsx`, `SignInScreen.tsx`, `CreateAccountScreen.tsx`, `FinancialConnectionScreen.tsx`
+- Dashboard screens: `artifacts/goalsy-executive/src/pages/AIHomeScreen.tsx`, `FinancialHealthScreen.tsx`, `CalendarScreen.tsx`, `GoalsOverviewScreen.tsx`, `ProfileScreen.tsx`, `ScoreScreen.tsx`
+- Shared components: `artifacts/goalsy-executive/src/components/`
+- Theme: `artifacts/goalsy-executive/src/index.css`
+- Figma references: `attached_assets/figma/`
+- Screenshots: `screenshots/`
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Static example data for all screens — no backend integration required for the current MVP.
+- All dashboard screens share `AppShell` with a fixed `BottomNav` for consistent navigation.
+- Custom reusable components (not shadcn) are used for all executive UI elements.
+- Dark theme is enforced globally by adding the `dark` class to `document.documentElement` in `App.tsx`.
+- Unused shadcn UI scaffold components were removed to keep the repo clean.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Goalsy Executive is a premium financial intelligence app for ambitious professionals. It delivers strategic AI insights, financial health scoring, a financial calendar, goal tracking, and credit intelligence in a dark executive interface.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Match Figma exactly; do not redesign without explicit approval.
+- Dark executive theme is mandatory for all screens.
+- Mobile-first design, max-w-md centered layout.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The app is always dark; do not rely on the `prefers-color-scheme` media query.
+- Vite workflow must be restarted after `index.css` or component changes to refresh the proxy preview.
+- Bottom navigation requires `AppShell` with `activeTab` to render correctly.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- Figma reference images are in `attached_assets/figma/` for all future screens.
