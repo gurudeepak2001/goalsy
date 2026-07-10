@@ -3,6 +3,7 @@ import GoalsyLogo from './GoalsyLogo';
 
 interface AppHeaderProps {
   showSecureMode?: boolean;
+  leftElement?: ReactNode;
   rightElement?: ReactNode;
   showLogo?: boolean;
   title?: string;
@@ -11,6 +12,7 @@ interface AppHeaderProps {
 
 export default function AppHeader({
   showSecureMode = false,
+  leftElement,
   rightElement,
   showLogo = true,
   title,
@@ -19,6 +21,7 @@ export default function AppHeader({
   return (
     <header className={`flex items-center justify-between py-2 ${className}`}>
       <div className="flex items-center gap-3">
+        {leftElement}
         {showLogo && <GoalsyLogo size="sm" />}
         {title ? (
           <span className="text-white font-bold text-lg tracking-tight">{title}</span>
@@ -26,13 +29,15 @@ export default function AppHeader({
           <span className="text-white font-semibold text-base tracking-tight">GoalsyExecutive</span>
         ) : null}
       </div>
-      {showSecureMode && (
-        <div className="bg-[#0F2A1A] text-[#22C55E] border border-[#16A34A]/30 rounded-full px-3 py-1 text-xs font-medium tracking-wide uppercase flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full"></div>
-          SECURE MODE
-        </div>
-      )}
-      {rightElement}
+      <div className="flex items-center gap-3">
+        {showSecureMode && (
+          <div className="bg-[#0F2A1A] text-[#22C55E] border border-[#16A34A]/30 rounded-full px-3 py-1 text-xs font-medium tracking-wide uppercase flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full"></div>
+            SECURE MODE
+          </div>
+        )}
+        {rightElement}
+      </div>
     </header>
   );
 }
