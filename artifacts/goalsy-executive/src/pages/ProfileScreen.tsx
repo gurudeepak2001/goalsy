@@ -30,7 +30,7 @@ function Toggle({ defaultOn = false }: { defaultOn?: boolean }) {
       role="switch"
       aria-checked={on}
       onClick={() => setOn(!on)}
-      className={`w-11 h-6 rounded-full transition-colors relative ${on ? 'bg-[#2563EB]' : 'bg-[#1A2238]'}`}
+      className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${on ? 'bg-[#2563EB]' : 'bg-[#1A2238]'}`}
       data-testid="toggle-button"
     >
       <span
