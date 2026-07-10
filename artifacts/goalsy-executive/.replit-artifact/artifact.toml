@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Goalsy Executive"
+version = "1.0.0"
+id = "artifacts/goalsy-executive"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24521
+
+[services.development]
+run = "pnpm --filter @workspace/goalsy-executive run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/goalsy-executive", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/goalsy-executive/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24521"
+BASE_PATH = "/"
