@@ -28,14 +28,16 @@ export default function ListRow({
       onClick={onClick}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
-      className={`bg-[#0F1625] border border-[#1A2238] rounded-xl px-4 py-3.5 min-h-[56px] flex items-center gap-4 ${
+      className={`bg-[#0F1625] border border-[#1A2238] rounded-xl px-4 py-3.5 min-h-[56px] flex items-center justify-between gap-4 ${
         isClickable ? 'hover:bg-[#131E35] cursor-pointer transition-colors' : ''
       } ${className}`}
     >
-      {icon && <div className="text-[#94A3B8] flex items-center justify-center w-5 flex-shrink-0">{icon}</div>}
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm font-semibold leading-5 ${titleColor}`}>{title}</div>
-        {subtitle && <div className="text-[#64748B] text-xs leading-4 mt-0.5 truncate">{subtitle}</div>}
+      <div className="flex items-start gap-4 flex-1 min-w-0">
+        {icon && <div className="text-[#94A3B8] flex items-center justify-center w-5 flex-shrink-0">{icon}</div>}
+        <div className="min-w-0">
+          <div className={`text-sm font-semibold leading-5 ${titleColor}`}>{title}</div>
+          {subtitle && <div className="text-[#64748B] text-xs leading-4 mt-0.5 truncate">{subtitle}</div>}
+        </div>
       </div>
       {rightElement ? (
         <div className="flex items-center justify-center flex-shrink-0 w-11">{rightElement}</div>
