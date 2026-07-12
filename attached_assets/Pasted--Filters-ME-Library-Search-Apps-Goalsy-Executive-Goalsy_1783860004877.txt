@@ -1,0 +1,109 @@
+
+
+Filters
+ME
+
+Library
+Search
+Apps
+Goalsy Executive
+Goalsy Executive
+Website
+
+
+
+
+
+/signin
+
+
+
+
+
+Pasted-Perform-a-complete-UI-correction-pass-on-the-entire-Goa_1783653222604.txt
+2 days ago
+
+81 actions
+
+Worked for 10 minutes
+Time worked
+10 minutes
+Work done
+69 actions
+Items read
+1,310 lines
+Agent usage
+$2.81
+
+Pasted-I-have-a-bug-where-the-visible-position-of-buttons-tapp_1783859541380.txt
+3 minutes ago
+
+Show less
+
+Opened Pasted-I-have-a-bug-where-the-visible-position-of-buttons-tapp_1783859541380.txt
+
+Opened AppShell.tsx
+
+Opened index.html
+
+Opened index.css
+
+Searched for "transform: scale|transf…"
+
+Searched for "max-w-md|mx-auto|fixed|…"
+
+Opened App.tsx
+
+Opened main.tsx
+
+Searched for "max-w-md|mx-auto|w-full…"
+
+Took a screenshot
+
+Opened wide_welcome.jpg
+I found the cause. Here is the exact diagnosis before I touch anything.
+
+Root cause of the click/tap offset
+
+The onboarding screens use a full-screen Figma PNG as the background, then place invisible <button>/<input> overlays on top of it. The visible buttons are in the image, but the click targets are the overlays. The two are drifting apart because the image is being cropped/scaled by object-cover.
+
+Exact files and rules
+
+artifacts/goalsy-executive/src/pages/SplashScreen.tsx
+artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx
+artifacts/goalsy-executive/src/pages/SignInScreen.tsx
+artifacts/goalsy-executive/src/pages/CreateAccountScreen.tsx
+artifacts/goalsy-executive/src/pages/FinancialConnectionScreen.tsx
+Each has the same problematic container:
+
+<div className="min-h-[100dvh] w-full max-w-md mx-auto relative overflow-hidden bg-black">
+  <img
+    src="..."
+    className="absolute inset-0 w-full h-full object-cover"
+  />
+  <button className="absolute bottom-[138px] left-6 right-6 h-14 ..." />
+</div>
+
+The object-cover on the <img> scales/crops the image to fill the container. The container is max-w-md (448px) and min-h-[100dvh] (dynamic height), while the Figma exports are sized for a 390×844 mobile frame. The aspect ratios don’t match, so the visible buttons in the image shift up/down relative to the absolutely-positioned overlay hit targets. That’s the click offset.
+
+Why it looks left-pinned
+
+The same max-w-md container is the root app column, but it has no outer viewport-centering wrapper. In artifacts/goalsy-executive/src/index.css the body rule is missing min-height: 100vh and display: flex; justify-content: center, so the 448px column is not guaranteed to sit in the middle of the preview. The background image is also being cropped horizontally because the container is wider than the Figma export.
+
+What I checked and ruled out
+
+No transform: scale(...) anywhere in the layout chain.
+Viewport meta tag is correct: width=device-width, initial-scale=1.0.
+mx-auto is present, but it only works if the parent is centered and wide enough.
+Proposed fix
+
+Center the app root by adding a viewport-centering wrapper in index.css / body.
+Lock the onboarding container to the Figma image’s native aspect ratio (390:844) and center it, so object-cover never crops the image and the overlay coordinates stay aligned with the visible buttons.
+Shall I proceed with this fix?
+
+
+Checkpoint made
+just now
+Refactor Goalsy components to improve styling and layout consistency
+Jul 12, 2026, 8:34 AM
+
