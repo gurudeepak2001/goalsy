@@ -1,0 +1,41 @@
+Here's a prompt that covers both parts — making every button actually respond, and structuring the mock data so swapping in real data later is easy instead of another rebuild:
+
+```
+I'm preparing this app for a presentation using sample/mock data — not real 
+bank connections or live APIs yet. Please make sure every button and 
+interactive element across all screens actually works, using realistic 
+mock data, structured so I can swap in real data later without rebuilding 
+the UI.
+
+Please do this in two steps:
+
+STEP 1 — Audit only, no changes yet:
+Go through every screen (Today, Goals Overview, AI Home, Financial Health, 
+Calendar, Profile, Goalsy Score, Sign In, Create Account, Financial 
+Connection) and list every button/interactive element that currently does 
+nothing when tapped (no navigation, no response, no state change, console 
+errors, etc). Show me this list before changing anything.
+
+STEP 2 — Fix, one screen at a time:
+For each button on the list, make it functional using mock data, following 
+these rules:
+- Store all mock data in one clearly separated place (e.g. a /mockData or 
+  /lib/mockData folder/file), NOT hardcoded inline in each component — so 
+  I can later replace this one source with a real API/database call 
+  without touching the UI code.
+- Every button should visibly respond to a tap: navigate somewhere, open a 
+  modal, show a success/confirmation state, update on-screen data, etc. 
+  Nothing should be a silent dead tap.
+- For actions that would normally involve a real service (bank connection, 
+  FaceID, sending money, etc.), simulate a realistic result (e.g. a loading 
+  state then a success message) rather than doing nothing or throwing an 
+  error.
+- Add a clear code comment like "// MOCK DATA - replace with real API call" 
+  wherever mock data or a simulated action is used, so it's easy for me to 
+  find every spot that still needs real integration later.
+
+Go screen by screen, not all at once. After each screen, tell me what you 
+made functional and show me a screenshot before moving to the next one.
+```
+
+This keeps two things you specifically need: nothing left dead/unresponsive for the presentation, and a clean, findable seam between "mock" and "real" so swapping in actual data later is a targeted change, not another full rebuild.
