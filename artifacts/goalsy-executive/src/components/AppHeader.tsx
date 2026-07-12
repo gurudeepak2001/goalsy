@@ -22,7 +22,7 @@ export default function AppHeader({
 }: AppHeaderProps) {
   if (dashboard) {
     return (
-      <header className={`flex items-center justify-between h-full ${className}`}>
+      <header className={`relative flex items-center h-full ${className}`}>
         <div className="flex items-center gap-3 h-10">
           <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.1)] flex-shrink-0">
             <Layers color="white" size={20} strokeWidth={2} />
@@ -31,7 +31,7 @@ export default function AppHeader({
             Goalsy
           </span>
         </div>
-        <div className="flex items-center gap-3 h-10">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3 h-10">
           <button className="w-10 h-10 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0">
             <Zap size={16} strokeWidth={2} />
           </button>
