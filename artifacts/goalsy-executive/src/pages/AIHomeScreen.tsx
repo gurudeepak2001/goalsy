@@ -1,189 +1,122 @@
 import {
-  TrendingUp,
-  ShieldAlert,
-  Sparkles,
-  Wallet,
   ArrowRight,
-  ChevronRight,
-  Activity,
-  PieChart,
+  Layers,
+  Lightbulb,
+  TrendingUp,
   BarChart3,
-  ArrowUpRight,
+  Zap,
 } from 'lucide-react';
-import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
-import SectionLabel from '@/components/SectionLabel';
-import InsightCard from '@/components/InsightCard';
+import Avatar from '@/components/Avatar';
 
 export default function AIHomeScreen() {
-  const [, navigate] = useLocation();
-
   return (
-    <AppShell activeTab="today" header={<AppHeader dashboard />}>
-      <div className="pt-2">
-        <p className="text-[#94A3B8] text-sm">Executive Briefing</p>
-        <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">
-          Strategic Intelligence
-        </h1>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mt-6">
-        <InsightCard
-          title="Financial Pulse"
-          subtitle="Overall status"
-          icon={<Activity size={18} />}
-          stat="92.4"
-          statLabel="HEALTH"
-          accent="text-[#22C55E]"
-        />
-        <InsightCard
-          title="Risk Radar"
-          subtitle="Active exposures"
-          icon={<ShieldAlert size={18} />}
-          stat="LOW"
-          statLabel="RISK LEVEL"
-          accent="text-[#22C55E]"
-        />
-        <InsightCard
-          title="Opportunity Engine"
-          subtitle="Potential gains"
-          icon={<Sparkles size={18} />}
-          stat="+$4.2k"
-          statLabel="THIS MONTH"
-          accent="text-[#22C55E]"
-        />
-        <InsightCard
-          title="Cash Flow"
-          subtitle="Net position"
-          icon={<Wallet size={18} />}
-          stat="$12.8k"
-          statLabel="RUNWAY"
-          accent="text-white"
-        />
-      </div>
-
-      <div className="mt-8">
-        <SectionLabel
-          text="RECOMMENDATIONS"
-          rightElement={
-            <button
-              onClick={() => navigate('/goals')}
-              className="text-[#2563EB] text-xs font-semibold tracking-wider flex items-center gap-1"
-            >
-              View All <ArrowRight size={12} />
-            </button>
-          }
-        />
-        <div className="flex flex-col gap-3">
-          <InsightCard
-            variant="row"
-            title="Reallocate savings to high-yield account"
-            subtitle="Potential +$180 monthly interest"
-            icon={<TrendingUp size={18} />}
-            stat="HIGH"
-            statLabel="PRIORITY"
-            accent="text-[#F59E0B]"
-          />
-          <InsightCard
-            variant="row"
-            title="Reduce discretionary spending by 12%"
-            subtitle="Dining & entertainment trending up"
-            icon={<BarChart3 size={18} />}
-            stat="MEDIUM"
-            statLabel="PRIORITY"
-            accent="text-[#2563EB]"
-          />
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <SectionLabel text="MARKET INTELLIGENCE" accentBar />
-        <div className="flex flex-col gap-3">
-          <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#2563EB] text-[10px] font-bold tracking-wider uppercase bg-[#2563EB]/10 px-2 py-1 rounded-full">
-                MARKET
-              </span>
-              <div className="flex items-center gap-1 text-[#22C55E] text-xs font-semibold">
-                <ArrowUpRight size={12} /> +1.8%
-              </div>
+    <AppShell
+      activeTab="ai"
+      headerClassName="h-[80px] px-8 bg-[#05070A]/90 backdrop-blur-[12px]"
+      contentClassName="pt-[112px]"
+      header={<AppHeader dashboard dashboardTitle="Strategic Intelligence" showNotification={false} />}
+    >
+      <div className="flex flex-col gap-6">
+        {/* Strategic Recommendation */}
+        <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <Lightbulb size={20} className="text-[#3B82F6]" strokeWidth={2} />
             </div>
-            <h4 className="text-white font-semibold text-sm">S&P 500 reaches quarterly high</h4>
-            <p className="text-[#64748B] text-xs mt-1">
-              Broad market momentum suggests favorable conditions for index exposure.
-            </p>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+              Strategic Recommendation
+            </span>
           </div>
-
-          <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[#F59E0B] text-[10px] font-bold tracking-wider uppercase bg-[#F59E0B]/10 px-2 py-1 rounded-full">
-                RATES
+          <div className="flex flex-col gap-2">
+            <h2 className="text-white font-bold text-[28px] leading-[35px]">
+              Refinance Mortgage
+            </h2>
+            <span className="text-[#22C55E] font-bold text-base leading-6">
+              Potential Savings: $420/mo
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-[#22C55E] rounded-full"></div>
+              <span className="text-[#CBD5E1] font-semibold text-sm leading-[21px]">
+                Confidence
               </span>
-              <div className="flex items-center gap-1 text-[#EF4444] text-xs font-semibold">
-                <ArrowUpRight size={12} /> +0.25%
-              </div>
             </div>
-            <h4 className="text-white font-semibold text-sm">Fed signals higher for longer</h4>
-            <p className="text-[#64748B] text-xs mt-1">
-              Consider locking in fixed-rate liabilities before next cycle.
-            </p>
+            <span className="text-white font-bold text-base leading-6">94%</span>
           </div>
         </div>
-      </div>
 
-      <div className="mt-8">
-        <SectionLabel text="QUICK ACTIONS" accentBar />
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => navigate('/financial-health')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
-          >
-            <span className="text-white text-sm font-semibold">Review Budget</span>
-            <ChevronRight size={16} className="text-[#64748B]" />
-          </button>
-          <button
-            onClick={() => navigate('/goals')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
-          >
-            <span className="text-white text-sm font-semibold">Invest Now</span>
-            <ChevronRight size={16} className="text-[#64748B]" />
-          </button>
-          <button
-            onClick={() => navigate('/calendar')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
-          >
-            <span className="text-white text-sm font-semibold">Transfer Funds</span>
-            <ChevronRight size={16} className="text-[#64748B]" />
-          </button>
-          <button
-            onClick={() => navigate('/score')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between hover:bg-[#131E35] transition-colors text-left"
-          >
-            <span className="text-white text-sm font-semibold">Credit Report</span>
-            <PieChart size={16} className="text-[#64748B]" />
-          </button>
+        {/* Financial Forecast */}
+        <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <TrendingUp size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+              Financial Forecast
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[#CBD5E1] font-semibold text-sm leading-[21px]">
+              Projected Net Worth (Dec 2024)
+            </span>
+            <div className="flex items-end gap-3">
+              <span className="text-white font-bold text-[36px] leading-9">$1.42M</span>
+              <span className="text-[#22C55E] font-bold text-base leading-6 mb-1">+8.4%</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-8 bg-[#0F1625] border border-[#1A2238] rounded-xl p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="bg-[#2563EB] rounded-xl p-2 text-white">
-            <Sparkles size={18} />
+        {/* Scenario Simulator */}
+        <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <BarChart3 size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+              Scenario Simulator
+            </span>
           </div>
-          <div>
-            <div className="text-white font-semibold text-sm">Ask Goalsy AI</div>
-            <div className="text-[#64748B] text-xs">Get personalized financial guidance</div>
+          <div className="bg-[#1F2937] border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+            <span className="text-[#E5E7EB] font-semibold text-base leading-[26px]">
+              Impact of $500/mo additional debt payment:
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="bg-[#EF4444]/20 border border-[#EF4444]/30 rounded px-3 py-1 text-[#EF4444] font-bold text-sm leading-[21px]">
+                -14 Months
+              </span>
+              <span className="text-[#CBD5E1] font-semibold text-sm leading-[21px]">
+                to debt free
+              </span>
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => toast({ title: 'Goalsy AI', description: 'AI assistant is ready to help.' })}
-          className="w-full bg-[#09090C] border border-[#1A2238] rounded-xl px-4 py-3 flex items-center justify-between hover:bg-[#131E35] transition-colors"
-        >
-          <span className="text-[#475569] text-sm">How can I optimize my portfolio?</span>
-          <ArrowRight size={16} className="text-[#2563EB]" />
-        </button>
+
+        {/* Daily Analysis */}
+        <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <Zap size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+              Daily Analysis
+            </span>
+          </div>
+          <p className="text-[#E5E7EB] font-bold text-lg leading-[25px]">
+            Cash flow is 12% above target. Recommend moving $2,400 to High-Yield Savings.
+          </p>
+          <button
+            type="button"
+            onClick={() => toast({ title: 'Transfer', description: 'Executing transfer...' })}
+            className="w-full h-14 bg-[#2563EB] shadow-[0_0_20px_rgba(37,99,235,0.15)] rounded-xl flex items-center justify-center gap-3 text-white font-bold text-base active:scale-95 transition-transform"
+          >
+            Execute Transfer
+            <ArrowRight size={16} />
+          </button>
+        </div>
       </div>
     </AppShell>
   );

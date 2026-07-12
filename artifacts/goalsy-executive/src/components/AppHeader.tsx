@@ -12,6 +12,8 @@ interface AppHeaderProps {
   title?: string;
   className?: string;
   dashboard?: boolean;
+  dashboardTitle?: string;
+  showNotification?: boolean;
 }
 
 export default function AppHeader({
@@ -21,6 +23,8 @@ export default function AppHeader({
   title,
   className = '',
   dashboard = false,
+  dashboardTitle,
+  showNotification = true,
 }: AppHeaderProps) {
   if (dashboard) {
     const [, navigate] = useLocation();
@@ -31,18 +35,20 @@ export default function AppHeader({
             <Layers color="white" size={20} strokeWidth={2} />
           </div>
           <span className="text-white font-bold text-lg leading-[27px]" style={{ letterSpacing: '-0.45px' }}>
-            Goalsy
+            {dashboardTitle || 'Goalsy'}
           </span>
         </div>
         <div className="flex items-center gap-3 h-10">
-          <button
-            type="button"
-            aria-label="Notifications"
-            onClick={() => toast({ title: 'Notifications', description: 'Notification center coming soon.' })}
-            className="w-10 h-10 p-0 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
-          >
-            <Zap size={16} strokeWidth={2} />
-          </button>
+          {showNotification && (
+            <button
+              type="button"
+              aria-label="Notifications"
+              onClick={() => toast({ title: 'Notifications', description: 'Notification center coming soon.' })}
+              className="w-10 h-10 p-0 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+            >
+              <Zap size={16} strokeWidth={2} />
+            </button>
+          )}
           <button
             type="button"
             aria-label="Go to profile"
