@@ -21,7 +21,7 @@ export default function SplashScreen() {
         <GoalsyLogo size="lg" />
       </div>
       <h1 className="text-white font-bold text-2xl tracking-tight mt-6">
-        Goalsy
+        GoalsyExecutive
       </h1>
       <div className="w-8 h-0.5 bg-[#2563EB] mt-3 mx-auto rounded-full"></div>
     </div>
