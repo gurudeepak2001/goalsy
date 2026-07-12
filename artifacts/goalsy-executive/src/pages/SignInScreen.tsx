@@ -1,6 +1,6 @@
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
-import { PieChart, ShieldCheck, Target } from 'lucide-react';
+import { Mail, Lock, Target } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
@@ -9,64 +9,99 @@ export default function SignInScreen() {
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#09090C] max-w-md mx-auto flex flex-col overflow-y-auto">
-      <div className="px-6 pt-12 pb-10 flex-1 flex flex-col">
-        <AppHeader />
-        
-        <h1 className="text-white font-black text-4xl mt-12 tracking-tight">Welcome Back.</h1>
-        <p className="text-[#94A3B8] text-sm mt-3">Access your financial cockpit.</p>
-        
-        <div className="mt-10 flex flex-col gap-5">
-          <ExecutiveInput 
-            label="EMAIL ADDRESS" 
-            type="email" 
-            placeholder="executive@domain.com"
-            leftIcon={<PieChart size={20} />}
-          />
-          
-          <ExecutiveInput 
-            label="PASSWORD" 
-            type="password" 
-            placeholder="••••••••"
-            leftIcon={<ShieldCheck size={20} />}
-            rightElement={
-              <button
-                type="button"
-                onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
-                className="text-[#2563EB] text-xs font-semibold tracking-widest hover:text-[#1D4ED8] transition-colors"
+    <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col overflow-y-auto bg-[#05070A]">
+      <div className="w-[327px] mx-auto pt-12 pb-10 flex-1 flex flex-col">
+        <div className="pb-16">
+          <AppHeader />
+        </div>
+
+        <main className="w-[327px] flex flex-col justify-center">
+          <div className="pb-12">
+            <div className="flex flex-col gap-3">
+              <h1
+                className="text-white font-bold text-[40px] leading-[44px]"
+                style={{ letterSpacing: '-2px' }}
               >
-                FORGOT?
-              </button>
-            }
-          />
-        </div>
-        
-        <ExecutiveButton
-          text="Sign In"
-          className="mt-8"
-          onClick={() => navigate('/financial-connection')}
-        />
-        
-        <div className="mt-10 flex items-center gap-4">
-          <div className="bg-[#1E2D45] h-px flex-1"></div>
-          <span className="text-[#475569] text-xs tracking-widest uppercase font-medium">SECURE BIOMETRIC</span>
-          <div className="bg-[#1E2D45] h-px flex-1"></div>
-        </div>
-        
-        <div className="mt-8 flex flex-col items-center">
-          <button
-            onClick={() => navigate('/goals')}
-            className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-4 w-16 h-16 flex items-center justify-center hover:bg-[#131E35] transition-colors"
-            aria-label="Sign in with FaceID"
-            data-testid="button-faceid"
+                Welcome Back.
+              </h1>
+              <p className="text-[#CBD5E1] font-semibold text-base leading-6 opacity-80">
+                Access your financial cockpit.
+              </p>
+            </div>
+          </div>
+
+          <form
+            className="flex flex-col gap-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate('/financial-connection');
+            }}
           >
-            <Target size={28} className="text-white" strokeWidth={1.5} aria-hidden="true" />
-          </button>
-          <span className="text-white font-semibold text-sm mt-3">Use FaceID</span>
-        </div>
-        
-        <div className="mt-auto pt-12 text-[#475569] text-[10px] tracking-[0.2em] uppercase text-center font-medium">
-          PRECISION INTELLIGENCE SYSTEM V4.2
+            <ExecutiveInput
+              label="Email Address"
+              type="email"
+              placeholder="executive@domain.com"
+              leftIcon={<Mail size={18} />}
+            />
+
+            <ExecutiveInput
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              leftIcon={<Lock size={18} />}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
+                  className="text-[#3B82F6] text-xs font-bold uppercase tracking-[0.5px]"
+                >
+                  Forgot?
+                </button>
+              }
+            />
+
+            <div className="pt-4">
+              <ExecutiveButton
+                text="Sign In"
+                style={{ letterSpacing: '0.00195312em', boxShadow: '0 0 40px rgba(37, 99, 235, 0.1)' }}
+                onClick={() => navigate('/financial-connection')}
+              />
+            </div>
+          </form>
+
+          <div className="pt-12 flex flex-col items-center gap-6">
+            <div className="flex items-center gap-4 w-full">
+              <div className="h-px flex-1 bg-white/5"></div>
+              <span className="text-[#444444] text-xs font-bold uppercase tracking-[1px]">
+                Secure Biometric
+              </span>
+              <div className="h-px flex-1 bg-white/5"></div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={() => navigate('/goals')}
+                className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#1F2937] border border-white/5"
+                style={{ boxShadow: '0 0 40px rgba(37, 99, 235, 0.1)' }}
+                aria-label="Sign in with FaceID"
+                data-testid="button-faceid"
+              >
+                <Target size={32} className="text-white" strokeWidth={1.5} />
+              </button>
+              <span
+                className="text-[#CBD5E1] font-bold text-sm"
+                style={{ letterSpacing: '0.00292969em' }}
+              >
+                Use FaceID
+              </span>
+            </div>
+          </div>
+        </main>
+
+        <div className="mt-auto pt-12 text-center">
+          <span className="text-[#444444] text-xs font-bold uppercase tracking-[1px]">
+            Precision Intelligence System v4.2
+          </span>
         </div>
       </div>
     </div>
