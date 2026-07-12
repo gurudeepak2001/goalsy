@@ -6,7 +6,7 @@ interface BottomNavProps {
 }
 
 const tabs = [
-  { id: 'today', label: 'TODAY', icon: Layers, path: '/ai-home' },
+  { id: 'today', label: 'TODAY', icon: Layers, path: '/financial-health' },
   { id: 'goals', label: 'GOALS', icon: Target, path: '/goals' },
   { id: 'calendar', label: 'CALENDAR', icon: Calendar, path: '/calendar' },
   { id: 'ai', label: 'AI', icon: Cog, path: '/ai-home' },
