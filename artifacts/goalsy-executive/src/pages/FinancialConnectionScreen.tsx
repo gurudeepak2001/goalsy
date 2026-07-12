@@ -1,5 +1,5 @@
 import { useLocation } from 'wouter';
-import { Activity, Shield, Lock } from 'lucide-react';
+import { Activity, Shield, Lock, Layers, PieChart } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveButton from '@/components/ExecutiveButton';
 
@@ -82,8 +82,8 @@ export default function FinancialConnectionScreen() {
                 Powered by
               </span>
               <div className="flex items-center gap-1">
-                <div className="w-4 h-4 border border-white rounded-full flex items-center justify-center">
-                  <span className="text-white text-[8px] font-bold">P</span>
+                <div className="w-4 h-4 border border-white rounded-[3px] flex items-center justify-center">
+                  <span className="text-white text-[7px] font-bold leading-none">P</span>
                 </div>
                 <span
                   className="text-white font-bold text-sm"
@@ -110,6 +110,20 @@ export default function FinancialConnectionScreen() {
               className="border border-white/20 text-[#CBD5E1] text-base"
               onClick={() => navigate('/goals')}
             />
+          </div>
+
+          <div className="pb-6 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-4">
+              <PieChart size={16} className="text-[#444444]" strokeWidth={2} />
+              <Layers size={16} className="text-[#444444]" strokeWidth={2} />
+              <Shield size={16} className="text-[#444444]" strokeWidth={2} />
+            </div>
+            <span
+              className="text-[#444444] text-[10px] font-bold uppercase text-center"
+              style={{ letterSpacing: '2px', lineHeight: '15px' }}
+            >
+              Goalsy Executive © 2024 · All Systems Secure
+            </span>
           </div>
         </main>
       </div>
