@@ -1,1 +1,0 @@
-- [Figma matching vs. functionality](figma-matching-vs-functionality.md) — preserve semantic components and a11y; use static Figma backgrounds only for truly static onboarding screens.

@@ -1,86 +1,69 @@
-import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { toast } from '@/hooks/use-toast';
-import OnboardingShell from '@/components/OnboardingShell';
+import { PieChart, ShieldCheck } from 'lucide-react';
+import AppHeader from '@/components/AppHeader';
+import ExecutiveInput from '@/components/ExecutiveInput';
+import ExecutiveButton from '@/components/ExecutiveButton';
 
 export default function CreateAccountScreen() {
-  const [, navigate] = useLocation();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !password) {
-      toast({ title: 'Validation', description: 'Please fill in all fields.' });
-      return;
-    }
-    navigate('/financial-connection');
-  };
+  const [, setLocation] = useLocation();
 
   return (
-    <OnboardingShell background="/create-account-bg.png" alt="Create Account">
-      {/* Back to Welcome */}
-      <button
-        onClick={() => navigate('/welcome')}
-        className="absolute top-[5.69%] left-[6.15%] w-[12.31%] h-[5.69%] z-10 flex items-center justify-center"
-        aria-label="Back"
-      />
-
-      <form onSubmit={handleSubmit} className="absolute inset-0 z-10">
-        {/* Full name input */}
-        <label htmlFor="create-name" className="sr-only">Full name</label>
-        <input
-          id="create-name"
-          name="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="absolute top-[30.81%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
-          autoComplete="name"
-          aria-label="Full name"
+    <div className="min-h-[100dvh] w-full bg-[#09090C] max-w-md mx-auto flex flex-col overflow-y-auto">
+      <div className="px-6 pt-12 pb-10 flex-1 flex flex-col">
+        <AppHeader />
+        
+        <h1 className="text-white font-black text-4xl mt-12 tracking-tight">Begin Your Mission.</h1>
+        <p className="text-[#94A3B8] text-sm mt-3">Establish your financial operating system.</p>
+        
+        <div className="mt-10 flex flex-col gap-5">
+          <ExecutiveInput 
+            label="FULL NAME" 
+            placeholder="Johnathan Executive"
+            leftIcon={<PieChart size={20} />}
+          />
+          
+          <ExecutiveInput 
+            label="EMAIL ADDRESS" 
+            type="email" 
+            placeholder="executive@domain.com"
+            leftIcon={<PieChart size={20} />}
+          />
+          
+          <ExecutiveInput 
+            label="SECURE PASSWORD" 
+            type="password" 
+            placeholder="••••••••"
+            leftIcon={<ShieldCheck size={20} />}
+          />
+        </div>
+        
+        <ExecutiveButton 
+          text="Create Account" 
+          className="mt-8"
+          onClick={() => setLocation('/financial-connection')}
         />
-
-        {/* Email input */}
-        <label htmlFor="create-email" className="sr-only">Email address</label>
-        <input
-          id="create-email"
-          name="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="absolute top-[39.10%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
-          autoComplete="email"
-          aria-label="Email address"
+        
+        <ExecutiveButton 
+          variant="outline"
+          text="Already have an account? Sign In" 
+          className="mt-4"
+          onClick={() => setLocation('/signin')}
         />
-
-        {/* Password input */}
-        <label htmlFor="create-password" className="sr-only">Password</label>
-        <input
-          id="create-password"
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="absolute top-[47.39%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
-          autoComplete="new-password"
-          aria-label="Password"
-        />
-
-        {/* Create Account button (transparent overlay on Figma button) */}
-        <button
-          type="submit"
-          className="absolute top-[60.43%] left-[6.15%] right-[6.15%] h-[6.64%] z-10"
-          aria-label="Create Account"
-        />
-      </form>
-
-      {/* Sign In link (transparent overlay on Figma text) */}
-      <button
-        onClick={() => navigate('/signin')}
-        className="absolute top-[69.91%] left-[6.15%] right-[6.15%] h-[4.74%] z-10"
-        aria-label="Already have an account? Sign In"
-      />
-    </OnboardingShell>
+        
+        <div className="mt-12 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-0.5 bg-[#2563EB]"></div>
+            <span className="text-[#475569] text-xs tracking-widest uppercase font-medium">SECURITY PROTOCOLS ACTIVE</span>
+          </div>
+          <p className="text-[#475569] text-xs leading-relaxed mt-4">
+            By establishing this account, you authorize encrypted data processing under the Executive Performance Standards.
+          </p>
+        </div>
+        
+        <div className="mt-auto pt-8 text-[#334155] text-[10px] tracking-[0.2em] uppercase text-left font-medium">
+          GOALSY EXECUTIVE DESIGN SYSTEM © 2024
+        </div>
+      </div>
+    </div>
   );
 }

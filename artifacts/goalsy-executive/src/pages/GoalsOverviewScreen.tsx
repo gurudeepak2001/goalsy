@@ -1,4 +1,4 @@
-import { Target, Shield, Plane, TrendingUp, Plus, CheckCircle2 } from 'lucide-react';
+import { Target, Shield, Plane, TrendingUp, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -16,19 +16,20 @@ function SummaryCard({
   accent: string;
 }) {
   return (
-    <div className="bg-gradient-to-b from-[#111827] to-[#0F1625] border border-[#1A2238] rounded-2xl p-4 flex-1 flex flex-col shadow-lg shadow-black/40">
-      <div className={`text-[26px] font-black leading-7 ${accent}`}>{value}</div>
-      <div className="text-[#64748B] text-[10px] uppercase tracking-[0.15em] font-bold mt-2">{label}</div>
+    <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-3 flex-1 flex flex-col">
+      <div className={`text-2xl font-black ${accent}`}>{value}</div>
+      <div className="text-[#64748B] text-[10px] uppercase tracking-wider font-bold mt-1">{label}</div>
     </div>
   );
 }
 
 export default function GoalsOverviewScreen() {
   return (
-    <AppShell activeTab="goals" header={<AppHeader showSecureMode rightElement={<Avatar fallback="AL" />} />}>
+    <AppShell activeTab="goals" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
-        <p className="text-[#64748B] text-sm font-medium">Financial Targets</p>
-        <h1 className="text-white font-black text-[32px] leading-9 tracking-tight mt-1">Goals</h1>
+        <p className="text-[#94A3B8] text-sm">Objectives</p>
+        <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">Goals Overview</h1>
+        <p className="text-[#94A3B8] text-sm mt-2">Track progress toward your strategic objectives.</p>
       </div>
 
       <div className="flex gap-3 mt-6">
@@ -42,10 +43,9 @@ export default function GoalsOverviewScreen() {
           <SectionLabel text="ACTIVE GOALS" accentBar className="mb-0" />
           <button
             onClick={() => toast({ title: 'New Goal', description: 'Goal creation form coming soon.' })}
-            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2.5 transition-colors shadow-[0_0_12px_rgba(37,99,235,0.35)]"
-            aria-label="Add new goal"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full p-2 transition-colors"
           >
-            <Plus size={18} />
+            <Plus size={16} />
           </button>
         </div>
 
@@ -85,51 +85,51 @@ export default function GoalsOverviewScreen() {
 
       <div className="mt-8">
         <SectionLabel text="COMPLETED GOALS" accentBar />
-        <div className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-5 flex flex-col gap-4">
+        <div className="bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#22C55E]/10 rounded-xl p-2.5 text-[#22C55E]">
+              <div className="bg-[#0F2A1A] rounded-xl p-2.5 text-[#22C55E]">
                 <Target size={18} />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Pay off student loans</div>
-                <div className="text-[#64748B] text-xs mt-0.5">$32,000 eliminated</div>
+                <div className="text-white font-semibold text-sm">Pay off student loans</div>
+                <div className="text-[#64748B] text-xs">$32,000 eliminated</div>
               </div>
             </div>
-            <div className="text-[#22C55E] text-[10px] font-bold tracking-[0.15em] uppercase bg-[#22C55E]/10 px-2.5 py-1 rounded-full border border-[#22C55E]/20">
+            <div className="text-[#22C55E] text-xs font-bold bg-[#0F2A1A] px-2 py-1 rounded-full border border-[#16A34A]/30">
               DONE
             </div>
           </div>
           <div className="h-px bg-[#1A2238]" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#22C55E]/10 rounded-xl p-2.5 text-[#22C55E]">
+              <div className="bg-[#0F2A1A] rounded-xl p-2.5 text-[#22C55E]">
                 <Target size={18} />
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Build $10k starter emergency fund</div>
-                <div className="text-[#64748B] text-xs mt-0.5">Completed in March 2024</div>
+                <div className="text-white font-semibold text-sm">Build $10k starter emergency fund</div>
+                <div className="text-[#64748B] text-xs">Completed in March 2024</div>
               </div>
             </div>
-            <div className="text-[#22C55E] text-[10px] font-bold tracking-[0.15em] uppercase bg-[#22C55E]/10 px-2.5 py-1 rounded-full border border-[#22C55E]/20">
+            <div className="text-[#22C55E] text-xs font-bold bg-[#0F2A1A] px-2 py-1 rounded-full border border-[#16A34A]/30">
               DONE
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 bg-[#0F1625] border border-[#1A2238] rounded-2xl p-5 mb-6">
+      <div className="mt-6 bg-[#0F1625] border border-[#1A2238] rounded-xl p-4">
         <div className="flex items-center gap-3">
           <div className="bg-[#2563EB] rounded-xl p-2.5 text-white">
             <Target size={18} />
           </div>
           <div className="flex-1">
-            <div className="text-white font-bold text-sm">Create a new goal</div>
-            <div className="text-[#64748B] text-xs mt-0.5">Define a target and timeline</div>
+            <div className="text-white font-semibold text-sm">Create a new goal</div>
+            <div className="text-[#64748B] text-xs">Define a target and timeline</div>
           </div>
           <button
             onClick={() => toast({ title: 'New Goal', description: 'Goal creation form coming soon.' })}
-            className="text-[#2563EB] text-sm font-bold"
+            className="text-[#2563EB] text-sm font-semibold"
           >
             Add
           </button>

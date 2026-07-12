@@ -21,11 +21,11 @@ export default function ProgressBar({
     <div className={`w-full ${className}`}>
       {label && (
         <div className="flex items-center justify-between mb-2">
-          <span className="text-white text-sm font-semibold">{label}</span>
-          <span className="text-[#94A3B8] text-sm font-bold">{value}{suffix}</span>
+          <span className="text-white text-sm font-medium">{label}</span>
+          <span className="text-[#94A3B8] text-sm font-semibold">{value}{suffix}</span>
         </div>
       )}
-      <div className="h-2.5 w-full bg-[#1A2238] rounded-full overflow-hidden">
+      <div className="h-2 w-full bg-[#1A2238] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{ width: `${percentage}%`, backgroundColor: color }}

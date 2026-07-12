@@ -1,72 +1,74 @@
-import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
-import OnboardingShell from '@/components/OnboardingShell';
+import { PieChart, ShieldCheck, Target } from 'lucide-react';
+import AppHeader from '@/components/AppHeader';
+import ExecutiveInput from '@/components/ExecutiveInput';
+import ExecutiveButton from '@/components/ExecutiveButton';
 
 export default function SignInScreen() {
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast({ title: 'Validation', description: 'Please enter your email and password.' });
-      return;
-    }
-    navigate('/goals');
-  };
 
   return (
-    <OnboardingShell background="/signin-bg.png" alt="Sign In">
-      <form onSubmit={handleSubmit} className="absolute inset-0 z-10">
-        {/* Email input */}
-        <label htmlFor="signin-email" className="sr-only">Email address</label>
-        <input
-          id="signin-email"
-          name="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="absolute top-[30.81%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
-          autoComplete="email"
-          aria-label="Email address"
+    <div className="min-h-[100dvh] w-full bg-[#09090C] max-w-md mx-auto flex flex-col overflow-y-auto">
+      <div className="px-6 pt-12 pb-10 flex-1 flex flex-col">
+        <AppHeader />
+        
+        <h1 className="text-white font-black text-4xl mt-12 tracking-tight">Welcome Back.</h1>
+        <p className="text-[#94A3B8] text-sm mt-3">Access your financial cockpit.</p>
+        
+        <div className="mt-10 flex flex-col gap-5">
+          <ExecutiveInput 
+            label="EMAIL ADDRESS" 
+            type="email" 
+            placeholder="executive@domain.com"
+            leftIcon={<PieChart size={20} />}
+          />
+          
+          <ExecutiveInput 
+            label="PASSWORD" 
+            type="password" 
+            placeholder="••••••••"
+            leftIcon={<ShieldCheck size={20} />}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
+                className="text-[#2563EB] text-xs font-semibold tracking-widest hover:text-[#1D4ED8] transition-colors"
+              >
+                FORGOT?
+              </button>
+            }
+          />
+        </div>
+        
+        <ExecutiveButton
+          text="Sign In"
+          className="mt-8"
+          onClick={() => navigate('/financial-connection')}
         />
-
-        {/* Password input */}
-        <label htmlFor="signin-password" className="sr-only">Password</label>
-        <input
-          id="signin-password"
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="absolute top-[39.10%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
-          autoComplete="current-password"
-          aria-label="Password"
-        />
-
-        {/* Sign In button (transparent overlay on Figma button) */}
-        <button
-          type="submit"
-          className="absolute top-[52.13%] left-[6.15%] right-[6.15%] h-[6.64%] z-10"
-          aria-label="Sign In"
-        />
-      </form>
-
-      {/* Forgot Password (transparent overlay on Figma text) */}
-      <button
-        onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
-        className="absolute top-[61.61%] left-[6.15%] right-[6.15%] h-[4.74%] z-10"
-        aria-label="Forgot Password?"
-      />
-
-      {/* Create Account link (transparent overlay on Figma text) */}
-      <button
-        onClick={() => navigate('/create-account')}
-        className="absolute top-[71.09%] left-[6.15%] right-[6.15%] h-[4.74%] z-10"
-        aria-label="Don’t have an account? Sign Up"
-      />
-    </OnboardingShell>
+        
+        <div className="mt-10 flex items-center gap-4">
+          <div className="bg-[#1E2D45] h-px flex-1"></div>
+          <span className="text-[#475569] text-xs tracking-widest uppercase font-medium">SECURE BIOMETRIC</span>
+          <div className="bg-[#1E2D45] h-px flex-1"></div>
+        </div>
+        
+        <div className="mt-8 flex flex-col items-center">
+          <button
+            onClick={() => navigate('/goals')}
+            className="bg-[#0F1625] border border-[#1A2238] rounded-2xl p-4 w-16 h-16 flex items-center justify-center hover:bg-[#131E35] transition-colors"
+            aria-label="Sign in with FaceID"
+            data-testid="button-faceid"
+          >
+            <Target size={28} className="text-white" strokeWidth={1.5} aria-hidden="true" />
+          </button>
+          <span className="text-white font-semibold text-sm mt-3">Use FaceID</span>
+        </div>
+        
+        <div className="mt-auto pt-12 text-[#475569] text-[10px] tracking-[0.2em] uppercase text-center font-medium">
+          PRECISION INTELLIGENCE SYSTEM V4.2
+        </div>
+      </div>
+    </div>
   );
 }
