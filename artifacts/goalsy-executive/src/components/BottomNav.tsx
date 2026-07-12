@@ -16,7 +16,7 @@ const tabs = [
 export default function BottomNav({ activeTab = 'today' }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#05070A]/95 backdrop-blur-xl border-t border-white/5">
-      <div className="max-w-md mx-auto px-2 py-2 flex items-center justify-between">
+      <div className="max-w-[390px] mx-auto px-2 py-2 flex items-center justify-between">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
+import OnboardingShell from '@/components/OnboardingShell';
 
 export default function CreateAccountScreen() {
   const [, navigate] = useLocation();
@@ -18,17 +19,11 @@ export default function CreateAccountScreen() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-md mx-auto relative overflow-hidden bg-black">
-      <img
-        src="/create-account-bg.png"
-        alt="Create Account"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-
+    <OnboardingShell background="/create-account-bg.png" alt="Create Account">
       {/* Back to Welcome */}
       <button
         onClick={() => navigate('/welcome')}
-        className="absolute top-12 left-6 z-10 w-12 h-12 flex items-center justify-center"
+        className="absolute top-[5.69%] left-[6.15%] w-[12.31%] h-[5.69%] z-10 flex items-center justify-center"
         aria-label="Back"
       />
 
@@ -41,7 +36,7 @@ export default function CreateAccountScreen() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="absolute top-[260px] left-6 right-6 h-12 bg-transparent text-white text-base outline-none placeholder-transparent"
+          className="absolute top-[30.81%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
           autoComplete="name"
           aria-label="Full name"
         />
@@ -54,7 +49,7 @@ export default function CreateAccountScreen() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="absolute top-[330px] left-6 right-6 h-12 bg-transparent text-white text-base outline-none placeholder-transparent"
+          className="absolute top-[39.10%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
           autoComplete="email"
           aria-label="Email address"
         />
@@ -67,7 +62,7 @@ export default function CreateAccountScreen() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="absolute top-[400px] left-6 right-6 h-12 bg-transparent text-white text-base outline-none placeholder-transparent"
+          className="absolute top-[47.39%] left-[6.15%] right-[6.15%] h-[5.69%] bg-transparent text-white text-base outline-none placeholder-transparent"
           autoComplete="new-password"
           aria-label="Password"
         />
@@ -75,7 +70,7 @@ export default function CreateAccountScreen() {
         {/* Create Account button (transparent overlay on Figma button) */}
         <button
           type="submit"
-          className="absolute top-[510px] left-6 right-6 h-14 z-10"
+          className="absolute top-[60.43%] left-[6.15%] right-[6.15%] h-[6.64%] z-10"
           aria-label="Create Account"
         />
       </form>
@@ -83,9 +78,9 @@ export default function CreateAccountScreen() {
       {/* Sign In link (transparent overlay on Figma text) */}
       <button
         onClick={() => navigate('/signin')}
-        className="absolute top-[590px] left-6 right-6 h-10 z-10"
+        className="absolute top-[69.91%] left-[6.15%] right-[6.15%] h-[4.74%] z-10"
         aria-label="Already have an account? Sign In"
       />
-    </div>
+    </OnboardingShell>
   );
 }

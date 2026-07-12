@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
+import OnboardingShell from '@/components/OnboardingShell';
 
 export default function SplashScreen() {
   const [, setLocation] = useLocation();
@@ -11,13 +12,5 @@ export default function SplashScreen() {
     return () => clearTimeout(timer);
   }, [setLocation]);
 
-  return (
-    <div className="min-h-[100dvh] w-full max-w-md mx-auto relative overflow-hidden bg-black">
-      <img
-        src="/splash-bg.png"
-        alt="Goalsy Executive"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-    </div>
-  );
+  return <OnboardingShell background="/splash-bg.png" alt="Goalsy Executive" />;
 }
