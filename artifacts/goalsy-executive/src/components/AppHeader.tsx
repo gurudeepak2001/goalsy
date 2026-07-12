@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Bell, Layers } from 'lucide-react';
+import { Zap, Layers } from 'lucide-react';
 import GoalsyLogo from './GoalsyLogo';
 import Avatar from './Avatar';
 
@@ -33,7 +33,7 @@ export default function AppHeader({
         </div>
         <div className="flex items-center gap-3 w-[92px]">
           <button className="w-10 h-10 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0">
-            <Bell size={16} strokeWidth={2} />
+            <Zap size={16} strokeWidth={2} />
           </button>
           <Avatar fallback="AL" size="nav" className="border-2 border-[#2563EB] flex-shrink-0" />
         </div>

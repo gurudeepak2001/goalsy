@@ -1,4 +1,4 @@
-import { Home, Target, Calendar, Sparkle, User } from 'lucide-react';
+import { Layers, Target, Calendar, Cog, Shield } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface BottomNavProps {
@@ -6,11 +6,11 @@ interface BottomNavProps {
 }
 
 const tabs = [
-  { id: 'today', label: 'TODAY', icon: Home, path: '/ai-home' },
+  { id: 'today', label: 'TODAY', icon: Layers, path: '/ai-home' },
   { id: 'goals', label: 'GOALS', icon: Target, path: '/goals' },
   { id: 'calendar', label: 'CALENDAR', icon: Calendar, path: '/calendar' },
-  { id: 'ai', label: 'AI', icon: Sparkle, path: '/financial-health' },
-  { id: 'profile', label: 'PROFILE', icon: User, path: '/profile' },
+  { id: 'ai', label: 'AI', icon: Cog, path: '/financial-health' },
+  { id: 'profile', label: 'PROFILE', icon: Shield, path: '/profile' },
 ] as const;
 
 export default function BottomNav({ activeTab = 'today' }: BottomNavProps) {
