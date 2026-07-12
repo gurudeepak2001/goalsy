@@ -22,6 +22,7 @@ import SectionLabel from '@/components/SectionLabel';
 import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
+import { Switch } from '@/components/ui/switch';
 import {
   mockConnectedAccounts,
   mockNotificationPreferences,
@@ -29,40 +30,6 @@ import {
   mockHelpArticles,
   type MockNotificationPreference,
 } from '@/lib/mockData';
-
-function Toggle({
-  defaultOn = false,
-  checked,
-  onToggle,
-}: {
-  defaultOn?: boolean;
-  checked?: boolean;
-  onToggle?: (next: boolean) => void;
-}) {
-  const [internalOn, setInternalOn] = useState(defaultOn);
-  const isControlled = checked !== undefined;
-  const on = isControlled ? checked : internalOn;
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => {
-        if (isControlled) {
-          onToggle?.(!on);
-        } else {
-          setInternalOn(!on);
-        }
-      }}
-      className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${on ? 'bg-[#2563EB]' : 'bg-[#1F2937]'}`}
-      data-testid="toggle-button"
-    >
-      <span
-        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${on ? 'translate-x-7' : 'translate-x-1'}`}
-      />
-    </button>
-  );
-}
 
 interface RowProps {
   icon: React.ReactNode;
@@ -227,7 +194,7 @@ export default function ProfileScreen() {
             <Row
               icon={<Shield size={20} />}
               title="Security & Biometrics"
-              right={<Toggle defaultOn />}
+              right={<Switch defaultChecked />}
             />
             <Row
               icon={<Bell size={20} />}
@@ -319,7 +286,7 @@ export default function ProfileScreen() {
                 <span className="text-white font-bold text-[15px] leading-[22px]">{pref.label}</span>
                 <span className="text-[#808BA4] font-semibold text-[13px]">{pref.description}</span>
               </div>
-              <Toggle checked={pref.enabled} onToggle={() => toggleNotifPref(pref.id)} />
+              <Switch checked={pref.enabled} onCheckedChange={() => toggleNotifPref(pref.id)} />
             </div>
           ))}
         </div>

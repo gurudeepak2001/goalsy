@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import AppModal from '@/components/AppModal';
+import { Switch } from '@/components/ui/switch';
 import { mockUpcomingBill, mockBriefings, simulateAsync, type MockBriefing } from '@/lib/mockData';
 
 function DayDivider({ text, color = '#808BA4' }: { text: string; color?: string }) {
@@ -202,25 +203,18 @@ export default function CalendarScreen() {
                 Automatically pay {mockUpcomingBill.merchant} on the due date
               </span>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={autopay}
-              onClick={() => {
-                setAutopay((prev) => !prev);
+            <Switch
+              checked={autopay}
+              onCheckedChange={(next) => {
+                setAutopay(next);
                 toast({
-                  title: autopay ? 'Autopay Disabled' : 'Autopay Enabled',
-                  description: autopay
-                    ? `You'll need to pay ${mockUpcomingBill.merchant} manually.`
-                    : `${mockUpcomingBill.merchant} will be paid automatically each cycle.`,
+                  title: next ? 'Autopay Enabled' : 'Autopay Disabled',
+                  description: next
+                    ? `${mockUpcomingBill.merchant} will be paid automatically each cycle.`
+                    : `You'll need to pay ${mockUpcomingBill.merchant} manually.`,
                 });
               }}
-              className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${autopay ? 'bg-[#2563EB]' : 'bg-[#1F2937]'}`}
-            >
-              <span
-                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${autopay ? 'translate-x-7' : 'translate-x-1'}`}
-              />
-            </button>
+            />
           </div>
           <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
             <span className="text-white font-bold text-[15px]">Reminder</span>
