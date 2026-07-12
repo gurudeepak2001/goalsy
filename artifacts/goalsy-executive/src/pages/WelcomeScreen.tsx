@@ -7,49 +7,89 @@ export default function WelcomeScreen() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#09090C] flex flex-col max-w-md mx-auto">
-      <div className="px-6 pt-12">
+    <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col justify-between bg-[#05070A] px-8 pt-12 pb-8">
+      <header className="w-[311px] mx-auto">
         <AppHeader />
-        <h1 className="text-white font-black text-4xl leading-tight mt-10">
-          The Financial<br />Operating<br />System for the<br />Ambitious.
-        </h1>
-        <p className="text-[#94A3B8] text-sm mt-4 leading-relaxed max-w-[280px]">
-          Precision metrics and architectural strategy for high-stakes leadership.
-        </p>
-      </div>
+      </header>
 
-      <div className="relative flex-1 flex flex-col items-center justify-center py-8">
-        {/* Arc effects */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-48 bg-gradient-to-r from-[#2563EB] to-transparent opacity-80 rounded-r-full blur-xl pointer-events-none"></div>
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-48 bg-gradient-to-l from-[#2563EB] to-transparent opacity-80 rounded-l-full blur-xl pointer-events-none"></div>
-        
-        <div className="relative z-10 text-center">
-          <div className="flex items-start justify-center">
-            <span className="text-white font-black text-8xl tracking-tight leading-none">98.4</span>
-            <span className="text-[#94A3B8] font-bold text-3xl mt-2">%</span>
-          </div>
-          <div className="bg-[#0A2A14] text-[#22C55E] text-xs font-bold tracking-widest uppercase px-3 py-1.5 rounded-full mt-4 inline-flex items-center gap-1.5 border border-[#16A34A]/20">
-            <ArrowUpRight size={14} strokeWidth={3} />
-            EFFICIENCY PEAK
+      <main className="w-[311px] mx-auto flex flex-col justify-center py-[46.695px] pb-12">
+        <div className="flex flex-col items-start gap-6">
+          <h1
+            className="text-white font-bold text-[48px] leading-[53px] tracking-[-2.4px]"
+            style={{ letterSpacing: '-2.4px' }}
+          >
+            The Financial<br />Operating<br />System for the<br />Ambitious.
+          </h1>
+          <p
+            className="text-[#CBD5E1] font-semibold text-lg leading-[29px]"
+            style={{ maxWidth: '311px' }}
+          >
+            Precision metrics and architectural strategy for high-stakes leadership.
+          </p>
+        </div>
+
+        <div className="relative w-[311px] h-[320px] mt-16 flex flex-col items-center justify-center">
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: '300px',
+              height: '300px',
+              left: '5.5px',
+              top: '10px',
+              background: '#2563EB',
+              opacity: 0.1,
+              filter: 'blur(40px)',
+            }}
+          />
+          <div className="relative z-10 w-[299.39px] text-center">
+            <div className="relative h-[120px] opacity-90">
+              <span
+                className="absolute left-0 top-[-0.5px] text-white font-bold text-[120px] leading-[120px]"
+                style={{ letterSpacing: '-6px' }}
+              >
+                98.4
+              </span>
+              <span
+                className="absolute text-[#2563EB] font-bold text-[40px] leading-[40px]"
+                style={{ left: '258.76px', top: '68.5px' }}
+              >
+                %
+              </span>
+            </div>
+            <div className="relative mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#111827] border border-white/5">
+              <ArrowUpRight size={16} className="text-[#22C55E]" strokeWidth={3} />
+              <span
+                className="text-[#22C55E] font-bold text-sm uppercase"
+                style={{ letterSpacing: '1.4px' }}
+              >
+                Efficiency Peak
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      <div className="px-6 pb-10 mt-auto">
-        <ExecutiveButton 
-          text="Get Started" 
-          onClick={() => setLocation('/create-account')} 
+      <footer className="w-[311px] mx-auto flex flex-col gap-4">
+        <ExecutiveButton
+          text="Get Started"
+          style={{ letterSpacing: '-0.00488281em' }}
+          onClick={() => setLocation('/create-account')}
         />
-        <ExecutiveButton 
-          variant="outline" 
-          text="Sign In" 
-          className="mt-3"
-          onClick={() => setLocation('/signin')} 
+        <ExecutiveButton
+          variant="outline"
+          text="Sign In"
+          style={{ letterSpacing: '0.00195312em' }}
+          onClick={() => setLocation('/signin')}
         />
-        <div className="text-[#475569] text-xs tracking-widest uppercase text-center mt-8">
-          TRUSTED BY 500+ VENTURES
+        <div className="pt-4 text-center">
+          <span
+            className="text-[#808BA4] font-semibold text-xs uppercase"
+            style={{ letterSpacing: '1.2px', opacity: 0.5 }}
+          >
+            Trusted by 500+ Ventures
+          </span>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

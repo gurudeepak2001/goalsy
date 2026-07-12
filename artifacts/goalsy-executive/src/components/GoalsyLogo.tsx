@@ -7,13 +7,13 @@ interface GoalsyLogoProps {
 export default function GoalsyLogo({ size = 'md' }: GoalsyLogoProps) {
   const sizeClasses = {
     sm: 'w-8 h-8 rounded-lg',
-    md: 'w-10 h-10 rounded-xl',
+    md: 'w-10 h-10 rounded-lg',
     lg: 'w-16 h-16 rounded-2xl'
   };
 
   const iconSizes = {
     sm: 16,
-    md: 20,
+    md: 24,
     lg: 32
   };
 

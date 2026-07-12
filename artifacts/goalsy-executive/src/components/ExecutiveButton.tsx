@@ -9,18 +9,19 @@ interface ExecutiveButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export default function ExecutiveButton({ variant = 'primary', text, icon, className = '', ...props }: ExecutiveButtonProps) {
   const isPrimary = variant === 'primary';
-  
+
   return (
-    <button 
-      className={`h-14 w-full flex items-center justify-center gap-2 rounded-xl text-base font-semibold transition-colors ${
-        isPrimary 
-          ? 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white' 
-          : 'bg-transparent border border-[#2A3550] text-white hover:bg-[#2A3550]/50'
+    <button
+      className={`w-full flex items-center justify-center gap-3 rounded-2xl text-lg font-bold transition-colors ${
+        isPrimary
+          ? 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white h-16'
+          : 'bg-transparent border-2 border-white/20 text-white h-16 hover:bg-white/5'
       } ${className}`}
+      style={isPrimary ? { boxShadow: '0 0 30px rgba(37, 99, 235, 0.25)' } : undefined}
       {...props}
     >
       {text}
-      {icon !== undefined ? icon : isPrimary ? <ArrowRight size={20} /> : null}
+      {icon !== undefined ? icon : isPrimary ? <ArrowRight size={16} /> : null}
     </button>
   );
 }

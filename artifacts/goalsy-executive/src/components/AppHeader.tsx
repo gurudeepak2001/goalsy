@@ -19,11 +19,11 @@ export default function AppHeader({
   return (
     <header className={`flex items-center justify-between py-2 ${className}`}>
       <div className="flex items-center gap-3">
-        {showLogo && <GoalsyLogo size="sm" />}
+        {showLogo && <GoalsyLogo size="md" />}
         {title ? (
-          <span className="text-white font-bold text-lg tracking-tight">{title}</span>
+          <span className="text-white font-bold text-xl tracking-[-0.5px]">{title}</span>
         ) : showLogo ? (
-          <span className="text-white font-semibold text-base tracking-tight">GoalsyExecutive</span>
+          <span className="text-white font-bold text-xl tracking-[-0.5px]">GoalsyExecutive</span>
         ) : null}
       </div>
       {showSecureMode && (
