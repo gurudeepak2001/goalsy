@@ -14,7 +14,6 @@ import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
-import Avatar from '@/components/Avatar';
 import SectionLabel from '@/components/SectionLabel';
 import InsightCard from '@/components/InsightCard';
 
@@ -22,7 +21,7 @@ export default function AIHomeScreen() {
   const [, navigate] = useLocation();
 
   return (
-    <AppShell activeTab="today" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
+    <AppShell activeTab="today" header={<AppHeader dashboard />}>
       <div className="pt-2">
         <p className="text-[#94A3B8] text-sm">Executive Briefing</p>
         <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">

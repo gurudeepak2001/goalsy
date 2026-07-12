@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 import { Zap, Layers } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { toast } from '@/hooks/use-toast';
 import GoalsyLogo from './GoalsyLogo';
 import Avatar from './Avatar';
 
@@ -21,6 +23,7 @@ export default function AppHeader({
   dashboard = false,
 }: AppHeaderProps) {
   if (dashboard) {
+    const [, navigate] = useLocation();
     return (
       <header className={`flex items-center justify-between h-full ${className}`}>
         <div className="flex items-center gap-3 h-10">
@@ -32,10 +35,22 @@ export default function AppHeader({
           </span>
         </div>
         <div className="flex items-center gap-3 h-10">
-          <button className="w-10 h-10 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0">
+          <button
+            type="button"
+            aria-label="Notifications"
+            onClick={() => toast({ title: 'Notifications', description: 'Notification center coming soon.' })}
+            className="w-10 h-10 p-0 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+          >
             <Zap size={16} strokeWidth={2} />
           </button>
-          <Avatar src="/avatar.jpg" fallback="AL" size="nav" className="border-2 border-[#2563EB] flex-shrink-0" />
+          <button
+            type="button"
+            aria-label="Go to profile"
+            onClick={() => navigate('/profile')}
+            className="w-10 h-10 p-0 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+          >
+            <Avatar src="/avatar.jpg" fallback="AL" size="nav" className="border-2 border-[#2563EB]" />
+          </button>
         </div>
       </header>
     );
