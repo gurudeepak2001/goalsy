@@ -38,7 +38,7 @@ export default function AppHeader({
             {dashboardTitle || 'Goalsy'}
           </span>
         </div>
-        <div className="flex items-center gap-3 h-10">
+        <div className="flex items-center justify-end gap-3 h-10 ml-auto">
           {showNotification && (
             <button
               type="button"
