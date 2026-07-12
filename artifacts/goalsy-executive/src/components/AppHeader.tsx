@@ -35,7 +35,7 @@ export default function AppHeader({
           <button className="w-10 h-10 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0">
             <Zap size={16} strokeWidth={2} />
           </button>
-          <Avatar fallback="AL" size="nav" className="border-2 border-[#2563EB] flex-shrink-0" />
+          <Avatar src="/avatar.jpg" fallback="AL" size="nav" className="border-2 border-[#2563EB] flex-shrink-0" />
         </div>
       </header>
     );
