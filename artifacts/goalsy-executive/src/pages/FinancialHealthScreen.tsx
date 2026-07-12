@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import {
   TrendingUp,
   Activity,
   AlertTriangle,
   ShieldCheck,
   BarChart3,
+  ChevronRight,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
+import AppModal from '@/components/AppModal';
+import { mockCreditFactors } from '@/lib/mockData';
 
 const cashFlowData = [
   { month: 'Jan', Income: 8200, Expenses: 5100 },
@@ -31,6 +35,8 @@ function SectionHeading({ icon, iconColor, text }: { icon: React.ReactNode; icon
 }
 
 export default function FinancialHealthScreen() {
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
+
   return (
     <AppShell activeTab="today" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="flex flex-col gap-6">
@@ -50,8 +56,15 @@ export default function FinancialHealthScreen() {
         </div>
 
         {/* Credit Intelligence */}
-        <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
-          <SectionHeading icon={<Activity size={20} />} iconColor="#FFFFFF" text="Credit Intelligence" />
+        <button
+          type="button"
+          onClick={() => setCreditModalOpen(true)}
+          className="text-left bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6 hover:bg-[#161F2E] active:scale-[0.99] transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <SectionHeading icon={<Activity size={20} />} iconColor="#FFFFFF" text="Credit Intelligence" />
+            <ChevronRight size={18} className="text-[#808BA4] flex-shrink-0" />
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <span className="text-[#CBD5E1] font-semibold text-sm leading-[21px]">Credit Score</span>
@@ -65,7 +78,7 @@ export default function FinancialHealthScreen() {
               <span className="text-[#808BA4] font-semibold text-xs leading-[18px]">vs last 30d</span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Debt Strategy */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-6">
@@ -133,6 +146,34 @@ export default function FinancialHealthScreen() {
 
         <div className="h-4" />
       </div>
+
+      <AppModal open={creditModalOpen} onOpenChange={setCreditModalOpen} title="Credit Score Breakdown">
+        <div className="flex flex-col gap-5 pb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-white font-bold text-5xl leading-[56px] tracking-[-2.4px]">812</span>
+            <div className="flex flex-col items-end gap-1">
+              <div className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-lg px-3 py-1 flex items-center gap-1.5">
+                <TrendingUp size={14} className="text-[#22C55E]" />
+                <span className="text-[#22C55E] font-bold text-base leading-6">+14 pts</span>
+              </div>
+              <span className="text-[#808BA4] font-semibold text-xs leading-[18px]">vs last 30d</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            {mockCreditFactors.map((factor) => (
+              <div key={factor.id} className="bg-[#0B111F] border border-white/5 rounded-2xl p-5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-bold text-[15px] leading-[22px]">{factor.label}</span>
+                  <span className="font-bold text-xs uppercase tracking-[0.6px]" style={{ color: factor.color }}>
+                    {factor.status}
+                  </span>
+                </div>
+                <span className="text-[#808BA4] font-semibold text-[13px] leading-5">{factor.detail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </AppModal>
     </AppShell>
   );
 }

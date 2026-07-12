@@ -184,6 +184,24 @@ export interface MockNotification {
   timeLabel: string;
 }
 
+export interface MockCreditFactor {
+  id: string;
+  label: string;
+  status: string;
+  color: string;
+  detail: string;
+}
+
+// MOCK DATA - credit score breakdown for the Financial Health screen's
+// "Credit Score" card; replace with a real credit-bureau API response.
+export const mockCreditFactors: MockCreditFactor[] = [
+  { id: 'payment-history', label: 'Payment History', status: 'Excellent', color: '#22C55E', detail: '100% of payments made on time over the last 24 months.' },
+  { id: 'utilization', label: 'Credit Utilization', status: 'Good', color: '#22C55E', detail: 'Using 12% of available credit across 3 open accounts.' },
+  { id: 'credit-age', label: 'Length of Credit History', status: 'Good', color: '#3B82F6', detail: 'Average account age is 8.4 years.' },
+  { id: 'credit-mix', label: 'Credit Mix', status: 'Fair', color: '#F59E0B', detail: 'Mostly revolving credit; adding an installment loan could help.' },
+  { id: 'inquiries', label: 'New Inquiries', status: 'Excellent', color: '#22C55E', detail: 'No hard inquiries in the last 12 months.' },
+];
+
 export const mockNotifications: MockNotification[] = [
   { id: 'notif-1', title: 'Score Increased', description: 'Your Goalsy Score climbed to 842 (+12%).', timeLabel: '2h ago' },
   { id: 'notif-2', title: 'Bill Due Tomorrow', description: 'Amex Gold: $1,240 due in 24h.', timeLabel: '5h ago' },
