@@ -1,4 +1,4 @@
-import { Home, Target, Calendar, Award, User } from 'lucide-react';
+import { Home, Target, Calendar, Sparkle, User } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface BottomNavProps {
@@ -9,7 +9,7 @@ const tabs = [
   { id: 'today', label: 'TODAY', icon: Home, path: '/ai-home' },
   { id: 'goals', label: 'GOALS', icon: Target, path: '/goals' },
   { id: 'calendar', label: 'CALENDAR', icon: Calendar, path: '/calendar' },
-  { id: 'ai', label: 'AI', icon: Award, path: '/financial-health' },
+  { id: 'ai', label: 'AI', icon: Sparkle, path: '/financial-health' },
   { id: 'profile', label: 'PROFILE', icon: User, path: '/profile' },
 ] as const;
 
