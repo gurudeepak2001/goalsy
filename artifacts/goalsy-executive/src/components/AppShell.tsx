@@ -5,7 +5,7 @@ interface AppShellProps {
   children: ReactNode;
   header?: ReactNode;
   showBottomNav?: boolean;
-  activeTab?: 'today' | 'goals' | 'calendar' | 'score' | 'profile';
+  activeTab?: 'today' | 'goals' | 'calendar' | 'ai' | 'profile';
   className?: string;
 }
 

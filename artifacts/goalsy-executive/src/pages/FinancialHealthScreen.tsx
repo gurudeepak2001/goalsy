@@ -52,7 +52,7 @@ function MetricCard({
 
 export default function FinancialHealthScreen() {
   return (
-    <AppShell activeTab="score" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
+    <AppShell activeTab="ai" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
       <div className="pt-2">
         <p className="text-[#94A3B8] text-sm">Financial Assessment</p>
         <h1 className="text-white font-black text-3xl leading-tight tracking-tight mt-1">Financial Health</h1>
