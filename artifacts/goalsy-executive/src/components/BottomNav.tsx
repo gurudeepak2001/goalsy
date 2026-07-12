@@ -9,14 +9,14 @@ const tabs = [
   { id: 'today', label: 'TODAY', icon: Home, path: '/ai-home' },
   { id: 'goals', label: 'GOALS', icon: Target, path: '/goals' },
   { id: 'calendar', label: 'CALENDAR', icon: Calendar, path: '/calendar' },
-  { id: 'score', label: 'SCORE', icon: Award, path: '/financial-health' },
+  { id: 'score', label: 'AI', icon: Award, path: '/financial-health' },
   { id: 'profile', label: 'PROFILE', icon: User, path: '/profile' },
 ] as const;
 
 export default function BottomNav({ activeTab = 'today' }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#09090C]/95 backdrop-blur-md border-t border-[#1A2238]">
-      <div className="max-w-md mx-auto px-2 py-2 flex items-center justify-between">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F17]/85 backdrop-blur-md border-t border-white/5">
+      <div className="max-w-md mx-auto px-2 h-[84px] flex items-center justify-between">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -25,14 +25,14 @@ export default function BottomNav({ activeTab = 'today' }: BottomNavProps) {
               key={tab.id}
               href={tab.path}
               className={`flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors min-w-[56px] ${
-                isActive ? 'text-[#2563EB]' : 'text-[#475569]'
+                isActive ? 'opacity-100' : 'opacity-40'
               }`}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
               data-testid={`nav-${tab.id}`}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className={`text-[10px] font-bold tracking-wider ${isActive ? 'text-[#2563EB]' : 'text-[#475569]'}`}>
+              <Icon size={24} strokeWidth={2} className={isActive ? 'text-[#2563EB]' : 'text-white'} />
+              <span className={`text-[10px] font-bold tracking-[1px] uppercase ${isActive ? 'text-[#2563EB]' : 'text-white'}`}>
                 {tab.label}
               </span>
             </Link>

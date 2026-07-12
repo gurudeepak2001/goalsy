@@ -5,10 +5,12 @@ interface ExecutiveButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'outline';
   text: string;
   icon?: ReactNode;
+  iconPosition?: 'left' | 'right';
 }
 
-export default function ExecutiveButton({ variant = 'primary', text, icon, className = '', ...props }: ExecutiveButtonProps) {
+export default function ExecutiveButton({ variant = 'primary', text, icon, iconPosition = 'right', className = '', ...props }: ExecutiveButtonProps) {
   const isPrimary = variant === 'primary';
+  const resolvedIcon = icon !== undefined ? icon : isPrimary ? <ArrowRight size={16} /> : null;
 
   return (
     <button
@@ -20,8 +22,9 @@ export default function ExecutiveButton({ variant = 'primary', text, icon, class
       style={isPrimary ? { boxShadow: '0 0 30px rgba(37, 99, 235, 0.25)' } : undefined}
       {...props}
     >
+      {iconPosition === 'left' && resolvedIcon}
       {text}
-      {icon !== undefined ? icon : isPrimary ? <ArrowRight size={16} /> : null}
+      {iconPosition === 'right' && resolvedIcon}
     </button>
   );
 }
