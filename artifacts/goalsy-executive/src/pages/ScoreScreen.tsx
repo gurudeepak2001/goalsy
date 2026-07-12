@@ -11,7 +11,13 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 
-const scoreData = [
+const scoreData90D = [
+  { month: 'May', score: 828 },
+  { month: 'Jun', score: 836 },
+  { month: 'Jul', score: 842 },
+];
+
+const scoreData1Y = [
   { month: 'Jan', score: 812 },
   { month: 'Feb', score: 818 },
   { month: 'Mar', score: 815 },
@@ -19,6 +25,15 @@ const scoreData = [
   { month: 'May', score: 828 },
   { month: 'Jun', score: 836 },
   { month: 'Jul', score: 842 },
+];
+
+const scoreDataAll = [
+  { month: 'Q1', score: 780 },
+  { month: 'Q2', score: 798 },
+  { month: 'Q3', score: 815 },
+  { month: 'Q4', score: 824 },
+  { month: 'Q5', score: 836 },
+  { month: 'Q6', score: 842 },
 ];
 
 const drivers = [
@@ -89,6 +104,9 @@ function ScoreGauge({ value }: { value: number }) {
 export default function ScoreScreen() {
   const [filter, setFilter] = useState<'90D' | '1Y' | 'ALL'>('90D');
 
+  const chartData =
+    filter === '90D' ? scoreData90D : filter === '1Y' ? scoreData1Y : scoreDataAll;
+
   return (
     <AppShell showBottomNav={false} header={<AppHeader dashboard />}>
       <div className="pt-4 flex flex-col gap-12">
@@ -139,7 +157,7 @@ export default function ScoreScreen() {
           </div>
           <div className="bg-[#111827] border border-white/5 rounded-3xl p-4 h-[295px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={scoreData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#2563EB" stopOpacity={0.3} />
