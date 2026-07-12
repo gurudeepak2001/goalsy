@@ -3,6 +3,17 @@
 // data from here so swapping this file (or the functions below) for
 // real network calls is a single, isolated change.
 
+// MOCK DATA - preset avatar options for the profile picture picker;
+// replace with real uploaded-image URLs once photo upload is wired up.
+export const mockAvatarPresets: string[] = [
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Alexander&backgroundColor=2563eb',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan&backgroundColor=22c55e',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Morgan&backgroundColor=f59e0b',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor&backgroundColor=ef4444',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Casey&backgroundColor=a855f7',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Riley&backgroundColor=0ea5e9',
+];
+
 export interface MockGoal {
   id: string;
   title: string;

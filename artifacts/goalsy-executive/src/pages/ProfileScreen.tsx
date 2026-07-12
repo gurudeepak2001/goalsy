@@ -12,6 +12,11 @@ import {
   ChevronRight,
   Building2,
   ChevronDown,
+  Camera,
+  Image,
+  Trash2,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
@@ -28,6 +33,8 @@ import {
   mockNotificationPreferences,
   mockSubscription,
   mockHelpArticles,
+  mockAvatarPresets,
+  simulateAsync,
   type MockNotificationPreference,
 } from '@/lib/mockData';
 
@@ -69,6 +76,35 @@ export default function ProfileScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [openArticleId, setOpenArticleId] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<MockNotificationPreference[]>(mockNotificationPreferences);
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(undefined);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
+
+  const handlePickAvatar = async (source: 'camera' | 'library') => {
+    setAvatarUploading(source);
+    // MOCK DATA - replace with real camera capture / photo library + upload API call
+    await simulateAsync(true, 1400);
+    const preset = mockAvatarPresets[Math.floor(Math.random() * mockAvatarPresets.length)];
+    setAvatarSrc(preset);
+    setAvatarUploading('idle');
+    setAvatarModalOpen(false);
+    toast({
+      title: 'Profile Photo Updated',
+      description: source === 'camera' ? 'New photo captured and saved.' : 'Photo selected from your library.',
+    });
+  };
+
+  const handleSelectPreset = (preset: string) => {
+    setAvatarSrc(preset);
+    setAvatarModalOpen(false);
+    toast({ title: 'Profile Photo Updated', description: 'Your profile photo has been changed.' });
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarSrc(undefined);
+    setAvatarModalOpen(false);
+    toast({ title: 'Profile Photo Removed', description: 'Your avatar now shows your initials.' });
+  };
 
   const handleSaveProfile = () => {
     if (!editName.trim()) {
@@ -117,8 +153,16 @@ export default function ProfileScreen() {
               className="w-[94px] h-24 rounded-3xl border-2 border-[#2563EB] overflow-hidden flex items-center justify-center bg-white/[0.02]"
               style={{ boxShadow: '0px 0px 20px rgba(37, 99, 235, 0.15)' }}
             >
-              <Avatar fallback="AL" size="xl" className="w-full h-full rounded-none border-0" />
+              <Avatar src={avatarSrc} fallback="AL" size="xl" className="w-full h-full rounded-none border-0" />
             </div>
+            <button
+              type="button"
+              aria-label="Change profile photo"
+              onClick={() => setAvatarModalOpen(true)}
+              className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#2563EB] border-2 border-[#05070A] rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
+            >
+              <Camera size={14} strokeWidth={2.5} />
+            </button>
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <h1 className="text-white font-bold text-[28px] leading-[35px] tracking-[-1.4px]">
@@ -241,6 +285,77 @@ export default function ProfileScreen() {
         <div className="flex flex-col gap-5 pb-4">
           <ExecutiveInput label="Full Name" value={editName} onChange={(e) => setEditName(e.target.value)} />
           <ExecutiveButton text="Save Changes" onClick={handleSaveProfile} />
+        </div>
+      </AppModal>
+
+      {/* Change profile photo modal */}
+      <AppModal open={avatarModalOpen} onOpenChange={setAvatarModalOpen} title="Change Profile Photo">
+        <div className="flex flex-col gap-5 pb-4">
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => handlePickAvatar('camera')}
+              disabled={avatarUploading !== 'idle'}
+              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70"
+            >
+              {avatarUploading === 'camera' ? (
+                <Loader2 size={18} className="animate-spin text-[#2563EB]" />
+              ) : (
+                <Camera size={18} className="text-[#2563EB]" />
+              )}
+              {avatarUploading === 'camera' ? 'Capturing Photo...' : 'Take Photo'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePickAvatar('library')}
+              disabled={avatarUploading !== 'idle'}
+              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70"
+            >
+              {avatarUploading === 'library' ? (
+                <Loader2 size={18} className="animate-spin text-[#2563EB]" />
+              ) : (
+                <Image size={18} className="text-[#2563EB]" />
+              )}
+              {avatarUploading === 'library' ? 'Uploading...' : 'Choose from Library'}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Or pick an avatar</span>
+            <div className="grid grid-cols-3 gap-3">
+              {mockAvatarPresets.map((preset) => {
+                const isSelected = avatarSrc === preset;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`relative aspect-square rounded-2xl overflow-hidden border-2 active:scale-95 transition-transform ${
+                      isSelected ? 'border-[#2563EB]' : 'border-white/5'
+                    }`}
+                  >
+                    <img src={preset} alt="Avatar option" className="w-full h-full object-cover bg-[#111827]" />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Check size={20} className="text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {avatarSrc && (
+            <button
+              type="button"
+              onClick={handleRemoveAvatar}
+              className="w-full h-12 flex items-center justify-center gap-2 text-[#EF4444] font-bold text-sm active:scale-[0.98] transition-transform"
+            >
+              <Trash2 size={16} />
+              Remove Current Photo
+            </button>
+          )}
         </div>
       </AppModal>
 
