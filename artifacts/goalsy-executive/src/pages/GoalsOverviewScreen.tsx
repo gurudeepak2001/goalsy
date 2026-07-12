@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -6,6 +7,8 @@ import GoalCard from '@/components/GoalCard';
 import ExecutiveButton from '@/components/ExecutiveButton';
 
 export default function GoalsOverviewScreen() {
+  const [, navigate] = useLocation();
+
   return (
     <AppShell activeTab="goals" header={<AppHeader dashboard />}>
       <div className="flex flex-col gap-8">
@@ -23,6 +26,20 @@ export default function GoalsOverviewScreen() {
             Strategic Goals
           </h1>
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/financial-health')}
+          className="w-full bg-[#111827] border border-white/5 rounded-2xl p-4 flex items-center justify-between text-left active:scale-95 transition-transform"
+        >
+          <div className="flex flex-col gap-1">
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+              Financial Health
+            </span>
+            <span className="text-white font-semibold text-sm">Review your financial status</span>
+          </div>
+          <ArrowRight size={18} className="text-[#94A3B8]" />
+        </button>
 
         <div className="flex flex-col gap-8">
           <GoalCard

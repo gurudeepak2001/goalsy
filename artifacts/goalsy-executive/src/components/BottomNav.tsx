@@ -9,7 +9,7 @@ const tabs = [
   { id: 'today', label: 'TODAY', icon: Layers, path: '/ai-home' },
   { id: 'goals', label: 'GOALS', icon: Target, path: '/goals' },
   { id: 'calendar', label: 'CALENDAR', icon: Calendar, path: '/calendar' },
-  { id: 'ai', label: 'AI', icon: Cog, path: '/financial-health' },
+  { id: 'ai', label: 'AI', icon: Cog, path: '/ai-home' },
   { id: 'profile', label: 'PROFILE', icon: Shield, path: '/profile' },
 ] as const;
 
