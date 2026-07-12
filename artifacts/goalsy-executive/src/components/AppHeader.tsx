@@ -23,13 +23,15 @@ export default function AppHeader({
         {title ? (
           <span className="text-white font-bold text-xl tracking-[-0.5px]">{title}</span>
         ) : showLogo ? (
-          <span className="text-white font-bold text-xl tracking-[-0.5px]">GoalsyExecutive</span>
+          <span className={`text-white font-bold ${showSecureMode ? 'text-lg tracking-[-0.45px]' : 'text-xl tracking-[-0.5px]'}`}>
+            GoalsyExecutive
+          </span>
         ) : null}
       </div>
       {showSecureMode && (
-        <div className="bg-[#0F2A1A] text-[#22C55E] border border-[#16A34A]/30 rounded-full px-3 py-1 text-xs font-medium tracking-wide uppercase flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full"></div>
-          SECURE MODE
+        <div className="bg-[#111827] border border-white/10 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[1px] text-[#CBD5E1] flex items-center gap-2">
+          <div className="w-2 h-2 bg-[#22C55E] rounded-full"></div>
+          Secure Mode
         </div>
       )}
       {rightElement}
