@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   Layers,
@@ -5,13 +6,30 @@ import {
   TrendingUp,
   BarChart3,
   Zap,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
+import { simulateAsync } from '@/lib/mockData';
 
 export default function AIHomeScreen() {
+  const [transferStatus, setTransferStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [movedToSavings, setMovedToSavings] = useState(0);
+
+  const handleExecuteTransfer = async () => {
+    if (transferStatus !== 'idle') return;
+    setTransferStatus('processing');
+    // MOCK DATA - replace with a real funds-transfer API call
+    await simulateAsync(2400, 1500);
+    setTransferStatus('done');
+    setMovedToSavings((prev) => prev + 2400);
+    toast({ title: 'Transfer Complete', description: '$2,400 moved to High-Yield Savings.' });
+    setTimeout(() => setTransferStatus('idle'), 2500);
+  };
+
   return (
     <AppShell
       activeTab="ai"
@@ -106,15 +124,32 @@ export default function AIHomeScreen() {
             </span>
           </div>
           <p className="text-[#E5E7EB] font-bold text-lg leading-[25px]">
-            Cash flow is 12% above target. Recommend moving $2,400 to High-Yield Savings.
+            {movedToSavings > 0
+              ? `${movedToSavings.toLocaleString()} moved to High-Yield Savings so far. Cash flow remains 12% above target.`
+              : 'Cash flow is 12% above target. Recommend moving $2,400 to High-Yield Savings.'}
           </p>
           <button
             type="button"
-            onClick={() => toast({ title: 'Transfer', description: 'Executing transfer...' })}
-            className="w-full h-14 bg-[#2563EB] shadow-[0_0_20px_rgba(37,99,235,0.15)] rounded-xl flex items-center justify-center gap-3 text-white font-bold text-base active:scale-95 transition-transform"
+            onClick={handleExecuteTransfer}
+            disabled={transferStatus !== 'idle'}
+            className="w-full h-14 bg-[#2563EB] shadow-[0_0_20px_rgba(37,99,235,0.15)] rounded-xl flex items-center justify-center gap-3 text-white font-bold text-base active:scale-95 transition-transform disabled:opacity-80"
           >
-            Execute Transfer
-            <ArrowRight size={16} />
+            {transferStatus === 'processing' ? (
+              <>
+                Processing Transfer
+                <Loader2 size={16} className="animate-spin" />
+              </>
+            ) : transferStatus === 'done' ? (
+              <>
+                Transfer Complete
+                <CheckCircle2 size={16} />
+              </>
+            ) : (
+              <>
+                Execute Transfer
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </div>
       </div>

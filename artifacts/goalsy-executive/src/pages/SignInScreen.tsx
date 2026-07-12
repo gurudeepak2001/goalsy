@@ -1,12 +1,35 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Target } from 'lucide-react';
+import { Mail, Lock, Target, Loader2, ScanFace } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
+import { simulateAsync } from '@/lib/mockData';
 
 export default function SignInScreen() {
   const [, navigate] = useLocation();
+  const [faceIdStatus, setFaceIdStatus] = useState<'idle' | 'scanning' | 'verified'>('idle');
+  const [resetStatus, setResetStatus] = useState<'idle' | 'sending'>('idle');
+
+  const handleFaceId = async () => {
+    if (faceIdStatus !== 'idle') return;
+    setFaceIdStatus('scanning');
+    // MOCK DATA - replace with real biometric/auth API call
+    await simulateAsync(true, 1400);
+    setFaceIdStatus('verified');
+    toast({ title: 'Identity Verified', description: 'Biometric authentication successful.' });
+    setTimeout(() => navigate('/financial-connection'), 500);
+  };
+
+  const handleForgotPassword = async () => {
+    if (resetStatus !== 'idle') return;
+    setResetStatus('sending');
+    // MOCK DATA - replace with real password-reset API call
+    await simulateAsync(true, 1000);
+    setResetStatus('idle');
+    toast({ title: 'Reset Link Sent', description: 'Check executive@domain.com for instructions.' });
+  };
 
   return (
     <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col overflow-y-auto bg-[#05070A]">
@@ -52,10 +75,11 @@ export default function SignInScreen() {
               rightElement={
                 <button
                   type="button"
-                  onClick={() => toast({ title: 'Password Reset', description: 'Reset instructions sent to your email.' })}
-                  className="text-[#3B82F6] text-xs font-bold uppercase tracking-[0.5px]"
+                  onClick={handleForgotPassword}
+                  disabled={resetStatus === 'sending'}
+                  className="text-[#3B82F6] text-xs font-bold uppercase tracking-[0.5px] disabled:opacity-50"
                 >
-                  Forgot?
+                  {resetStatus === 'sending' ? 'Sending...' : 'Forgot?'}
                 </button>
               }
             />
@@ -80,19 +104,26 @@ export default function SignInScreen() {
 
             <div className="flex flex-col items-center gap-3">
               <button
-                onClick={() => navigate('/goals')}
-                className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#1F2937] border border-white/5"
+                onClick={handleFaceId}
+                disabled={faceIdStatus !== 'idle'}
+                className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#1F2937] border border-white/5 disabled:opacity-80"
                 style={{ boxShadow: '0 0 40px rgba(37, 99, 235, 0.1)' }}
                 aria-label="Sign in with FaceID"
                 data-testid="button-faceid"
               >
-                <Target size={32} className="text-white" strokeWidth={1.5} />
+                {faceIdStatus === 'scanning' ? (
+                  <Loader2 size={28} className="text-[#3B82F6] animate-spin" strokeWidth={2} />
+                ) : faceIdStatus === 'verified' ? (
+                  <ScanFace size={28} className="text-[#22C55E]" strokeWidth={2} />
+                ) : (
+                  <Target size={32} className="text-white" strokeWidth={1.5} />
+                )}
               </button>
               <span
                 className="text-[#CBD5E1] font-bold text-sm"
                 style={{ letterSpacing: '0.00292969em' }}
               >
-                Use FaceID
+                {faceIdStatus === 'scanning' ? 'Scanning...' : faceIdStatus === 'verified' ? 'Verified' : 'Use FaceID'}
               </span>
             </div>
           </div>

@@ -1,10 +1,27 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Activity, Shield, Lock, Layers, PieChart } from 'lucide-react';
+import { Activity, Shield, Lock, Layers, PieChart, Loader2, CheckCircle2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveButton from '@/components/ExecutiveButton';
+import { mockConnectedAccounts, simulateAsync } from '@/lib/mockData';
 
 export default function FinancialConnectionScreen() {
   const [, navigate] = useLocation();
+  const [connectStatus, setConnectStatus] = useState<'idle' | 'connecting' | 'connected'>('idle');
+
+  const handleConnect = async () => {
+    if (connectStatus !== 'idle') return;
+    setConnectStatus('connecting');
+    // MOCK DATA - replace with real Plaid Link connection flow
+    await simulateAsync(mockConnectedAccounts, 1800);
+    setConnectStatus('connected');
+    toast({
+      title: 'Accounts Connected',
+      description: `Linked ${mockConnectedAccounts.length} institutions successfully.`,
+    });
+    setTimeout(() => navigate('/goals'), 700);
+  };
 
   const features = [
     {
@@ -97,17 +114,33 @@ export default function FinancialConnectionScreen() {
 
           <div className="flex flex-col gap-4 pb-8">
             <ExecutiveButton
-              text="Connect Accounts"
+              text={
+                connectStatus === 'connecting'
+                  ? 'Connecting...'
+                  : connectStatus === 'connected'
+                    ? 'Connected'
+                    : 'Connect Accounts'
+              }
+              icon={
+                connectStatus === 'connecting' ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : connectStatus === 'connected' ? (
+                  <CheckCircle2 size={18} />
+                ) : undefined
+              }
+              disabled={connectStatus !== 'idle'}
               style={{
                 letterSpacing: '-0.000976562em',
                 boxShadow: '0 0 30px rgba(37, 99, 235, 0.2)',
               }}
-              onClick={() => navigate('/goals')}
+              className="disabled:opacity-90"
+              onClick={handleConnect}
             />
             <ExecutiveButton
               variant="outline"
               text="Skip for Now"
               className="border border-white/20 text-[#CBD5E1] text-base"
+              disabled={connectStatus !== 'idle'}
               onClick={() => navigate('/goals')}
             />
           </div>

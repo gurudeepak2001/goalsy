@@ -9,6 +9,7 @@ interface GoalCardProps {
   projectedDate: string;
   color?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 export default function GoalCard({
@@ -20,9 +21,16 @@ export default function GoalCard({
   projectedDate,
   color = '#22C55E',
   className = '',
+  onClick,
 }: GoalCardProps) {
   return (
-    <div className={`bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 ${className}`}>
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={`bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 ${
+        onClick ? 'cursor-pointer hover:bg-[#161F2E] transition-colors active:scale-[0.98]' : ''
+      } ${className}`}>
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
           <div
