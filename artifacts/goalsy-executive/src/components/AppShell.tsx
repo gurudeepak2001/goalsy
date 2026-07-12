@@ -17,7 +17,7 @@ export default function AppShell({
   className = '',
 }: AppShellProps) {
   return (
-    <div className={`min-h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col overflow-y-auto ${className}`}>
+    <div className={`relative min-h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col overflow-y-auto ${className}`}>
       {header && (
         <div className="absolute top-0 left-0 right-0 z-50 px-6 h-[72px] flex items-center bg-[#0B0F17]/85 backdrop-blur-[8px]">
           {header}
