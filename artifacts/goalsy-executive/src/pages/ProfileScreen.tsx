@@ -61,7 +61,7 @@ function ProfileRow({
   tall?: boolean;
 }) {
   const titleColor = variant === 'danger' ? 'text-[#EF4444]' : 'text-white';
-  const baseClasses = `bg-[#111827] border border-white/5 rounded-2xl px-5 flex items-center justify-between gap-4 w-full text-left ${
+  const baseClasses = `bg-gradient-to-r from-[#111827] to-[#0F1625] border border-white/5 rounded-2xl px-5 flex items-center justify-between gap-4 w-full text-left ${
     tall ? 'py-5' : 'py-4'
   }`;
   const content = (
@@ -104,7 +104,7 @@ function AchievementCard({
   subtitle: string;
 }) {
   return (
-    <div className="bg-[#111827] border border-white/5 rounded-[20px] p-5 flex items-center gap-4">
+    <div className="bg-gradient-to-r from-[#111827] to-[#0F1625] border border-white/5 rounded-[20px] p-5 flex items-center gap-4">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-white text-base font-bold leading-6">{title}</div>
@@ -196,12 +196,12 @@ export default function ProfileScreen() {
       </div>
 
       {/* Goalsy Score card */}
-      <div className="mt-8 bg-[#111827] border border-white/5 rounded-3xl p-6 flex items-center justify-between">
+      <div className="mt-8 bg-gradient-to-r from-[#111827] to-[#0F1625] border border-white/5 rounded-3xl p-6 flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-[#808BA4] text-xs font-bold tracking-[0.15em] uppercase">Goalsy Score</span>
-          <div className="flex items-baseline gap-1 mt-1">
+          <div className="flex items-baseline gap-2 mt-1">
             <span className="text-white text-5xl font-bold tracking-[-2.4px]">842</span>
-            <span className="text-[#22C55E] text-sm font-bold">+12%</span>
+            <span className="text-[#22C55E] text-sm font-bold bg-[#22C55E]/10 px-2 py-0.5 rounded-full">+12%</span>
           </div>
         </div>
         <ScoreRingIcon />

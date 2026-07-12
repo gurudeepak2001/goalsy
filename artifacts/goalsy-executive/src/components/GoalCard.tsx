@@ -24,22 +24,26 @@ export default function GoalCard({
   status = 'On Track',
   className = '',
 }: GoalCardProps) {
+  const statusColor = status === 'Needs Attention' ? 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20' : 'text-[#22C55E] bg-[#22C55E]/10 border-[#22C55E]/20';
+
   return (
-    <div className={`bg-[#0F1625] border border-[#1A2238] rounded-xl p-4 ${className}`}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="bg-[#131E35] rounded-xl p-2.5 text-white flex-shrink-0">{icon}</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-semibold text-sm truncate">{title}</div>
-          <div className="text-[#64748B] text-xs truncate">{subtitle}</div>
+    <div className={`bg-[#0F1625] border border-[#1A2238] rounded-2xl p-4 ${className}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-[#131E35] rounded-xl p-2.5 text-white flex-shrink-0">{icon}</div>
+          <div className="min-w-0">
+            <div className="text-white font-bold text-sm truncate">{title}</div>
+            <div className="text-[#64748B] text-xs truncate mt-0.5">{subtitle}</div>
+          </div>
         </div>
-        <div className="text-[#22C55E] text-xs font-semibold bg-[#0F2A1A] px-2 py-1 rounded-full border border-[#16A34A]/30 flex-shrink-0">
+        <div className={`text-[9px] font-bold tracking-[0.15em] uppercase px-2 py-1 rounded-full border flex-shrink-0 mt-0.5 ${statusColor}`}>
           {status}
         </div>
       </div>
       <ProgressBar value={progress} color={color} className="mb-3" />
       <div className="flex items-center justify-between">
         <div className="text-[#94A3B8] text-xs">
-          <span className="text-white font-semibold">{current}</span> / {target}
+          <span className="text-white font-bold">{current}</span> / {target}
         </div>
         <div className="text-white text-sm font-bold">{progress}%</div>
       </div>

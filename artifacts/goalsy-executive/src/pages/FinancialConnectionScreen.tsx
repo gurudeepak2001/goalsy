@@ -21,18 +21,16 @@ export default function FinancialConnectionScreen() {
       {/* Connect Accounts button */}
       <button
         onClick={() => navigate('/goals')}
-        className="absolute bottom-[110px] left-6 right-6 h-14 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-full z-10 transition-colors"
-      >
-        Connect Accounts
-      </button>
+        className="absolute bottom-[108px] left-6 right-6 h-14 z-10"
+        aria-label="Connect Accounts"
+      />
 
       {/* Skip for Now button */}
       <button
         onClick={() => navigate('/goals')}
-        className="absolute bottom-[60px] left-6 right-6 h-10 text-white text-sm font-medium z-10"
-      >
-        Skip for Now
-      </button>
+        className="absolute bottom-[58px] left-6 right-6 h-10 z-10"
+        aria-label="Skip for Now"
+      />
     </div>
   );
 }
