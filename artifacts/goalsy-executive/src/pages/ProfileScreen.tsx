@@ -66,10 +66,10 @@ export default function ProfileScreen() {
         >
           <div className="flex flex-col">
             <span className="text-[#64748B] text-xs font-bold tracking-[0.2em] uppercase">Goalsy Score</span>
-            <span className="text-white text-lg font-bold mt-1">Credit Intelligence</span>
+            <span className="text-white text-lg font-bold mt-1">Goal Performance</span>
             <span className="text-[#94A3B8] text-xs mt-1">Updated today</span>
           </div>
-          <CircularScoreRing value={78} size={88} strokeWidth={7} color="#22C55E" label="78" sublabel="EXCELLENT" showGlow={false} />
+          <CircularScoreRing value={84} size={88} strokeWidth={7} color="#22C55E" label="842" sublabel="OPTIMAL" showGlow={false} />
         </div>
       </div>
 
