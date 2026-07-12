@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
+import { Flame, CheckCircle, Trophy, Target } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -222,6 +223,61 @@ export default function ScoreScreen() {
                     className="h-full rounded-full"
                     style={{ width: `${driver.progress}%`, backgroundColor: driver.color }}
                   />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Achievements */}
+        <div className="flex flex-col gap-6">
+          <h2 className="text-white font-bold text-2xl leading-9">Achievements</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6">
+            {[
+              { icon: Flame, label: '7-Day Streak', color: '#F59E0B' },
+              { icon: CheckCircle, label: 'Funded', color: '#22C55E' },
+              { icon: Trophy, label: 'Top 1%', color: '#3B82F6' },
+            ].map((achievement) => (
+              <div
+                key={achievement.label}
+                className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col items-center gap-3 min-w-[140px]"
+              >
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                  <achievement.icon size={24} style={{ color: achievement.color }} />
+                </div>
+                <span className="text-white font-bold text-xs leading-4 text-center">{achievement.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Projected Future */}
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-2">
+            <Target size={16} className="text-[#3B82F6]" />
+            <h2 className="text-white font-bold text-2xl leading-9">Projected Future</h2>
+          </div>
+          <div className="bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col">
+            {[
+              { label: '30 Days', value: '855', change: '+13 pts', confidence: '95% Conf.' },
+              { label: '90 Days', value: '872', change: '+30 pts', confidence: '82% Conf.' },
+              { label: '180 Days', value: '910', change: '+68 pts', confidence: '65% Conf.' },
+            ].map((row, index, arr) => (
+              <div
+                key={row.label}
+                className={`flex items-center justify-between py-4 ${
+                  index !== arr.length - 1 ? 'border-b border-white/5' : ''
+                } ${index === 0 ? 'pt-0' : ''} ${index === arr.length - 1 ? 'pb-0' : ''}`}
+              >
+                <div className="flex flex-col gap-1">
+                  <span className="text-[#808BA4] font-bold text-[11px] uppercase tracking-[1.1px]">
+                    {row.label}
+                  </span>
+                  <span className="text-white font-bold text-2xl leading-8">{row.value}</span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[#22C55E] font-bold text-xs leading-4">{row.change}</span>
+                  <span className="text-[#444444] font-bold text-[10px] leading-[15px]">{row.confidence}</span>
                 </div>
               </div>
             ))}
