@@ -1,4 +1,5 @@
-import { InputHTMLAttributes, ReactNode, forwardRef, useId } from 'react';
+import { InputHTMLAttributes, ReactNode, forwardRef, useId, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface ExecutiveInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -7,9 +8,11 @@ interface ExecutiveInputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
-  ({ label, leftIcon, rightElement, className = '', id: idProp, ...props }, ref) => {
+  ({ label, leftIcon, rightElement, className = '', id: idProp, type, ...props }, ref) => {
     const generatedId = useId();
     const inputId = idProp ?? generatedId;
+    const isPassword = type === 'password';
+    const [revealed, setRevealed] = useState(false);
 
     return (
       <div className={`w-full ${className}`}>
@@ -33,9 +36,20 @@ const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
           <input
             id={inputId}
             ref={ref}
+            type={isPassword ? (revealed ? 'text' : 'password') : type}
             className="text-white placeholder:text-[#444444] text-base font-semibold bg-transparent outline-none flex-1 w-full h-full"
             {...props}
           />
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setRevealed((prev) => !prev)}
+              aria-label={revealed ? 'Hide password' : 'Show password'}
+              className="text-white/40 hover:text-white/70 flex-shrink-0 transition-colors"
+            >
+              {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
         </div>
       </div>
     );
