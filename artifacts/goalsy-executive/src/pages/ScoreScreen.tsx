@@ -155,7 +155,7 @@ export default function ScoreScreen() {
   };
 
   return (
-    <AppShell showBottomNav={false} header={<AppHeader dashboard />}>
+    <AppShell activeTab="profile" header={<AppHeader dashboard dashboardTitle="Goalsy Score" />}>
       <div className="pt-4 flex flex-col gap-12">
         {/* Score Gauge */}
         <div className="flex flex-col items-center gap-4">
