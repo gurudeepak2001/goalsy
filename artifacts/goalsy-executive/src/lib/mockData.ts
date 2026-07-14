@@ -27,6 +27,47 @@ export interface MockGoal {
   monthlyContribution: string;
 }
 
+// Parses amount strings like "$120,000", "$1.2M", "$45K", "$2,800/mo" into a plain number.
+function parseAmount(value: string): number {
+  const cleaned = value.replace(/\/mo.*$/i, '').replace(/[$,\s]/g, '');
+  const match = cleaned.match(/^(-?[\d.]+)([KkMm])?$/);
+  if (!match) return NaN;
+  const num = parseFloat(match[1]);
+  const suffix = match[2]?.toUpperCase();
+  if (suffix === 'K') return num * 1_000;
+  if (suffix === 'M') return num * 1_000_000;
+  return num;
+}
+
+// Estimates a goal's completion date from its numbers rather than a fixed/hardcoded
+// date, so it stays consistent whenever the current amount or monthly contribution
+// changes (e.g. after the user adjusts their contribution).
+export function estimateCompletionDate(
+  current: string,
+  target: string,
+  monthlyContribution: string,
+  from: Date = new Date(),
+): string {
+  const currentNum = parseAmount(current);
+  const targetNum = parseAmount(target);
+  const monthlyNum = parseAmount(monthlyContribution);
+
+  if (!Number.isFinite(currentNum) || !Number.isFinite(targetNum)) return 'TBD';
+  const remaining = targetNum - currentNum;
+  if (remaining <= 0) return 'Goal Reached';
+  if (!Number.isFinite(monthlyNum) || monthlyNum <= 0) return 'TBD';
+
+  const monthsRemaining = Math.ceil(remaining / monthlyNum);
+  const projected = new Date(from.getFullYear(), from.getMonth() + monthsRemaining, 1);
+
+  // Long-horizon goals (5+ years out) read better as just a year, matching how
+  // people actually talk about retirement-style timelines.
+  if (monthsRemaining >= 60) {
+    return `${projected.getFullYear()}`;
+  }
+  return projected.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export const mockGoals: MockGoal[] = [
   {
     id: 'home-purchase',
@@ -35,7 +76,7 @@ export const mockGoals: MockGoal[] = [
     progress: 48,
     current: '$120,000',
     target: '$250,000',
-    projectedDate: 'Oct 2025',
+    projectedDate: estimateCompletionDate('$120,000', '$250,000', '$3,200/mo'),
     color: '#22C55E',
     description: 'Down payment fund for a primary residence in the Austin metro area.',
     monthlyContribution: '$3,200/mo',
@@ -47,7 +88,7 @@ export const mockGoals: MockGoal[] = [
     progress: 27,
     current: '$12,400',
     target: '$45,000',
-    projectedDate: 'Jan 2026',
+    projectedDate: estimateCompletionDate('$12,400', '$45,000', '$1,450/mo'),
     color: '#F59E0B',
     description: 'Aggressive payoff plan targeting student loans and revolving credit balances.',
     monthlyContribution: '$1,450/mo',
@@ -59,7 +100,7 @@ export const mockGoals: MockGoal[] = [
     progress: 24,
     current: '$1.2M',
     target: '$5M',
-    projectedDate: '2045',
+    projectedDate: estimateCompletionDate('$1.2M', '$5M', '$2,800/mo'),
     color: '#3B82F6',
     description: 'Long-horizon retirement portfolio, diversified across index funds and alternatives.',
     monthlyContribution: '$2,800/mo',

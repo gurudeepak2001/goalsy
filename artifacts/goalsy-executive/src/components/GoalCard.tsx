@@ -72,7 +72,7 @@ export default function GoalCard({
         <div className="flex items-center gap-2">
           <Clock size={16} className="text-[#808BA4]" strokeWidth={2} />
           <span className="text-[#808BA4] font-bold text-xs uppercase leading-[18px]" style={{ letterSpacing: '0.6px' }}>
-            Projected Completion
+            Estimated Completion
           </span>
         </div>
         <div className="text-white font-bold text-sm leading-[21px]">{projectedDate}</div>

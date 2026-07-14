@@ -8,7 +8,7 @@ import GoalCard from '@/components/GoalCard';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
-import { mockGoals, type MockGoal } from '@/lib/mockData';
+import { mockGoals, estimateCompletionDate, type MockGoal } from '@/lib/mockData';
 
 export default function GoalsOverviewScreen() {
   const [, navigate] = useLocation();
@@ -46,7 +46,17 @@ export default function GoalsOverviewScreen() {
       : `${trimmed}/mo`;
     // MOCK DATA - replace with a real "update contribution" API call
     setGoals((prev) =>
-      prev.map((g) => (g.id === selectedGoal.id ? { ...g, monthlyContribution: formatted } : g)),
+      prev.map((g) =>
+        g.id === selectedGoal.id
+          ? {
+              ...g,
+              monthlyContribution: formatted,
+              // Re-estimate the completion date so it reflects the new contribution
+              // rather than staying pinned to the old, now-stale projection.
+              projectedDate: estimateCompletionDate(g.current, g.target, formatted),
+            }
+          : g,
+      ),
     );
     toast({
       title: 'Contribution Updated',
@@ -171,7 +181,7 @@ export default function GoalsOverviewScreen() {
                 <span className="text-white font-bold text-sm">{selectedGoal.monthlyContribution}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#CBD5E1] font-semibold text-sm">Projected Completion</span>
+                <span className="text-[#CBD5E1] font-semibold text-sm">Estimated Completion</span>
                 <span className="text-white font-bold text-sm">{selectedGoal.projectedDate}</span>
               </div>
             </div>
