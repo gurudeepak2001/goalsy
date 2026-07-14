@@ -70,7 +70,10 @@ export default function ProfileScreen() {
   const [, navigate] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const initialName = user?.fullName?.trim() || 'Alexander Laurent';
+  // This Clerk instance has firstName/lastName disabled (email+password only accounts), so the
+  // full name entered at sign-up is stored in unsafeMetadata instead of user.fullName.
+  const metadataName = typeof user?.unsafeMetadata?.fullName === 'string' ? user.unsafeMetadata.fullName.trim() : '';
+  const initialName = metadataName || user?.fullName?.trim() || 'Alexander Laurent';
   const [fullName, setFullName] = useState(initialName);
   const [editName, setEditName] = useState(fullName);
   const [editOpen, setEditOpen] = useState(false);
@@ -127,9 +130,8 @@ export default function ProfileScreen() {
       toast({ title: 'Name required', description: 'Please enter your name.' });
       return;
     }
-    const [firstName, ...rest] = editName.trim().split(/\s+/);
     try {
-      await user?.update({ firstName, lastName: rest.join(' ') || undefined });
+      await user?.update({ unsafeMetadata: { ...user.unsafeMetadata, fullName: editName.trim() } });
       setFullName(editName.trim());
       setEditOpen(false);
       toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });

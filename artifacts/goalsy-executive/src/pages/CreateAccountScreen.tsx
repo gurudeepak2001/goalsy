@@ -48,12 +48,14 @@ export default function CreateAccountScreen() {
 
     setSubmitting(true);
     try {
-      const [firstName, ...rest] = fullName.trim().split(/\s+/);
+      // This Clerk instance has the firstName/lastName attributes disabled (email+password
+      // only), so passing them to signUp.create() is rejected as an invalid param. Store the
+      // full name in unsafeMetadata instead, which is always accepted regardless of attribute
+      // config, and read it back the same way in ProfileScreen.
       await signUp.create({
         emailAddress: email.trim(),
         password,
-        firstName,
-        lastName: rest.join(' ') || undefined,
+        unsafeMetadata: { fullName: fullName.trim() },
       });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setVerifyOpen(true);
