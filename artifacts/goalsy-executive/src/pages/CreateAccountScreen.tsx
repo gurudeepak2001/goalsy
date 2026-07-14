@@ -7,12 +7,7 @@ import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { toast } from '@/hooks/use-toast';
-
-// Extracts a human-readable message from a Clerk API error.
-function getClerkErrorMessage(err: unknown, fallback: string): string {
-  const clerkError = err as { errors?: Array<{ longMessage?: string; message?: string }> };
-  return clerkError?.errors?.[0]?.longMessage || clerkError?.errors?.[0]?.message || fallback;
-}
+import { getClerkErrorMessage } from '@/lib/clerkErrors';
 
 export default function CreateAccountScreen() {
   const [, setLocation] = useLocation();

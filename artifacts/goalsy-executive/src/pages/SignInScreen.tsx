@@ -8,12 +8,7 @@ import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { simulateAsync } from '@/lib/mockData';
-
-// Extracts a human-readable message from a Clerk API error.
-function getClerkErrorMessage(err: unknown, fallback: string): string {
-  const clerkError = err as { errors?: Array<{ longMessage?: string; message?: string }> };
-  return clerkError?.errors?.[0]?.longMessage || clerkError?.errors?.[0]?.message || fallback;
-}
+import { getClerkErrorMessage } from '@/lib/clerkErrors';
 
 export default function SignInScreen() {
   const [, navigate] = useLocation();
