@@ -1,21 +1,66 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useSignIn } from '@clerk/react/legacy';
+import { useClerk } from '@clerk/react';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Target, Loader2, ScanFace } from 'lucide-react';
+import { Mail, Lock, Target, Loader2, ScanFace, AlertCircle } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { simulateAsync } from '@/lib/mockData';
 
+// Extracts a human-readable message from a Clerk API error.
+function getClerkErrorMessage(err: unknown, fallback: string): string {
+  const clerkError = err as { errors?: Array<{ longMessage?: string; message?: string }> };
+  return clerkError?.errors?.[0]?.longMessage || clerkError?.errors?.[0]?.message || fallback;
+}
+
 export default function SignInScreen() {
   const [, navigate] = useLocation();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { client } = useClerk();
   const [faceIdStatus, setFaceIdStatus] = useState<'idle' | 'scanning' | 'verified'>('idle');
   const [resetStatus, setResetStatus] = useState<'idle' | 'sending'>('idle');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSignIn = async () => {
+    if (!isLoaded || submitting) return;
+    setErrorMessage(null);
+
+    if (!email.trim()) {
+      setErrorMessage('Enter your email address.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Enter your password.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await signIn.create({ identifier: email.trim(), password });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
+        navigate('/financial-connection');
+      } else {
+        setErrorMessage('Additional verification is required to finish signing in.');
+      }
+    } catch (err) {
+      setErrorMessage(getClerkErrorMessage(err, 'Invalid email or password. Please try again.'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleFaceId = async () => {
     if (faceIdStatus !== 'idle') return;
     setFaceIdStatus('scanning');
-    // MOCK DATA - replace with real biometric/auth API call
+    // MOCK DATA - replace with real biometric/auth API call (FaceID/biometrics stay simulated)
     await simulateAsync(true, 1400);
     setFaceIdStatus('verified');
     toast({ title: 'Identity Verified', description: 'Biometric authentication successful.' });
@@ -23,12 +68,27 @@ export default function SignInScreen() {
   };
 
   const handleForgotPassword = async () => {
-    if (resetStatus !== 'idle') return;
+    if (resetStatus !== 'idle' || !isLoaded) return;
+    if (!email.trim()) {
+      setErrorMessage('Enter your email address above first, then tap "Forgot?".');
+      return;
+    }
     setResetStatus('sending');
-    // MOCK DATA - replace with real password-reset API call
-    await simulateAsync(true, 1000);
-    setResetStatus('idle');
-    toast({ title: 'Reset Link Sent', description: 'Check executive@domain.com for instructions.' });
+    try {
+      await client.signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: email.trim(),
+      });
+      toast({ title: 'Reset Link Sent', description: `Check ${email.trim()} for instructions.` });
+    } catch (err) {
+      toast({
+        title: 'Could Not Send Reset Email',
+        description: getClerkErrorMessage(err, 'Please check the email address and try again.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setResetStatus('idle');
+    }
   };
 
   return (
@@ -57,14 +117,23 @@ export default function SignInScreen() {
             className="flex flex-col gap-6"
             onSubmit={(e) => {
               e.preventDefault();
-              navigate('/financial-connection');
+              handleSignIn();
             }}
           >
+            {errorMessage && (
+              <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">
+                <AlertCircle size={16} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
+                <span className="text-[#EF4444] font-semibold text-sm leading-5">{errorMessage}</span>
+              </div>
+            )}
+
             <ExecutiveInput
               label="Email Address"
               type="email"
               placeholder="executive@domain.com"
               leftIcon={<Mail size={18} />}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
 
             <ExecutiveInput
@@ -72,6 +141,8 @@ export default function SignInScreen() {
               type="password"
               placeholder="••••••••"
               leftIcon={<Lock size={18} />}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               rightElement={
                 <button
                   type="button"
@@ -86,9 +157,12 @@ export default function SignInScreen() {
 
             <div className="pt-4">
               <ExecutiveButton
-                text="Sign In"
+                type="submit"
+                text={submitting ? 'Signing In...' : 'Sign In'}
+                icon={submitting ? <Loader2 size={16} className="animate-spin" /> : undefined}
+                disabled={submitting}
                 style={{ letterSpacing: '0.00195312em', boxShadow: '0 0 40px rgba(37, 99, 235, 0.1)' }}
-                onClick={() => navigate('/financial-connection')}
+                className="disabled:opacity-70"
               />
             </div>
           </form>

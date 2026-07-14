@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useUser, useClerk } from '@clerk/react';
 import {
   Link2,
   Shield,
@@ -67,7 +68,10 @@ function Row({ icon, title, onClick, right }: RowProps) {
 
 export default function ProfileScreen() {
   const [, navigate] = useLocation();
-  const [fullName, setFullName] = useState('Alexander Laurent');
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const initialName = user?.fullName?.trim() || 'Alexander Laurent';
+  const [fullName, setFullName] = useState(initialName);
   const [editName, setEditName] = useState(fullName);
   const [editOpen, setEditOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
@@ -76,9 +80,21 @@ export default function ProfileScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [openArticleId, setOpenArticleId] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<MockNotificationPreference[]>(mockNotificationPreferences);
-  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(undefined);
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.imageUrl);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate('/welcome');
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   const handlePickAvatar = async (source: 'camera' | 'library') => {
     setAvatarUploading(source);
@@ -106,15 +122,24 @@ export default function ProfileScreen() {
     toast({ title: 'Profile Photo Removed', description: 'Your avatar now shows your initials.' });
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!editName.trim()) {
       toast({ title: 'Name required', description: 'Please enter your name.' });
       return;
     }
-    // MOCK DATA - replace with a real profile-update API call
-    setFullName(editName.trim());
-    setEditOpen(false);
-    toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });
+    const [firstName, ...rest] = editName.trim().split(/\s+/);
+    try {
+      await user?.update({ firstName, lastName: rest.join(' ') || undefined });
+      setFullName(editName.trim());
+      setEditOpen(false);
+      toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });
+    } catch {
+      toast({
+        title: 'Could Not Save',
+        description: 'Something went wrong updating your profile. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const toggleNotifPref = (id: string) => {
@@ -273,10 +298,11 @@ export default function ProfileScreen() {
         {/* Sign Out */}
         <button
           type="button"
-          onClick={() => navigate('/welcome')}
-          className="w-full border border-[#EF4444]/20 rounded-2xl py-5 text-[#EF4444] font-bold text-[15px] leading-[22px] text-center active:scale-[0.98] transition-transform"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="w-full border border-[#EF4444]/20 rounded-2xl py-5 text-[#EF4444] font-bold text-[15px] leading-[22px] text-center active:scale-[0.98] transition-transform disabled:opacity-70"
         >
-          Sign Out Executive Dashboard
+          {signingOut ? 'Signing Out...' : 'Sign Out Executive Dashboard'}
         </button>
       </div>
 

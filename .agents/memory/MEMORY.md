@@ -1,0 +1,1 @@
+- [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
