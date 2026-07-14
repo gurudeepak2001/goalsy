@@ -1,0 +1,48 @@
+I want to make the app fully functional with real, working logic — 
+EXCEPT for anything tied to real banking/account linking (Plaid) or 
+biometric security (FaceID), which should stay mock/simulated for now 
+since I'm still waiting on requirements for those.
+
+Please do this in three steps:
+
+STEP 1 — Propose the auth approach first, don't build yet:
+Tell me what authentication approach makes sense for this Replit app 
+(e.g. Replit's built-in Auth, or email/password with a database and 
+secure password hashing). Briefly explain the tradeoffs so I can choose, 
+since I'm new to this.
+
+STEP 2 — Once I confirm, build real authentication:
+- Create Account: real account creation, hashed passwords (never plain 
+  text), email format validation, real error messages (e.g. "email 
+  already in use," "password too short")
+- Sign In: real login, verifies credentials, shows real errors for wrong 
+  email/password, redirects to the main app on success
+- Keep the user logged in across page refreshes (session/token handling)
+- Working "Sign Out" button on Profile that actually logs the user out 
+  and returns to Sign In
+
+STEP 3 — Audit and fix every other interactive element:
+First, list every remaining button/toggle across all screens that 
+currently does nothing or is still mock — EXCLUDING banking/Plaid 
+connection and the FaceID/Security & Biometrics toggle (those stay mock). 
+Include things like:
+- Notification Preferences (Profile)
+- Subscription management (Profile)
+- Help & Support
+- Calendar's "Initiate Payment" and event navigation
+- Goalsy Score's action cards (e.g. "Pay Discover before Friday")
+- Any other unwired button you find
+
+Show me this list first. Then, one screen at a time:
+- For anything that can be made real now (settings, preferences, 
+  navigation to detail pages): actually save/persist it to the database 
+  tied to the logged-in user, and make sure it reflects the true saved 
+  state on reload, not just a visual flip
+- For anything still tied to mock financial data (like the AI 
+  recommendation action cards): keep it simulated (loading state → 
+  success message), but make sure it visibly responds to a tap
+- Do NOT touch the banking/Plaid connection flow or the FaceID/Security 
+  & Biometrics toggle — leave those exactly as mock/simulated as they are
+
+Go one screen at a time, and confirm each step with me before moving to 
+the next.
