@@ -50,7 +50,7 @@ export default function TodayScreen() {
     // MOCK DATA - replace with a real payment API call
     await simulateAsync(true, 1500);
     setActionStatus('done');
-    toast({ title: 'Payment Scheduled', description: 'Discover payment queued before Friday\'s due date.' });
+    toast({ title: 'Payment Scheduled', description: `${mockUpcomingBill.merchant} payment queued before ${mockUpcomingBill.dueLabel.toLowerCase()}.` });
   };
 
   const pulseCards = [
@@ -170,7 +170,9 @@ export default function TodayScreen() {
               </span>
               <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">+2 Goalsy Score</span>
             </div>
-            <h3 className="text-white font-bold text-lg leading-[25px]">Pay Discover before Friday</h3>
+            <h3 className="text-white font-bold text-lg leading-[25px]">
+              Pay {mockUpcomingBill.merchant} bill — {mockUpcomingBill.dueLabel.toLowerCase()}
+            </h3>
             <button
               type="button"
               onClick={handleTopAction}
@@ -185,7 +187,7 @@ export default function TodayScreen() {
                 </>
               ) : actionStatus === 'done' ? (
                 <>
-                  <CheckCircle2 size={16} /> Payment Sent
+                  <CheckCircle2 size={16} /> Payment Scheduled
                 </>
               ) : (
                 'Pay Now'

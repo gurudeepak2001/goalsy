@@ -90,6 +90,8 @@ export default function ProfileScreen() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
   const [signingOut, setSigningOut] = useState(false);
+  // Local-only for now; not persisted to Clerk/backend yet.
+  const [biometricsEnabled, setBiometricsEnabled] = useState(true);
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -268,7 +270,20 @@ export default function ProfileScreen() {
             <Row
               icon={<Shield size={20} />}
               title="Security & Biometrics"
-              right={<Switch defaultChecked />}
+              right={
+                <Switch
+                  checked={biometricsEnabled}
+                  onCheckedChange={(checked) => {
+                    setBiometricsEnabled(checked);
+                    toast({
+                      title: checked ? 'Biometrics Enabled' : 'Biometrics Disabled',
+                      description: checked
+                        ? 'Face ID / Touch ID will be used to secure sign-in.'
+                        : 'Face ID / Touch ID has been turned off for this device.',
+                    });
+                  }}
+                />
+              }
             />
             <Row
               icon={<Bell size={20} />}
