@@ -20,6 +20,7 @@ import {
   Check,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getInitials } from '@/lib/userDisplay';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
@@ -83,7 +84,9 @@ export default function ProfileScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [openArticleId, setOpenArticleId] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<MockNotificationPreference[]>(mockNotificationPreferences);
-  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.imageUrl);
+  // Clerk always returns some imageUrl (a generated default) even when the user hasn't set a
+  // real photo, so only seed a src when hasImage is true — otherwise show initials, matching AppHeader.
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.hasImage ? user?.imageUrl : undefined);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
   const [signingOut, setSigningOut] = useState(false);
@@ -180,7 +183,7 @@ export default function ProfileScreen() {
               className="w-[94px] h-24 rounded-3xl border-2 border-[#2563EB] overflow-hidden flex items-center justify-center bg-white/[0.02]"
               style={{ boxShadow: '0px 0px 20px rgba(37, 99, 235, 0.15)' }}
             >
-              <Avatar src={avatarSrc} fallback="AL" size="xl" className="w-full h-full rounded-none border-0" />
+              <Avatar src={avatarSrc} fallback={getInitials(fullName)} size="xl" className="w-full h-full rounded-none border-0" />
             </div>
             <button
               type="button"

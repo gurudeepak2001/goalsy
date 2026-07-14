@@ -10,7 +10,6 @@ import {
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
-import Avatar from '@/components/Avatar';
 import AppModal from '@/components/AppModal';
 import { mockCreditFactors } from '@/lib/mockData';
 
@@ -38,7 +37,7 @@ export default function FinancialHealthScreen() {
   const [creditModalOpen, setCreditModalOpen] = useState(false);
 
   return (
-    <AppShell activeTab="today" header={<AppHeader rightElement={<Avatar fallback="AL" />} />}>
+    <AppShell activeTab="today" header={<AppHeader dashboard dashboardTitle="Financial Health" />}>
       <div className="flex flex-col gap-6">
         {/* Cash Flow Analysis */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-4">

@@ -1,10 +1,12 @@
 import { ReactNode, useState } from 'react';
 import { Zap, Layers } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { useUser } from '@clerk/react';
 import GoalsyLogo from './GoalsyLogo';
 import Avatar from './Avatar';
 import AppModal from './AppModal';
 import { mockNotifications } from '@/lib/mockData';
+import { getInitials } from '@/lib/userDisplay';
 
 interface AppHeaderProps {
   showSecureMode?: boolean;
@@ -27,9 +29,17 @@ export default function AppHeader({
   dashboardTitle,
   showNotification = true,
 }: AppHeaderProps) {
+  const [, navigate] = useLocation();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { user } = useUser();
+  // This Clerk instance has firstName/lastName disabled, so the real name lives in
+  // unsafeMetadata.fullName (see CreateAccountScreen/ProfileScreen). Fall back to Clerk's
+  // built-in fullName in case it's ever populated some other way (e.g. OAuth).
+  const metadataName = typeof user?.unsafeMetadata?.fullName === 'string' ? user.unsafeMetadata.fullName : undefined;
+  const realFallback = getInitials(metadataName || user?.fullName);
+  const realAvatarSrc = user?.hasImage ? user?.imageUrl : undefined;
+
   if (dashboard) {
-    const [, navigate] = useLocation();
-    const [notifOpen, setNotifOpen] = useState(false);
     return (
       <>
         <header className={`flex items-center justify-between h-full w-full ${className}`}>
@@ -58,7 +68,7 @@ export default function AppHeader({
               onClick={() => navigate('/profile')}
               className="w-10 h-10 p-0 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
             >
-              <Avatar src="/avatar.jpg" fallback="AL" size="nav" className="border-2 border-[#2563EB]" />
+              <Avatar src={realAvatarSrc} fallback={realFallback} size="nav" className="border-2 border-[#2563EB]" />
             </button>
           </div>
         </header>
