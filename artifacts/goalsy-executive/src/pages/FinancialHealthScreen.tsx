@@ -37,7 +37,10 @@ export default function FinancialHealthScreen() {
   const [creditModalOpen, setCreditModalOpen] = useState(false);
 
   return (
-    <AppShell activeTab="goals" header={<AppHeader dashboard dashboardTitle="Financial Health" />}>
+    <AppShell
+      showBottomNav={false}
+      header={<AppHeader dashboard dashboardTitle="Financial Health" backTo="/goals" />}
+    >
       <div className="flex flex-col gap-6">
         {/* Cash Flow Analysis */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col gap-4">

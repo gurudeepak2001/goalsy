@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Zap, Layers } from 'lucide-react';
+import { Zap, Layers, ChevronLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useUser } from '@clerk/react';
 import GoalsyLogo from './GoalsyLogo';
@@ -17,6 +17,8 @@ interface AppHeaderProps {
   dashboard?: boolean;
   dashboardTitle?: string;
   showNotification?: boolean;
+  /** Renders a back chevron instead of the logo and navigates to this path when tapped. Used for sub-pages that hide the bottom nav. */
+  backTo?: string;
 }
 
 export default function AppHeader({
@@ -28,6 +30,7 @@ export default function AppHeader({
   dashboard = false,
   dashboardTitle,
   showNotification = true,
+  backTo,
 }: AppHeaderProps) {
   const [, navigate] = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -44,9 +47,20 @@ export default function AppHeader({
       <>
         <header className={`flex items-center justify-between h-full w-full ${className}`}>
           <div className="flex items-center gap-3 h-10">
-            <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.1)] flex-shrink-0">
-              <Layers color="white" size={20} strokeWidth={2} />
-            </div>
+            {backTo ? (
+              <button
+                type="button"
+                aria-label="Go back"
+                onClick={() => navigate(backTo)}
+                className="w-10 h-10 -ml-2 p-0 rounded-xl flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+              >
+                <ChevronLeft size={22} strokeWidth={2.5} />
+              </button>
+            ) : (
+              <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.1)] flex-shrink-0">
+                <Layers color="white" size={20} strokeWidth={2} />
+              </div>
+            )}
             <span className="text-white font-bold text-lg leading-[27px]" style={{ letterSpacing: '-0.45px' }}>
               {dashboardTitle || 'Goalsy'}
             </span>
