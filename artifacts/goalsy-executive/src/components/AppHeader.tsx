@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Zap, Layers } from 'lucide-react';
+import { Zap, Layers, ChevronLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useUser } from '@clerk/react';
 import GoalsyLogo from './GoalsyLogo';
@@ -17,6 +17,7 @@ interface AppHeaderProps {
   dashboard?: boolean;
   dashboardTitle?: string;
   showNotification?: boolean;
+  backTo?: string;
 }
 
 export default function AppHeader({
@@ -28,6 +29,7 @@ export default function AppHeader({
   dashboard = false,
   dashboardTitle,
   showNotification = true,
+  backTo,
 }: AppHeaderProps) {
   const [, navigate] = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -38,6 +40,27 @@ export default function AppHeader({
   const metadataName = typeof user?.unsafeMetadata?.fullName === 'string' ? user.unsafeMetadata.fullName : undefined;
   const realFallback = getInitials(metadataName || user?.fullName);
   const realAvatarSrc = user?.hasImage ? user?.imageUrl : undefined;
+
+  if (backTo) {
+    return (
+      <header className={`flex items-center justify-between h-full w-full ${className}`}>
+        <div className="flex items-center gap-3 h-10 min-w-0">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => navigate(backTo)}
+            className="w-10 h-10 p-0 bg-[#1F2937] border border-white/10 rounded-full flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+          >
+            <ChevronLeft size={18} strokeWidth={2} />
+          </button>
+          <span className="text-white font-bold text-lg leading-[27px] truncate" style={{ letterSpacing: '-0.45px' }}>
+            {dashboardTitle || title}
+          </span>
+        </div>
+        {rightElement}
+      </header>
+    );
+  }
 
   if (dashboard) {
     return (

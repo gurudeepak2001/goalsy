@@ -14,6 +14,7 @@ import CreateAccountScreen from '@/pages/CreateAccountScreen';
 import FinancialConnectionScreen from '@/pages/FinancialConnectionScreen';
 import AIHomeScreen from '@/pages/AIHomeScreen';
 import FinancialHealthScreen from '@/pages/FinancialHealthScreen';
+import TodayScreen from '@/pages/TodayScreen';
 import CalendarScreen from '@/pages/CalendarScreen';
 import GoalsOverviewScreen from '@/pages/GoalsOverviewScreen';
 import ProfileScreen from '@/pages/ProfileScreen';
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/create-account" component={() => <GuestOnly component={CreateAccountScreen} />} />
       <Route path="/financial-connection" component={() => <AuthGate component={FinancialConnectionScreen} />} />
       <Route path="/ai-home" component={() => <AuthGate component={AIHomeScreen} />} />
+      <Route path="/today" component={() => <AuthGate component={TodayScreen} />} />
       <Route path="/financial-health" component={() => <AuthGate component={FinancialHealthScreen} />} />
       <Route path="/calendar" component={() => <AuthGate component={CalendarScreen} />} />
       <Route path="/goals" component={() => <AuthGate component={GoalsOverviewScreen} />} />
