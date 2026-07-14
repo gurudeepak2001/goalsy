@@ -224,7 +224,9 @@ export default function ProfileScreen() {
               <span className="text-[#22C55E] font-bold text-sm leading-[21px]">+12%</span>
             </div>
           </div>
-          <CircularScoreRing value={84} size={80} strokeWidth={7} color="#2563EB" showGlow={false} />
+          {/* value controls the ring's fill (0-100 scale, ~842/1000); label keeps the
+              displayed number consistent with the actual Goalsy Score shown beside it. */}
+          <CircularScoreRing value={84} label="842" size={80} strokeWidth={7} color="#2563EB" showGlow={false} />
         </div>
 
         {/* Achievements */}
