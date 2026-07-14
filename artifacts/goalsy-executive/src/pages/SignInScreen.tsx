@@ -26,6 +26,14 @@ export default function SignInScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Password reset flow: once a code has been emailed, show the code +
+  // new-password fields inline so the user can complete the reset here.
+  const [resetStep, setResetStep] = useState<'none' | 'awaiting-code'>('none');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+
   const handleSignIn = async () => {
     if (!isLoaded || submitting) return;
     setErrorMessage(null);
@@ -80,7 +88,9 @@ export default function SignInScreen() {
         strategy: 'reset_password_email_code',
         identifier: email.trim(),
       });
-      toast({ title: 'Reset Link Sent', description: `Check ${email.trim()} for instructions.` });
+      toast({ title: 'Code Sent', description: `Enter the code sent to ${email.trim()} below to set a new password.` });
+      setResetError(null);
+      setResetStep('awaiting-code');
     } catch (err) {
       toast({
         title: 'Could Not Send Reset Email',
@@ -89,6 +99,41 @@ export default function SignInScreen() {
       });
     } finally {
       setResetStatus('idle');
+    }
+  };
+
+  const handleCompletePasswordReset = async () => {
+    if (!isLoaded || resetSubmitting) return;
+    setResetError(null);
+
+    if (!resetCode.trim()) {
+      setResetError('Enter the verification code from your email.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setResetError('Choose a new password with at least 8 characters.');
+      return;
+    }
+
+    setResetSubmitting(true);
+    try {
+      const result = await client.signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code: resetCode.trim(),
+        password: newPassword,
+      });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        toast({ title: 'Password Updated', description: 'Signed in with your new password.' });
+        navigate('/financial-connection');
+      } else {
+        setResetError('Additional verification is required to finish resetting your password.');
+      }
+    } catch (err) {
+      setResetError(getClerkErrorMessage(err, 'That code is invalid or expired. Request a new one and try again.'));
+    } finally {
+      setResetSubmitting(false);
     }
   };
 
@@ -155,6 +200,60 @@ export default function SignInScreen() {
                 </button>
               }
             />
+
+            {resetStep === 'awaiting-code' && (
+              <div className="flex flex-col gap-4 bg-[#111827] border border-white/5 rounded-2xl p-5">
+                <span className="text-[#CBD5E1] font-semibold text-sm leading-5">
+                  Enter the code sent to {email.trim()} and choose a new password.
+                </span>
+
+                {resetError && (
+                  <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">
+                    <AlertCircle size={16} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
+                    <span className="text-[#EF4444] font-semibold text-sm leading-5">{resetError}</span>
+                  </div>
+                )}
+
+                <ExecutiveInput
+                  label="Verification Code"
+                  type="text"
+                  placeholder="123456"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value)}
+                />
+
+                <ExecutiveInput
+                  label="New Password"
+                  type="password"
+                  placeholder="••••••••"
+                  leftIcon={<Lock size={18} />}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+
+                <ExecutiveButton
+                  type="button"
+                  onClick={handleCompletePasswordReset}
+                  text={resetSubmitting ? 'Updating...' : 'Set New Password'}
+                  icon={resetSubmitting ? <Loader2 size={16} className="animate-spin" /> : undefined}
+                  disabled={resetSubmitting}
+                  className="disabled:opacity-70"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetStep('none');
+                    setResetCode('');
+                    setNewPassword('');
+                    setResetError(null);
+                  }}
+                  className="text-[#808BA4] text-xs font-bold uppercase tracking-[0.5px] self-center"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
 
             <div className="pt-4">
               <ExecutiveButton
