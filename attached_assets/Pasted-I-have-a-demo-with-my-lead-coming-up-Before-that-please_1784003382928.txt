@@ -1,0 +1,43 @@
+I have a demo with my lead coming up. Before that, please do a full 
+readiness check across the entire app and report back — don't make any 
+changes yet, just audit and list findings.
+
+Please check and report on each of these:
+
+NAVIGATION & STRUCTURE
+- Confirm Today, Goals, Calendar, AI, Profile all show distinct content 
+  with no overlap
+- Confirm Financial Health opens as its own sub-page from Goals, with a 
+  working back button, and that "Goals" stays the active tab when 
+  returning
+- Confirm the top-right avatar is clickable and shows the real signed-in 
+  user's name/initials on every single screen, including Today
+
+AUTHENTICATION
+- Confirm sign up (with email verification), sign in, and sign out all 
+  work end-to-end with real Clerk sessions
+- Confirm a signed-in session persists across a page refresh
+- Confirm signed-out visitors get redirected away from dashboard pages, 
+  and signed-in visitors get redirected away from Welcome/Sign In
+- Confirm the FaceID button shows its animation + "coming soon" message 
+  without navigating anywhere broken
+- Confirm the password breach-check error message is the friendlier 
+  version, not the raw/alarming one
+
+INTERACTIVITY
+- List any button, toggle, or interactive element on any screen that 
+  still doesn't respond to a tap
+- Confirm the Score screen's "Fastest Ways to Increase Your Score" cards 
+  respond when tapped
+
+CONTENT ACCURACY
+- Confirm the Score screen now includes all previously missing sections: 
+  weekly delta badge, 3rd "Why Your Score Changed" bullet, trust badges, 
+  the recommendations section, and the chart milestone marker
+- Report the current state of the Today screen specifically — is it still 
+  a blank placeholder, or has content been added? If still blank, confirm 
+  it doesn't show broken/mock content by accident
+
+Give me the full list of what's working, what's not, and anything you 
+think I should know before presenting this to my lead — including things 
+I haven't asked about, if you notice something worth flagging.
