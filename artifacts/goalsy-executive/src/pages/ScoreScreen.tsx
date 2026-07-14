@@ -6,8 +6,9 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
+  ReferenceDot,
 } from 'recharts';
-import { Flame, CheckCircle, Trophy, Target } from 'lucide-react';
+import { Flame, CheckCircle, Trophy, Target, TrendingUp, ShieldCheck, Database, Zap, Clock, ArrowUpRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -15,7 +16,7 @@ import AppShell from '@/components/AppShell';
 const scoreData90D = [
   { month: 'May', score: 828 },
   { month: 'Jun', score: 836 },
-  { month: 'Jul', score: 842 },
+  { month: 'Jul', score: 842, milestoneLabel: 'Major Milestone: Jul 24' },
 ];
 
 const scoreData1Y = [
@@ -25,7 +26,7 @@ const scoreData1Y = [
   { month: 'Apr', score: 824 },
   { month: 'May', score: 828 },
   { month: 'Jun', score: 836 },
-  { month: 'Jul', score: 842 },
+  { month: 'Jul', score: 842, milestoneLabel: 'Major Milestone: Jul 24' },
 ];
 
 const scoreDataAll = [
@@ -34,7 +35,7 @@ const scoreDataAll = [
   { month: 'Q3', score: 815 },
   { month: 'Q4', score: 824 },
   { month: 'Q5', score: 836 },
-  { month: 'Q6', score: 842 },
+  { month: 'Q6', score: 842, milestoneLabel: 'Major Milestone: Jul 24' },
 ];
 
 const drivers = [
@@ -44,9 +45,29 @@ const drivers = [
   { label: 'Discipline', value: '98/100', change: 'Peak', color: '#22C55E', progress: 98 },
 ];
 
+const recommendations = [
+  {
+    title: 'Pay Discover before Friday',
+    points: '+2',
+    tag: 'Priority',
+    tagColor: '#EF4444',
+    time: '5 mins',
+    impact: 'High Impact',
+  },
+  {
+    title: 'Cancel Apple One Subscription',
+    points: '+1',
+    tag: 'Med',
+    tagColor: '#F59E0B',
+    time: '2 mins',
+    impact: 'Mid Impact',
+  },
+];
+
 const changes = [
   { text: 'Paid Capital One before statement date', value: '+2' },
   { text: 'Stayed under today\'s spending target', value: '+1' },
+  { text: 'Added $100 to emergency savings', value: '+1' },
 ];
 
 function ScoreGauge({ value }: { value: number }) {
@@ -108,12 +129,18 @@ export default function ScoreScreen() {
   const chartData =
     filter === '90D' ? scoreData90D : filter === '1Y' ? scoreData1Y : scoreDataAll;
 
+  const milestonePoint = chartData.find((point) => 'milestoneLabel' in point);
+
   return (
     <AppShell showBottomNav={false} header={<AppHeader dashboard />}>
       <div className="pt-4 flex flex-col gap-12">
         {/* Score Gauge */}
         <div className="flex flex-col items-center gap-4">
           <ScoreGauge value={842} />
+          <div className="flex items-center gap-1.5 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.2)] rounded-full px-3 py-1.5">
+            <TrendingUp size={12} className="text-[#22C55E]" />
+            <span className="text-[#22C55E] font-bold text-xs leading-4">+4 This Week</span>
+          </div>
         </div>
 
         {/* Why Your Score Changed */}
@@ -130,6 +157,57 @@ export default function ScoreScreen() {
               <div key={index} className="flex items-center justify-between">
                 <span className="text-[#CBD5E1] text-sm leading-5">{change.text}</span>
                 <span className="text-[#22C55E] font-bold text-sm">{change.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-[#808BA4]" />
+              <span className="text-[#808BA4] font-semibold text-xs leading-4">High Confidence</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Database size={14} className="text-[#808BA4]" />
+              <span className="text-[#808BA4] font-semibold text-xs leading-4">Data Backed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Fastest Ways to Increase Your Score */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <Zap size={20} className="text-[#F59E0B]" />
+            <h2 className="text-white font-bold text-2xl leading-9">Fastest Ways to Increase Your Score</h2>
+          </div>
+          <div className="flex flex-col gap-3">
+            {recommendations.map((rec) => (
+              <div
+                key={rec.title}
+                className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full"
+                      style={{ color: rec.tagColor, backgroundColor: `${rec.tagColor}1A` }}
+                    >
+                      {rec.tag}
+                    </span>
+                  </div>
+                  <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">
+                    {rec.points} Goalsy Score
+                  </span>
+                </div>
+                <h3 className="text-white font-bold text-lg leading-[25px]">{rec.title}</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={13} className="text-[#808BA4]" />
+                    <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.time}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <ArrowUpRight size={13} className="text-[#808BA4]" />
+                    <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.impact}</span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -197,6 +275,25 @@ export default function ScoreScreen() {
                   dot={{ fill: '#2563EB', strokeWidth: 0, r: 4 }}
                   activeDot={{ r: 6, fill: '#3B82F6' }}
                 />
+                {milestonePoint && (
+                  <ReferenceDot
+                    x={milestonePoint.month}
+                    y={milestonePoint.score}
+                    r={6}
+                    fill="#F59E0B"
+                    stroke="#05070A"
+                    strokeWidth={2}
+                    isFront
+                    label={{
+                      value: milestonePoint.milestoneLabel,
+                      position: 'top',
+                      fill: '#F59E0B',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      dy: -4,
+                    }}
+                  />
+                )}
               </AreaChart>
             </ResponsiveContainer>
           </div>
