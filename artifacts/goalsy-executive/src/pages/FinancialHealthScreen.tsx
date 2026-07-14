@@ -38,8 +38,8 @@ export default function FinancialHealthScreen() {
 
   return (
     <AppShell
-      showBottomNav={false}
-      header={<AppHeader dashboard dashboardTitle="Financial Health" backTo="/goals" />}
+      activeTab="goals"
+      header={<AppHeader dashboard dashboardTitle="Financial Health" />}
     >
       <div className="flex flex-col gap-6">
         {/* Cash Flow Analysis */}
