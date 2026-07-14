@@ -60,11 +60,12 @@ export default function SignInScreen() {
   const handleFaceId = async () => {
     if (faceIdStatus !== 'idle') return;
     setFaceIdStatus('scanning');
-    // MOCK DATA - replace with real biometric/auth API call (FaceID/biometrics stay simulated)
+    // MOCK DATA - FaceID/biometrics are an intentional visual preview only; no real
+    // biometric check and no session is created, so it must not grant navigation.
     await simulateAsync(true, 1400);
     setFaceIdStatus('verified');
-    toast({ title: 'Identity Verified', description: 'Biometric authentication successful.' });
-    setTimeout(() => navigate('/financial-connection'), 500);
+    toast({ title: 'Biometric Login Coming Soon', description: 'This is a preview of the FaceID experience.' });
+    setTimeout(() => setFaceIdStatus('idle'), 1800);
   };
 
   const handleForgotPassword = async () => {
