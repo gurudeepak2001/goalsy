@@ -14,9 +14,46 @@ export default function GoalsOverviewScreen() {
   const [, navigate] = useLocation();
   const [goals, setGoals] = useState<MockGoal[]>(mockGoals);
   const [selectedGoal, setSelectedGoal] = useState<MockGoal | null>(null);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const [newGoalTarget, setNewGoalTarget] = useState('');
+
+  const closeGoalDetail = () => {
+    setSelectedGoal(null);
+    setIsAdjusting(false);
+    setAdjustAmount('');
+  };
+
+  const startAdjustingContribution = () => {
+    if (!selectedGoal) return;
+    // Prefill with the current numeric contribution so the user is editing, not starting blank.
+    setAdjustAmount(selectedGoal.monthlyContribution.replace(/[^0-9.]/g, ''));
+    setIsAdjusting(true);
+  };
+
+  const handleSaveContribution = () => {
+    if (!selectedGoal) return;
+    const trimmed = adjustAmount.trim();
+    if (!trimmed) {
+      toast({ title: 'Enter an amount', description: 'Add a monthly contribution amount to continue.' });
+      return;
+    }
+    const numeric = Number(trimmed.replace(/[^0-9.]/g, ''));
+    const formatted = Number.isFinite(numeric) && numeric > 0
+      ? `${numeric.toLocaleString()}/mo`
+      : `${trimmed}/mo`;
+    // MOCK DATA - replace with a real "update contribution" API call
+    setGoals((prev) =>
+      prev.map((g) => (g.id === selectedGoal.id ? { ...g, monthlyContribution: formatted } : g)),
+    );
+    toast({
+      title: 'Contribution Updated',
+      description: `Monthly contribution toward ${selectedGoal.title} set to ${formatted}.`,
+    });
+    closeGoalDetail();
+  };
 
   const handleCreateGoal = () => {
     if (!newGoalTitle.trim() || !newGoalTarget.trim()) {
@@ -108,7 +145,7 @@ export default function GoalsOverviewScreen() {
       {/* Goal detail modal */}
       <AppModal
         open={!!selectedGoal}
-        onOpenChange={(open) => !open && setSelectedGoal(null)}
+        onOpenChange={(open) => !open && closeGoalDetail()}
         title={selectedGoal?.title ?? ''}
       >
         {selectedGoal && (
@@ -138,13 +175,39 @@ export default function GoalsOverviewScreen() {
                 <span className="text-white font-bold text-sm">{selectedGoal.projectedDate}</span>
               </div>
             </div>
-            <ExecutiveButton
-              text="Adjust Contribution"
-              onClick={() => {
-                setSelectedGoal(null);
-                toast({ title: 'Contribution Updated', description: `Increased monthly contribution toward ${selectedGoal.title}.` });
-              }}
-            />
+
+            {isAdjusting ? (
+              <div className="flex flex-col gap-4">
+                <ExecutiveInput
+                  label="New Monthly Contribution"
+                  leftIcon={<span className="font-bold">$</span>}
+                  inputMode="decimal"
+                  placeholder="e.g. 3500"
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <ExecutiveButton
+                    variant="outline"
+                    text="Cancel"
+                    className="flex-1"
+                    onClick={() => {
+                      setIsAdjusting(false);
+                      setAdjustAmount('');
+                    }}
+                  />
+                  <ExecutiveButton
+                    text="Save"
+                    icon={null}
+                    className="flex-1"
+                    onClick={handleSaveContribution}
+                  />
+                </div>
+              </div>
+            ) : (
+              <ExecutiveButton text="Adjust Contribution" onClick={startAdjustingContribution} />
+            )}
           </div>
         )}
       </AppModal>
