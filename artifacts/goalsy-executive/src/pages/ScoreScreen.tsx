@@ -8,8 +8,9 @@ import {
   Tooltip,
   ReferenceDot,
 } from 'recharts';
-import { Flame, CheckCircle, Trophy, Target, TrendingUp, ShieldCheck, Database, Zap, Clock, ArrowUpRight } from 'lucide-react';
+import { Flame, CheckCircle, Trophy, Target, TrendingUp, ShieldCheck, Database, Zap, Clock, ArrowUpRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { simulateAsync } from '@/lib/mockData';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 
@@ -47,20 +48,30 @@ const drivers = [
 
 const recommendations = [
   {
+    id: 'pay-discover',
     title: 'Pay Discover before Friday',
     points: '+2',
     tag: 'Priority',
     tagColor: '#EF4444',
     time: '5 mins',
     impact: 'High Impact',
+    actionLabel: 'Pay Now',
+    doneLabel: 'Payment Sent',
+    successTitle: 'Payment Scheduled',
+    successDescription: 'Discover payment queued before Friday\'s due date.',
   },
   {
+    id: 'cancel-apple-one',
     title: 'Cancel Apple One Subscription',
     points: '+1',
     tag: 'Med',
     tagColor: '#F59E0B',
     time: '2 mins',
     impact: 'Mid Impact',
+    actionLabel: 'Cancel Subscription',
+    doneLabel: 'Cancelled',
+    successTitle: 'Subscription Cancelled',
+    successDescription: 'Apple One will no longer renew.',
   },
 ];
 
@@ -123,13 +134,25 @@ function ScoreGauge({ value }: { value: number }) {
   );
 }
 
+type ActionStatus = 'idle' | 'processing' | 'done';
+
 export default function ScoreScreen() {
   const [filter, setFilter] = useState<'90D' | '1Y' | 'ALL'>('90D');
+  const [actionStatus, setActionStatus] = useState<Record<string, ActionStatus>>({});
 
   const chartData =
     filter === '90D' ? scoreData90D : filter === '1Y' ? scoreData1Y : scoreDataAll;
 
   const milestonePoint = chartData.find((point) => 'milestoneLabel' in point);
+
+  const handleRecommendationAction = async (rec: (typeof recommendations)[number]) => {
+    if ((actionStatus[rec.id] ?? 'idle') !== 'idle') return;
+    setActionStatus((prev) => ({ ...prev, [rec.id]: 'processing' }));
+    // MOCK DATA - replace with a real payment/subscription-management API call
+    await simulateAsync(true, 1500);
+    setActionStatus((prev) => ({ ...prev, [rec.id]: 'done' }));
+    toast({ title: rec.successTitle, description: rec.successDescription });
+  };
 
   return (
     <AppShell showBottomNav={false} header={<AppHeader dashboard />}>
@@ -179,37 +202,60 @@ export default function ScoreScreen() {
             <h2 className="text-white font-bold text-2xl leading-9">Fastest Ways to Increase Your Score</h2>
           </div>
           <div className="flex flex-col gap-3">
-            {recommendations.map((rec) => (
-              <div
-                key={rec.title}
-                className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full"
-                      style={{ color: rec.tagColor, backgroundColor: `${rec.tagColor}1A` }}
-                    >
-                      {rec.tag}
+            {recommendations.map((rec) => {
+              const status = actionStatus[rec.id] ?? 'idle';
+              return (
+                <div
+                  key={rec.id}
+                  className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full"
+                        style={{ color: rec.tagColor, backgroundColor: `${rec.tagColor}1A` }}
+                      >
+                        {rec.tag}
+                      </span>
+                    </div>
+                    <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">
+                      {rec.points} Goalsy Score
                     </span>
                   </div>
-                  <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">
-                    {rec.points} Goalsy Score
-                  </span>
-                </div>
-                <h3 className="text-white font-bold text-lg leading-[25px]">{rec.title}</h3>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={13} className="text-[#808BA4]" />
-                    <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.time}</span>
+                  <h3 className="text-white font-bold text-lg leading-[25px]">{rec.title}</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={13} className="text-[#808BA4]" />
+                      <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.time}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <ArrowUpRight size={13} className="text-[#808BA4]" />
+                      <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.impact}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <ArrowUpRight size={13} className="text-[#808BA4]" />
-                    <span className="text-[#808BA4] font-semibold text-xs leading-4">{rec.impact}</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRecommendationAction(rec)}
+                    disabled={status !== 'idle'}
+                    className={`h-11 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2 ${
+                      status === 'done' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E]' : 'bg-white text-[#05070A]'
+                    }`}
+                  >
+                    {status === 'processing' ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Processing
+                      </>
+                    ) : status === 'done' ? (
+                      <>
+                        <CheckCircle2 size={16} /> {rec.doneLabel}
+                      </>
+                    ) : (
+                      rec.actionLabel
+                    )}
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
