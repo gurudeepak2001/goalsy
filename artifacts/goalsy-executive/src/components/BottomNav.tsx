@@ -15,7 +15,10 @@ const tabs = [
 
 export default function BottomNav({ activeTab = 'today' }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F17]/85 backdrop-blur-md border-t border-white/5">
+    // pb-safe adds env(safe-area-inset-bottom) so the tab bar clears the
+    // iPhone home indicator and Android gesture bar on real devices.
+    // On desktop / non-notch devices this value is 0px — no visual change.
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0F17]/85 backdrop-blur-md border-t border-white/5 pb-safe">
       <div className="max-w-md mx-auto px-2 h-[84px] flex items-center justify-between">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;

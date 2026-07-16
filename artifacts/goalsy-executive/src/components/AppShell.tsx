@@ -23,11 +23,28 @@ export default function AppShell({
   return (
     <div className={`relative min-h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col overflow-y-auto ${className}`}>
       {header && (
-        <div className={`absolute top-0 left-0 right-0 z-50 px-6 h-[72px] flex items-center bg-[#0B0F17]/85 backdrop-blur-[8px] ${headerClassName}`}>
-          {header}
+        // pt-safe pushes the header content below the status bar / Dynamic
+        // Island on notched iPhones. The background extends all the way to the
+        // physical top edge (viewport-fit=cover in index.html), so the dark
+        // blur fills the status bar area rather than leaving a gap.
+        <div className={`absolute top-0 left-0 right-0 z-50 px-6 flex flex-col justify-end bg-[#0B0F17]/85 backdrop-blur-[8px] pt-safe ${headerClassName}`}>
+          <div className="h-[72px] flex items-center">
+            {header}
+          </div>
         </div>
       )}
-      <div className={`px-6 flex-1 flex flex-col ${showBottomNav ? 'pt-[104px] pb-44' : 'pb-10'} ${contentClassName}`}>
+      {/* Content padding:
+          - top: 72px (header) + safe-area-inset-top (status bar on notched devices)
+          - bottom: 176px (bottom nav 84px + extra breathing room 92px)
+                    + safe-area-inset-bottom (home indicator on iPhone/Android)
+          On desktop/non-notch both env() values are 0px so nothing changes. */}
+      <div
+        className={`px-6 flex-1 flex flex-col ${contentClassName}`}
+        style={showBottomNav
+          ? { paddingTop: 'calc(72px + var(--safe-top))', paddingBottom: 'calc(176px + var(--safe-bottom))' }
+          : { paddingBottom: 'calc(40px + var(--safe-bottom))' }
+        }
+      >
         {children}
       </div>
       {showBottomNav && <BottomNav activeTab={activeTab} />}

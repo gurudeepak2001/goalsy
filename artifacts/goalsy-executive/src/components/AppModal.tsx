@@ -15,7 +15,9 @@ export default function AppModal({ open, onOpenChange, title, children }: AppMod
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[100] data-[state=open]:animate-in data-[state=open]:fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out" />
         <Dialog.Content
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md max-h-[85dvh] overflow-y-auto bg-[#0B0F17] border-t border-white/10 rounded-t-[28px] p-6 z-[101] flex flex-col gap-5 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom"
+          // pb-safe ensures the modal's bottom padding clears the iPhone home
+          // indicator / Android gesture bar so content isn't hidden beneath it.
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md max-h-[85dvh] overflow-y-auto bg-[#0B0F17] border-t border-white/10 rounded-t-[28px] px-6 pt-6 pb-safe z-[101] flex flex-col gap-5 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom"
           aria-describedby={undefined}
         >
           <div className="w-10 h-1 bg-white/15 rounded-full mx-auto -mt-1" />

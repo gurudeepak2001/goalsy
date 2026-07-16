@@ -24,8 +24,13 @@ const queryClient = new QueryClient();
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
-// REQUIRED — copy verbatim. Resolves the key from window.location.hostname so the
-// same build serves multiple Clerk custom domains.
+// Resolve the Clerk publishable key.
+// In a normal browser the hostname matches the Clerk domain and the key is
+// derived automatically. Inside a Capacitor WebView the hostname is
+// "localhost" (both Android and iOS), so publishableKeyFromHost won't match
+// any Clerk domain and falls back to VITE_CLERK_PUBLISHABLE_KEY — which is
+// baked into the bundle at Vite build time, so this works correctly in the
+// packaged app with no extra config needed.
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
