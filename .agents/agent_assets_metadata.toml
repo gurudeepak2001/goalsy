@@ -1,0 +1,32 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "mkSlpMssJtkC653SZpqS4"
+uri = "file://artifacts/goalsy-executive/android/app/src/main/res/drawable-port-xxxhdpi/splash.png"
+type = "image"
+title = "Android Splash — portrait xxxhdpi (1280×1920)"
+
+[[outputs]]
+id = "ObweQQ9D61_qBAWBf2mk_"
+uri = "file://artifacts/goalsy-executive/ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png"
+type = "image"
+title = "iOS Splash — 2732×2732"
+
+[[outputs]]
+id = "G77JUorcHu7QKoMXGXUu-"
+uri = "file://artifacts/goalsy-executive/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+type = "image"
+title = "Android Icon — ic_launcher xxxhdpi (192×192)"
+
+[[outputs]]
+id = "VdqYxCbFruVz4IR5btNAR"
+uri = "file://artifacts/goalsy-executive/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+type = "image"
+title = "iOS AppIcon — 1024×1024"
+
+[[outputs]]
+id = "xJTZwzL1buJOJfPUiH44o"
+uri = "file://artifacts/goalsy-executive/public/favicon-32.png"
+type = "image"
+title = "Web Favicon — 32×32"
