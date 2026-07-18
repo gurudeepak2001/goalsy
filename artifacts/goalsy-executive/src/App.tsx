@@ -1,6 +1,6 @@
 import { useEffect, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, Show } from '@clerk/react';
+import { ClerkProvider, ClerkLoading, ClerkLoaded, Show } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -116,7 +116,15 @@ function ClerkProviderWithRoutes() {
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
     >
-      <Router />
+      {/* Show SplashScreen while Clerk resolves auth state so the preview
+          never displays a blank page. Once loaded, Show/signed-in/signed-out
+          take over as normal. */}
+      <ClerkLoading>
+        <SplashScreen />
+      </ClerkLoading>
+      <ClerkLoaded>
+        <Router />
+      </ClerkLoaded>
     </ClerkProvider>
   );
 }
