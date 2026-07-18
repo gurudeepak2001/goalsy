@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Matches the squircle icon's light background so adaptive-icon
+         backgrounds (visible on circle launchers) blend seamlessly. -->
+    <color name="ic_launcher_background">#F0F0F0</color>
 </resources>

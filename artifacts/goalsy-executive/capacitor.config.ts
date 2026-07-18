@@ -46,7 +46,7 @@ const config: CapacitorConfig = {
     // You'll supply the actual image assets before building for the stores.
     SplashScreen: {
       launchShowDuration: 1500,
-      backgroundColor: '#030712', // matches the app's bg-[#030712] dark background
+      backgroundColor: '#05070A', // matches the splash screen background colour
       showSpinner: false,
       androidSplashResourceName: 'splash',
       iosSplashResourceName: 'Splash',
