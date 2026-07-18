@@ -25,12 +25,12 @@ export default function SignInScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // ─── MFA / second-factor state ────────────────────────────────────────────
-  // Populated after signIn.create() returns needs_second_factor.
-  // 'email_code' — Clerk sends a code to the user's email (also used for Clerk's
-  //   adaptive bot-protection challenge, which looks identical to user-configured MFA).
-  // 'totp'       — user opens their authenticator app; no send step needed.
+  // ─── Verification state ───────────────────────────────────────────────────
+  // Handles both needs_first_factor (Clerk bot-protection email challenge after
+  // password) and needs_second_factor (user-configured MFA or adaptive challenge).
+  // mfaFactorType tracks which Clerk attempt method to call on verify/resend.
   const [mfaStep, setMfaStep] = useState<'none' | 'email_code' | 'totp'>('none');
+  const [mfaFactorType, setMfaFactorType] = useState<'first' | 'second'>('second');
   const [mfaCode, setMfaCode] = useState('');
   const [mfaSubmitting, setMfaSubmitting] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
@@ -92,8 +92,33 @@ export default function SignInScreen() {
           );
         }
 
+      } else if (result.status === 'needs_first_factor') {
+        // Clerk's bot-protection can fire needs_first_factor even after a correct
+        // password when the sign-in context looks unusual (e.g. Capacitor WebView).
+        // The user must complete an email code challenge as the *first* factor before
+        // Clerk will issue a session.
+        const supported: Array<{ strategy: string; emailAddressId?: string }> =
+          (result as any).supportedFirstFactors ?? [];
+        const emailFactor = supported.find(f => f.strategy === 'email_code');
+
+        setMfaCode('');
+        setMfaError(null);
+
+        if (emailFactor) {
+          await signIn!.prepareFirstFactor({
+            strategy: 'email_code',
+            emailAddressId: (emailFactor as any).emailAddressId,
+          });
+          setMfaFactorType('first');
+          setMfaStep('email_code');
+        } else {
+          const names = supported.map(f => f.strategy).join(', ');
+          setErrorMessage(
+            `Verification required (${names || 'unknown method'}). Please contact support.`
+          );
+        }
+
       } else {
-        // Catch-all for needs_first_factor, needs_new_password, etc.
         setErrorMessage('Additional verification is required to finish signing in.');
       }
     } catch (err) {
@@ -114,10 +139,11 @@ export default function SignInScreen() {
 
     setMfaSubmitting(true);
     try {
-      const result = await signIn!.attemptSecondFactor({
-        strategy: mfaStep as 'email_code' | 'totp',
-        code: mfaCode.trim(),
-      });
+      // First-factor strategies are email_code / password / passkey — never totp.
+      // totp is second-factor only, so the cast is safe given how mfaStep is set.
+      const result = mfaFactorType === 'first'
+        ? await signIn!.attemptFirstFactor({ strategy: 'email_code', code: mfaCode.trim() })
+        : await signIn!.attemptSecondFactor({ strategy: mfaStep as 'email_code' | 'totp', code: mfaCode.trim() });
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
@@ -136,7 +162,17 @@ export default function SignInScreen() {
   const handleMfaResend = async () => {
     if (!isLoaded) return;
     try {
-      await signIn!.prepareSecondFactor({ strategy: 'email_code' });
+      if (mfaFactorType === 'first') {
+        const emailFactor = (signIn as any)?.supportedFirstFactors?.find(
+          (f: any) => f.strategy === 'email_code'
+        );
+        await signIn!.prepareFirstFactor({
+          strategy: 'email_code',
+          emailAddressId: emailFactor?.emailAddressId,
+        });
+      } else {
+        await signIn!.prepareSecondFactor({ strategy: 'email_code' });
+      }
       setMfaCode('');
       toast({ title: 'Code Resent', description: `Check ${email.trim()} for a new code.` });
     } catch (err) {
@@ -447,6 +483,7 @@ export default function SignInScreen() {
                   type="button"
                   onClick={() => {
                     setMfaStep('none');
+                    setMfaFactorType('second');
                     setMfaCode('');
                     setMfaError(null);
                   }}
