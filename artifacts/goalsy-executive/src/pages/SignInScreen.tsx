@@ -62,66 +62,73 @@ export default function SignInScreen() {
     try {
       const result = await signIn!.create({ identifier: email.trim(), password });
 
+      // Diagnostic — visible in Logcat / browser console so we can see the
+      // exact Clerk response without needing additional tooling.
+      console.log('[Goalsy SignIn] status:', result.status);
+      console.log('[Goalsy SignIn] firstFactors:', JSON.stringify((result as any).supportedFirstFactors ?? []));
+      console.log('[Goalsy SignIn] secondFactors:', JSON.stringify((result as any).supportedSecondFactors ?? []));
+
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
         navigate('/financial-connection');
+        return;
+      }
 
-      } else if (result.status === 'needs_second_factor') {
-        // Determine which second-factor strategy Clerk is requesting.
-        // Clerk's adaptive bot-protection also surfaces as needs_second_factor
-        // with strategy email_code, even when the user has no MFA configured.
-        const supported: Array<{ strategy: string }> = (result as any).supportedSecondFactors ?? [];
-        const emailFactor = supported.find(f => f.strategy === 'email_code');
-        const totpFactor  = supported.find(f => f.strategy === 'totp');
+      // ── Factor-array-first approach ─────────────────────────────────────
+      // Do NOT rely solely on the status string — it may be undefined or an
+      // unexpected value in certain Clerk SDK/runtime combinations (e.g.
+      // Capacitor WebView). Instead inspect the actual factor arrays that
+      // Clerk populates on the result, and use the status only as a hint.
+      const firstFactors: Array<{ strategy: string; emailAddressId?: string }> =
+        (result as any).supportedFirstFactors ?? [];
+      const secondFactors: Array<{ strategy: string }> =
+        (result as any).supportedSecondFactors ?? [];
 
-        setMfaCode('');
-        setMfaError(null);
+      const secondEmail = secondFactors.find(f => f.strategy === 'email_code');
+      const secondTotp  = secondFactors.find(f => f.strategy === 'totp');
+      const firstEmail  = firstFactors.find(f => f.strategy === 'email_code');
 
-        if (emailFactor) {
-          // prepareSecondFactor sends the code; must be called before attemptSecondFactor.
-          await signIn!.prepareSecondFactor({ strategy: 'email_code' });
-          setMfaStep('email_code');
-        } else if (totpFactor) {
-          // TOTP: authenticator app generates the code locally; no prepare step.
-          setMfaStep('totp');
-        } else {
-          const names = supported.map(f => f.strategy).join(', ');
-          setErrorMessage(
-            `Additional verification is required (${names || 'unknown method'}). Please contact support.`
-          );
-        }
+      setMfaCode('');
+      setMfaError(null);
 
-      } else if (result.status === 'needs_first_factor') {
-        // Clerk's bot-protection can fire needs_first_factor even after a correct
-        // password when the sign-in context looks unusual (e.g. Capacitor WebView).
-        // The user must complete an email code challenge as the *first* factor before
-        // Clerk will issue a session.
-        const supported: Array<{ strategy: string; emailAddressId?: string }> =
-          (result as any).supportedFirstFactors ?? [];
-        const emailFactor = supported.find(f => f.strategy === 'email_code');
+      if (secondEmail) {
+        // Second-factor email code (user-configured MFA or Clerk adaptive
+        // bot-protection challenge that surfaces as a second factor).
+        await signIn!.prepareSecondFactor({ strategy: 'email_code' });
+        setMfaFactorType('second');
+        setMfaStep('email_code');
 
-        setMfaCode('');
-        setMfaError(null);
+      } else if (secondTotp) {
+        // TOTP — code is generated locally; no prepare step needed.
+        setMfaFactorType('second');
+        setMfaStep('totp');
 
-        if (emailFactor) {
-          await signIn!.prepareFirstFactor({
-            strategy: 'email_code',
-            emailAddressId: (emailFactor as any).emailAddressId,
-          });
-          setMfaFactorType('first');
-          setMfaStep('email_code');
-        } else {
-          const names = supported.map(f => f.strategy).join(', ');
-          setErrorMessage(
-            `Verification required (${names || 'unknown method'}). Please contact support.`
-          );
-        }
+      } else if (firstEmail) {
+        // First-factor email code — Clerk bot-protection fires this even
+        // after a correct password when the context looks unusual
+        // (e.g. Capacitor WebView user-agent / IP fingerprint).
+        await signIn!.prepareFirstFactor({
+          strategy: 'email_code',
+          emailAddressId: (firstEmail as any).emailAddressId,
+        });
+        setMfaFactorType('first');
+        setMfaStep('email_code');
 
       } else {
-        setErrorMessage('Additional verification is required to finish signing in.');
+        // Genuinely unhandled — surface the real Clerk status and available
+        // factors so it's visible in the UI for diagnosis.
+        const f1 = firstFactors.map(f => f.strategy).join(', ') || 'none';
+        const f2 = secondFactors.map(f => f.strategy).join(', ') || 'none';
+        console.log('[Goalsy SignIn] unhandled result:', JSON.stringify(result));
+        setErrorMessage(
+          `Verification required (status: ${result.status ?? 'unknown'}, ` +
+          `1st: ${f1}, 2nd: ${f2}). Please contact support.`
+        );
       }
+
     } catch (err) {
+      console.log('[Goalsy SignIn] caught error:', JSON.stringify(err));
       setErrorMessage(getClerkErrorMessage(err, 'Invalid email or password. Please try again.'));
     } finally {
       setSubmitting(false);
