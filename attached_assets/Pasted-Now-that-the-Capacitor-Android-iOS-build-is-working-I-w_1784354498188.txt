@@ -1,0 +1,55 @@
+Now that the Capacitor Android/iOS build is working, I want a full audit 
+and polish pass to make sure the mobile apps have complete feature parity 
+with the web app, and handle mobile-specific concerns properly.
+
+Please do this in three steps:
+
+STEP 1 — Audit only, no changes yet:
+Go through every screen (Splash, Welcome, Sign In, Create Account, 
+Financial Connection, Today, AI Home, Financial Health, Calendar, Goals, 
+Score, Profile) and check, specifically in the context of the mobile 
+WebView (not just desktop browser preview):
+
+1. FEATURE PARITY — confirm every button, modal, toggle, and flow that 
+   works on web also works identically in the mobile build (auth, goal 
+   detail + adjust contribution, Execute Transfer, Credit Score breakdown, 
+   Initiate Payment, all Profile settings modals, Sign Out, etc.)
+
+2. TOUCH TARGETS — confirm every tappable element has an adequately sized 
+   hit area for touch and that there's no click/tap offset anywhere, since 
+   this app has had that exact bug before
+
+3. SAFE AREAS — confirm content isn't clipped under the notch, status bar, 
+   or home indicator on any screen, especially ones with fixed headers or 
+   bottom nav
+
+4. KEYBOARD BEHAVIOR — confirm that on Sign In, Create Account, and any 
+   form (like Adjust Contribution's amount input), the on-screen keyboard 
+   doesn't cover the input field or break the layout when it appears
+
+5. SCROLLING — confirm no screens have broken or double-scrolling behavior 
+   specific to the WebView
+
+6. NAVIGATION — confirm back gestures/buttons (Android hardware/gesture 
+   back, iOS swipe-back) behave sensibly and don't break app state or 
+   navigate somewhere unexpected
+
+7. CLERK AUTH IN WEBVIEW — confirm sign in, sign up with email 
+   verification, and sign out all work correctly on-device, not just in 
+   desktop preview
+
+Show me the full list of anything found before making any changes.
+
+STEP 2 — Fix, one issue at a time:
+Go through the list from Step 1 and fix each item, confirming with me 
+after each one before moving to the next. Do not change anything that 
+already works correctly. Leave biometrics as the existing simulated 
+toggle and any banking/Plaid integration as mock (already decided).
+
+STEP 3 — Prepare for on-device testing:
+Once fixes are done, confirm the build is ready for me to pull locally and 
+test in Android Studio and Xcode. Remind me of the exact commands I'll 
+need to run locally to rebuild and re-sync both platforms after pulling 
+your changes (pnpm build, npx cap sync android, npx cap sync ios), and 
+flag anything I should specifically watch for when testing on a real 
+device/simulator versus what you could verify from the code alone.
