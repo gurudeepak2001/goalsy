@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Zap, Layers, ChevronLeft } from 'lucide-react';
+import { Zap, ChevronLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useUser } from '@clerk/react';
 import GoalsyLogo from './GoalsyLogo';
@@ -57,9 +57,7 @@ export default function AppHeader({
                 <ChevronLeft size={22} strokeWidth={2.5} />
               </button>
             ) : (
-              <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.1)] flex-shrink-0">
-                <Layers color="white" size={20} strokeWidth={2} />
-              </div>
+              <img src="/logo-icon.png" alt="Goalsy" className="w-10 h-10 rounded-xl" draggable={false} />
             )}
             <span className="text-white font-bold text-lg leading-[27px]" style={{ letterSpacing: '-0.45px' }}>
               {dashboardTitle || 'Goalsy'}
