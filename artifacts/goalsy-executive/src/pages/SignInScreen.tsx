@@ -189,7 +189,7 @@ export default function SignInScreen() {
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={resetStatus === 'sending'}
-                  className="text-[#3B82F6] text-xs font-bold uppercase tracking-[0.5px] disabled:opacity-50"
+                  className="text-[#3B82F6] text-xs font-bold uppercase tracking-[0.5px] disabled:opacity-50 px-2 py-2 -mr-2"
                 >
                   {resetStatus === 'sending' ? 'Sending...' : 'Forgot?'}
                 </button>
@@ -243,7 +243,7 @@ export default function SignInScreen() {
                     setNewPassword('');
                     setResetError(null);
                   }}
-                  className="text-[#808BA4] text-xs font-bold uppercase tracking-[0.5px] self-center"
+                  className="text-[#808BA4] text-xs font-bold uppercase tracking-[0.5px] self-center px-4 py-3"
                 >
                   Cancel
                 </button>

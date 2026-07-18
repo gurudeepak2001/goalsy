@@ -191,7 +191,7 @@ export default function ProfileScreen() {
               type="button"
               aria-label="Change profile photo"
               onClick={() => setAvatarModalOpen(true)}
-              className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#2563EB] border-2 border-[#05070A] rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
+              className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#2563EB] border-2 border-[#05070A] rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
             >
               <Camera size={14} strokeWidth={2.5} />
             </button>

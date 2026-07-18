@@ -27,7 +27,7 @@ export default function AppModal({ open, onOpenChange, title, children }: AppMod
               <button
                 type="button"
                 aria-label="Close"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-[#1F2937] border border-white/10 text-white flex-shrink-0 active:scale-95 transition-transform"
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-[#1F2937] border border-white/10 text-white flex-shrink-0 active:scale-95 transition-transform"
               >
                 <X size={16} />
               </button>

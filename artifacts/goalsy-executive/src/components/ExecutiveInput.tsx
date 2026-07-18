@@ -45,7 +45,7 @@ const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
               type="button"
               onClick={() => setRevealed((prev) => !prev)}
               aria-label={revealed ? 'Hide password' : 'Show password'}
-              className="text-white/40 hover:text-white/70 flex-shrink-0 transition-colors"
+              className="w-11 h-11 flex items-center justify-center flex-shrink-0 -mr-2 text-white/40 hover:text-white/70 transition-colors"
             >
               {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

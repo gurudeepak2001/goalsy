@@ -269,7 +269,7 @@ export default function ScoreScreen() {
                   key={f}
                   type="button"
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-md text-[11px] font-bold leading-4 transition-colors ${
+                  className={`px-3 py-2 rounded-md text-[11px] font-bold leading-4 transition-colors ${
                     filter === f
                       ? 'bg-[#2563EB] text-white'
                       : 'text-[#808BA4]'

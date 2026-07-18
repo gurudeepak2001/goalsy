@@ -241,7 +241,7 @@ export default function CreateAccountScreen() {
           <button
             type="button"
             onClick={handleResendCode}
-            className="text-[#3B82F6] text-sm font-bold uppercase tracking-[0.5px] text-center"
+            className="text-[#3B82F6] text-sm font-bold uppercase tracking-[0.5px] text-center py-3"
           >
             Resend Code
           </button>
