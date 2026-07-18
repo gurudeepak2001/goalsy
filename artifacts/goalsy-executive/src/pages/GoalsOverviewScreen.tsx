@@ -139,7 +139,11 @@ export default function GoalsOverviewScreen() {
         </div>
       </div>
 
-      <div className="fixed bottom-24 left-0 right-0 max-w-md mx-auto px-6 z-40">
+      {/* Position the FAB above the full nav + safe-area stack so it never
+          slides behind the home indicator on iPhone. The nav is h-[84px] with
+          pb-safe, so: 84px (nav) + var(--safe-bottom) (home indicator) + 16px
+          (breathing room) = correct clearance on every device. */}
+      <div className="fixed left-0 right-0 max-w-md mx-auto px-6 z-40" style={{ bottom: 'calc(84px + var(--safe-bottom) + 16px)' }}>
         <ExecutiveButton
           text="Create New Goal"
           icon={<Plus size={20} />}
