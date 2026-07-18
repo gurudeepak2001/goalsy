@@ -1,2 +1,3 @@
 - [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
+- [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
