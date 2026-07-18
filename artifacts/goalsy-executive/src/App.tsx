@@ -25,16 +25,18 @@ const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Resolve the Clerk publishable key.
-// In a normal browser the hostname matches the Clerk domain and the key is
-// derived automatically. Inside a Capacitor WebView the hostname is
-// "localhost" (both Android and iOS), so publishableKeyFromHost won't match
-// any Clerk domain and falls back to VITE_CLERK_PUBLISHABLE_KEY — which is
-// baked into the bundle at Vite build time, so this works correctly in the
-// packaged app with no extra config needed.
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+// In a normal browser the hostname matches the Clerk domain and publishableKeyFromHost
+// derives the key automatically. Inside a Capacitor WebView the hostname is always
+// "localhost" regardless of the real Clerk domain — publishableKeyFromHost then
+// constructs a key whose embedded frontend API resolves to "clerk.localhost", which
+// doesn't exist, causing Clerk's JS bundle load to fail and the app to show a blank
+// screen. We detect the Capacitor runtime via window.Capacitor (always set on both
+// Android and iOS) and bypass the hostname derivation entirely, using the key baked
+// into the bundle at Vite build time.
+const isCapacitor = !!(window as any).Capacitor;
+const clerkPubKey = isCapacitor
+  ? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
 // REQUIRED — copy verbatim. Empty in dev, auto-set in prod.
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
