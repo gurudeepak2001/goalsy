@@ -7,7 +7,7 @@ export default function WelcomeScreen() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col justify-between bg-[#05070A] px-8 pt-12 pb-8">
+    <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col justify-between bg-[#05070A] px-8" style={{ paddingTop: 'calc(3rem + var(--safe-top))', paddingBottom: 'calc(2rem + var(--safe-bottom))' }}>
       <header className="w-[311px] mx-auto">
         <AppHeader />
       </header>

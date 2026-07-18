@@ -134,7 +134,7 @@ export default function SignInScreen() {
 
   return (
     <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col overflow-y-auto bg-[#05070A]">
-      <div className="w-[327px] mx-auto pt-12 pb-10 flex-1 flex flex-col">
+      <div className="w-[327px] mx-auto flex-1 flex flex-col" style={{ paddingTop: 'calc(3rem + var(--safe-top))', paddingBottom: 'calc(2.5rem + var(--safe-bottom))' }}>
         <div className="pb-16">
           <AppHeader />
         </div>

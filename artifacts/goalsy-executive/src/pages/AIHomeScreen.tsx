@@ -33,8 +33,8 @@ export default function AIHomeScreen() {
   return (
     <AppShell
       activeTab="ai"
-      headerClassName="h-[80px] px-8 bg-[#05070A]/90 backdrop-blur-[12px]"
-      contentClassName="pt-[112px]"
+      headerHeight={80}
+      headerClassName="px-8 bg-[#05070A]/90 backdrop-blur-[12px]"
       header={<AppHeader dashboard dashboardTitle="Strategic Intelligence" showNotification={false} />}
     >
       <div className="flex flex-col gap-6">
