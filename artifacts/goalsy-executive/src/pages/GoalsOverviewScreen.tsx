@@ -198,7 +198,12 @@ export default function GoalsOverviewScreen() {
                   inputMode="decimal"
                   placeholder="e.g. 3500"
                   value={adjustAmount}
-                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  onChange={(e) => {
+                    // Strip anything that isn't a digit or a single decimal point
+                    const raw = e.target.value.replace(/[^0-9.]/g, '');
+                    const parts = raw.split('.');
+                    setAdjustAmount(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw);
+                  }}
                   autoFocus
                 />
                 <div className="flex gap-3">
@@ -237,9 +242,15 @@ export default function GoalsOverviewScreen() {
           />
           <ExecutiveInput
             label="Target Amount"
-            placeholder="e.g. $10,000"
+            leftIcon={<span className="font-bold">$</span>}
+            inputMode="decimal"
+            placeholder="e.g. 10000"
             value={newGoalTarget}
-            onChange={(e) => setNewGoalTarget(e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^0-9.]/g, '');
+              const parts = raw.split('.');
+              setNewGoalTarget(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw);
+            }}
           />
           <ExecutiveButton text="Add Goal" onClick={handleCreateGoal} />
         </div>
