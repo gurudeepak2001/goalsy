@@ -1,0 +1,59 @@
+I want to bring this app as close to the PRD requirements as possible, 
+with these exclusions:
+- Real banking/financial data integration (Plaid) — out of scope, staying 
+  mock, handled separately by my lead
+- Real biometric/security APIs (Face ID, device-level auth) — staying as 
+  the existing simulated toggle
+- Anything requiring a live credit bureau connection — staying mock
+
+IMPORTANT: Do NOT change the existing design, layout, or UI in any way. 
+Every requirement must be implemented by adding functionality on top of 
+or within the current screens exactly as they are — same buttons, same 
+layout, same visual style. If something genuinely cannot be done without 
+changing the design, do not build it — flag it separately for me to 
+review instead.
+
+Everything else in the PRD should be made genuinely workable — not just 
+visually present, but functionally real (data persists, forms validate 
+and save, actions actually update state, etc.), using our own database 
+(the existing Drizzle/@workspace/db setup) rather than real external 
+financial APIs.
+
+Please do this in stages, not all at once:
+
+STAGE 1 — Propose a plan first, no code changes yet:
+Going through the PRD audit gaps, group the missing/different items into 
+a prioritized build plan. For each group, tell me:
+- What it includes
+- Whether it needs a real backend/database connection or can be done with 
+  local state
+- Confirm it fits into the CURRENT design with no layout changes — if any 
+  item would require a design change, flag it separately and do NOT 
+  include it in the plan until I explicitly approve that specific change
+- A suggested order (e.g. financial profile capture and persistence 
+  first, since many other features depend on it existing)
+
+Do NOT include AI Coach chat interface in this plan — it was already 
+flagged as requiring a design change, so it stays excluded until I decide 
+separately.
+
+STAGE 2 — Wait for my approval on the plan and order before building 
+anything.
+
+STAGE 3 — Once approved, build one group at a time, showing me each 
+completed group before moving to the next — not one giant sweep across 
+the whole app.
+
+FINAL REPORT — Once all approved stages are complete, give me a single 
+summary document covering:
+- Every requirement that is now implemented (mapped back to the original 
+  PRD requirement IDs, e.g. FR-FP-001), with a one-line description of 
+  what changed and which file/screen it's in
+- Every requirement still NOT implemented, and why (out of scope per the 
+  exclusions above, needs a design decision, or ran out of time/wasn't 
+  reached)
+- An updated version of the original ✅⚠️❌🔀 status table, reflecting the 
+  new state after this work, so I can compare it directly against the 
+  original audit
+
+Show me the Stage 1 plan now.
