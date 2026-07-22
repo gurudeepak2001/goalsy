@@ -10,15 +10,16 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
 
   server: {
-    // During development you can point at the Replit dev server for live reload.
-    // Comment this out (or remove it) before running `cap sync` for a real build —
-    // the packaged .apk/.aab must use the bundled files, not a remote URL.
-    // url: 'https://YOUR_REPLIT_DEV_DOMAIN/goalsy-executive',
-    // allowNavigation: ['YOUR_REPLIT_DEV_DOMAIN'],
+    // ── DEV: point the native WebView at the live Replit dev server ────────────
+    // This lets the native app use the same origin as the browser preview, so
+    // root-relative /api/* calls reach the API server and Clerk auth works.
+    // ⚠️  BEFORE a store build: comment this url line out and run `cap sync`
+    //     so the packaged app uses the bundled files in webDir instead.
+    url: 'https://b89a11ff-b052-43b2-b941-88baf72a4a02-00-1vdn0ng8937zm.kirk.replit.dev/goalsy-executive',
 
-    // Allow Clerk's auth endpoints to be reached from the WebView.
-    // Clerk's custom-UI SDK talks to these over HTTPS — they must be allowlisted.
+    // Allow Clerk's auth endpoints and the Replit dev domain to be reached from the WebView.
     allowNavigation: [
+      'b89a11ff-b052-43b2-b941-88baf72a4a02-00-1vdn0ng8937zm.kirk.replit.dev',
       '*.clerk.accounts.dev',
       '*.clerk.com',
       'clerk.goalsy.com', // update to your production Clerk domain when you have one
