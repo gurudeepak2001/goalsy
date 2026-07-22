@@ -40,8 +40,10 @@ const clerkPubKey = isCapacitor
   ? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
   : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
-// REQUIRED — copy verbatim. Empty in dev, auto-set in prod.
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+// In the browser the Clerk proxy URL routes auth through Replit's domain.
+// In a Capacitor native build Clerk must talk to its servers directly, so we
+// clear the proxy URL — the allowNavigation list in capacitor.config.ts covers it.
+const clerkProxyUrl = isCapacitor ? undefined : import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
