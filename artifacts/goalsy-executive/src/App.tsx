@@ -1,6 +1,7 @@
 import { useEffect, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, ClerkLoading, ClerkLoaded, Show } from '@clerk/react';
+import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
+import { initApiClient } from '@/lib/apiClient';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -106,6 +107,13 @@ function Router() {
   );
 }
 
+/** Runs once inside ClerkLoaded — wires the Clerk session token to every API request. */
+function ApiClientBootstrap() {
+  const { getToken } = useAuth();
+  useEffect(() => { initApiClient(getToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -123,6 +131,7 @@ function ClerkProviderWithRoutes() {
         <SplashScreen />
       </ClerkLoading>
       <ClerkLoaded>
+        <ApiClientBootstrap />
         <Router />
       </ClerkLoaded>
     </ClerkProvider>
