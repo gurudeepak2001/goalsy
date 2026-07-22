@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSignUp } from '@clerk/react/legacy';
-import { User, Mail, Lock, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
+import { User, Mail, Lock, AlertCircle, Loader2, ShieldCheck, Check } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
@@ -16,6 +16,7 @@ export default function CreateAccountScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -38,6 +39,10 @@ export default function CreateAccountScreen() {
     }
     if (password.length < 8) {
       setErrorMessage('Password must be at least 8 characters.');
+      return;
+    }
+    if (!agreedToTerms) {
+      setErrorMessage('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
@@ -164,12 +169,36 @@ export default function CreateAccountScreen() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
+            {/* Terms of Service + Privacy Policy agreement */}
+            <button
+              type="button"
+              onClick={() => setAgreedToTerms((v) => !v)}
+              className="flex items-start gap-3 text-left"
+            >
+              <div
+                className={`w-5 h-5 rounded-md flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                  agreedToTerms
+                    ? 'bg-[#2563EB] border border-[#2563EB]'
+                    : 'border border-white/20 bg-transparent'
+                }`}
+              >
+                {agreedToTerms && <Check size={12} className="text-white" />}
+              </div>
+              <span className="text-[#808BA4] text-sm leading-5">
+                I agree to the{' '}
+                <span className="text-[#3B82F6] font-semibold">Terms of Service</span>
+                {' '}and{' '}
+                <span className="text-[#3B82F6] font-semibold">Privacy Policy</span>
+                , and acknowledge that Goalsy provides financial education tools, not personalized financial advice.
+              </span>
+            </button>
+
             <div className="pt-4 flex flex-col gap-4">
               <ExecutiveButton
                 type="submit"
                 text={submitting ? 'Creating Account...' : 'Create Account'}
                 icon={submitting ? <Loader2 size={16} className="animate-spin" /> : undefined}
-                disabled={submitting}
+                disabled={submitting || !agreedToTerms}
                 style={{
                   letterSpacing: '-0.000976562em',
                   boxShadow: '0 0 40px rgba(37, 99, 235, 0.15)',
@@ -198,6 +227,9 @@ export default function CreateAccountScreen() {
             </div>
             <p className="text-[#808BA4] text-xs leading-5 mt-4">
               By establishing this account, you authorize encrypted data processing under the Executive Performance Standards.
+            </p>
+            <p className="text-[#808BA4] text-xs leading-5 mt-3">
+              Goalsy is a financial planning and education platform. Nothing on this platform constitutes personalized financial, investment, tax, or legal advice. Past performance is not indicative of future results.
             </p>
           </div>
         </main>

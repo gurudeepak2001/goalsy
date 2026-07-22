@@ -39,6 +39,7 @@ import {
   simulateAsync,
   type MockNotificationPreference,
 } from '@/lib/mockData';
+import { getScoreTier } from '@/lib/scoreUtils';
 
 interface RowProps {
   icon: React.ReactNode;
@@ -202,7 +203,7 @@ export default function ProfileScreen() {
             </h1>
             <div className="flex items-center gap-2">
               <span className="text-[#3B82F6] font-bold text-xs uppercase tracking-[1.5px]">
-                Executive Tier
+                {getScoreTier(842)} Tier
               </span>
               <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full flex-shrink-0" />
             </div>

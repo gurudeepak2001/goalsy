@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ArrowRight, TrendingUp } from 'lucide-react';
+import { Plus, ArrowRight, TrendingUp, Target } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
@@ -123,19 +123,33 @@ export default function GoalsOverviewScreen() {
         </button>
 
         <div className="flex flex-col gap-8 pb-24">
-          {goals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              title={goal.title}
-              subtitle={goal.subtitle}
-              progress={goal.progress}
-              current={goal.current}
-              target={goal.target}
-              projectedDate={goal.projectedDate}
-              color={goal.color}
-              onClick={() => setSelectedGoal(goal)}
-            />
-          ))}
+          {goals.length === 0 ? (
+            <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col items-center gap-5 text-center">
+              <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center">
+                <Target size={28} className="text-[#2563EB]" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <h3 className="text-white font-bold text-lg leading-6">No Goals Yet</h3>
+                <p className="text-[#808BA4] font-semibold text-sm leading-5">
+                  Create your first strategic goal to begin your financial roadmap.
+                </p>
+              </div>
+            </div>
+          ) : (
+            goals.map((goal) => (
+              <GoalCard
+                key={goal.id}
+                title={goal.title}
+                subtitle={goal.subtitle}
+                progress={goal.progress}
+                current={goal.current}
+                target={goal.target}
+                projectedDate={goal.projectedDate}
+                color={goal.color}
+                onClick={() => setSelectedGoal(goal)}
+              />
+            ))
+          )}
         </div>
       </div>
 

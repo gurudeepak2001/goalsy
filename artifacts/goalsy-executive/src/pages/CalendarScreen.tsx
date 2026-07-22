@@ -169,25 +169,41 @@ export default function CalendarScreen() {
         {/* Future Briefings */}
         <div className="flex flex-col gap-4">
           <DayDivider text="Future Briefings" />
-          <div className="flex flex-col gap-4">
-            {mockBriefings.map((briefing) => (
-              <AccentCard key={briefing.id} onClick={() => setSelectedBriefing(briefing)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
-                      {briefing.dateLabel} &bull; {briefing.category}
-                    </span>
-                    <h3 className="text-white font-bold text-lg leading-[27px]">{briefing.title}</h3>
-                  </div>
-                  {briefing.id === 'credit-chase' ? (
-                    <FileText size={24} className="text-white flex-shrink-0" />
-                  ) : (
-                    <Lightbulb size={24} className="text-white flex-shrink-0" />
-                  )}
+          {mockBriefings.length === 0 ? (
+            <AccentCard>
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                  <FileText size={22} className="text-[#808BA4]" />
                 </div>
-              </AccentCard>
-            ))}
-          </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-white font-bold text-base">No Upcoming Briefings</h3>
+                  <p className="text-[#808BA4] font-semibold text-sm leading-5">
+                    Strategic briefings will appear here as your schedule fills in.
+                  </p>
+                </div>
+              </div>
+            </AccentCard>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {mockBriefings.map((briefing) => (
+                <AccentCard key={briefing.id} onClick={() => setSelectedBriefing(briefing)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+                        {briefing.dateLabel} &bull; {briefing.category}
+                      </span>
+                      <h3 className="text-white font-bold text-lg leading-[27px]">{briefing.title}</h3>
+                    </div>
+                    {briefing.id === 'credit-chase' ? (
+                      <FileText size={24} className="text-white flex-shrink-0" />
+                    ) : (
+                      <Lightbulb size={24} className="text-white flex-shrink-0" />
+                    )}
+                  </div>
+                </AccentCard>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="h-4" />

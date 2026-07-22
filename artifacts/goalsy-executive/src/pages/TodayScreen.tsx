@@ -10,10 +10,12 @@ import {
   Loader2,
   CheckCircle2,
   Zap,
+  SkipForward,
 } from 'lucide-react';
 import { useUser } from '@clerk/react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
+import AppModal from '@/components/AppModal';
 import AppShell from '@/components/AppShell';
 import {
   mockConnectedAccounts,
@@ -36,6 +38,23 @@ export default function TodayScreen() {
   const [, navigate] = useLocation();
   const { user } = useUser();
   const [actionStatus, setActionStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [missionActive, setMissionActive] = useState(true);
+  const [skipOpen, setSkipOpen] = useState(false);
+  const [skipReason, setSkipReason] = useState<string | null>(null);
+
+  const skipReasons = [
+    'Not enough funds right now',
+    'Already handled this',
+    'Will do it later',
+    'Not relevant to me',
+  ];
+
+  const handleConfirmSkip = () => {
+    setMissionActive(false);
+    setSkipOpen(false);
+    setSkipReason(null);
+    toast({ title: 'Mission Skipped', description: 'Your next mission will appear tomorrow.' });
+  };
 
   const metadataName = typeof user?.unsafeMetadata?.fullName === 'string' ? user.unsafeMetadata.fullName : undefined;
   const firstName = (metadataName || user?.fullName || '').trim().split(' ')[0] || 'there';
@@ -163,41 +182,98 @@ export default function TodayScreen() {
         {/* Top Recommended Action */}
         <div className="flex flex-col gap-4">
           <h2 className="text-[#CBD5E1] font-bold text-sm uppercase tracking-[1.5px]">Top Recommended Action</h2>
-          <div className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full text-[#EF4444] bg-[#EF4444]/10">
-                Priority
-              </span>
-              <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">+2 Goalsy Score</span>
-            </div>
-            <h3 className="text-white font-bold text-lg leading-[25px]">
-              Pay {mockUpcomingBill.merchant} bill — {mockUpcomingBill.dueLabel.toLowerCase()}
-            </h3>
-            <button
-              type="button"
-              onClick={handleTopAction}
-              disabled={actionStatus !== 'idle'}
-              className={`h-11 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2 ${
-                actionStatus === 'done' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E]' : 'bg-white text-[#05070A]'
-              }`}
-            >
-              {actionStatus === 'processing' ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Processing
-                </>
-              ) : actionStatus === 'done' ? (
-                <>
-                  <CheckCircle2 size={16} /> Payment Scheduled
-                </>
-              ) : (
-                'Pay Now'
+          {missionActive ? (
+            <div className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full text-[#EF4444] bg-[#EF4444]/10">
+                  Priority
+                </span>
+                <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">+2 Goalsy Score</span>
+              </div>
+              <h3 className="text-white font-bold text-lg leading-[25px]">
+                Pay {mockUpcomingBill.merchant} bill — {mockUpcomingBill.dueLabel.toLowerCase()}
+              </h3>
+              <button
+                type="button"
+                onClick={handleTopAction}
+                disabled={actionStatus !== 'idle'}
+                className={`h-11 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2 ${
+                  actionStatus === 'done' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E]' : 'bg-white text-[#05070A]'
+                }`}
+              >
+                {actionStatus === 'processing' ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Processing
+                  </>
+                ) : actionStatus === 'done' ? (
+                  <>
+                    <CheckCircle2 size={16} /> Payment Scheduled
+                  </>
+                ) : (
+                  'Pay Now'
+                )}
+              </button>
+              {actionStatus === 'idle' && (
+                <button
+                  type="button"
+                  onClick={() => setSkipOpen(true)}
+                  className="flex items-center justify-center gap-1.5 text-[#808BA4] font-semibold text-sm py-1 active:opacity-60 transition-opacity"
+                >
+                  <SkipForward size={14} />
+                  Skip this mission
+                </button>
               )}
-            </button>
-          </div>
+            </div>
+          ) : (
+            <div className="bg-[#111827] border border-white/5 rounded-3xl p-8 flex flex-col items-center gap-4 text-center">
+              <div className="w-12 h-12 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.2)] rounded-2xl flex items-center justify-center">
+                <CheckCircle2 size={24} className="text-[#22C55E]" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-white font-bold text-base">All Clear for Now</h3>
+                <p className="text-[#808BA4] font-semibold text-sm leading-5">
+                  You've skipped today's mission. Your next mission will appear tomorrow.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="h-8" />
       </div>
+
+      {/* Skip mission modal */}
+      <AppModal open={skipOpen} onOpenChange={setSkipOpen} title="Skip Today's Mission">
+        <div className="flex flex-col gap-5 pb-4">
+          <p className="text-[#808BA4] font-semibold text-sm leading-5">
+            Let us know why you're skipping so we can refine future recommendations.
+          </p>
+          <div className="flex flex-col gap-3">
+            {skipReasons.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={() => setSkipReason(reason)}
+                className={`px-4 py-3.5 rounded-2xl border text-left font-semibold text-sm transition-colors ${
+                  skipReason === reason
+                    ? 'border-[#2563EB] bg-[#2563EB]/10 text-white'
+                    : 'border-white/10 bg-[#111827] text-[#CBD5E1]'
+                }`}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleConfirmSkip}
+            disabled={!skipReason}
+            className="h-12 rounded-xl bg-white text-[#05070A] font-bold text-sm active:scale-95 transition-transform disabled:opacity-40"
+          >
+            Confirm Skip
+          </button>
+        </div>
+      </AppModal>
     </AppShell>
   );
 }

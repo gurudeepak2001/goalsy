@@ -11,6 +11,7 @@ import {
 import { Flame, CheckCircle, Trophy, Target, TrendingUp, ShieldCheck, Database, Zap, Clock, ArrowUpRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { simulateAsync } from '@/lib/mockData';
+import { getScoreTier } from '@/lib/scoreUtils';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 
@@ -124,7 +125,7 @@ function ScoreGauge({ value }: { value: number }) {
           842
         </span>
         <div className="mt-2 bg-[rgba(34,197,94,0.2)] border border-[rgba(34,197,94,0.3)] rounded-full px-3 py-1.5">
-          <span className="text-[#22C55E] font-bold text-xs uppercase tracking-[1px]">Optimal</span>
+          <span className="text-[#22C55E] font-bold text-xs uppercase tracking-[1px]">{getScoreTier(value)}</span>
         </div>
       </div>
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-[#05070A] px-4 z-10">
@@ -164,6 +165,9 @@ export default function ScoreScreen() {
             <TrendingUp size={12} className="text-[#22C55E]" />
             <span className="text-[#22C55E] font-bold text-xs leading-4">+4 This Week</span>
           </div>
+          <p className="text-[#444444] font-semibold text-[11px] text-center leading-4 max-w-[260px]">
+            Goalsy Score is a proprietary financial readiness measure, not a credit score.
+          </p>
         </div>
 
         {/* Why Your Score Changed */}
