@@ -13,6 +13,13 @@ import {
 
 const app: Express = express();
 
+// Disable ETags and cache so the browser never replays stale JSON after a data change
+app.set("etag", false);
+app.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(
