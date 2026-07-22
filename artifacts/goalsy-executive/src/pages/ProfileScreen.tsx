@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useUser, useClerk } from '@clerk/react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Link2,
   Shield,
@@ -32,14 +33,27 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 import { Switch } from '@/components/ui/switch';
 import {
   mockConnectedAccounts,
-  mockNotificationPreferences,
   mockSubscription,
   mockHelpArticles,
   mockAvatarPresets,
   simulateAsync,
-  type MockNotificationPreference,
 } from '@/lib/mockData';
 import { getScoreTier } from '@/lib/scoreUtils';
+import {
+  useGetScore,
+  useListNotificationPreferences,
+  useUpdateNotificationPreference,
+  getListNotificationPreferencesQueryKey,
+} from '@workspace/api-client-react';
+
+// ── Notification type display metadata ────────────────────────────────────────
+const NOTIF_META: Record<string, { label: string; description: string }> = {
+  mission_reminders: { label: 'Mission Reminders', description: 'Daily alerts to complete your mission' },
+  goal_updates: { label: 'Goal Updates', description: 'Celebrate milestone achievements on your goals' },
+  market_alerts: { label: 'Market Alerts', description: 'Important market movements affecting your portfolio' },
+  weekly_summary: { label: 'Weekly Summary', description: 'Digest of your financial week every Sunday' },
+  ai_insights: { label: 'AI Insights', description: 'Daily strategic recommendations' },
+};
 
 interface RowProps {
   icon: React.ReactNode;
@@ -72,8 +86,8 @@ export default function ProfileScreen() {
   const [, navigate] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  // This Clerk instance has firstName/lastName disabled (email+password only accounts), so the
-  // full name entered at sign-up is stored in unsafeMetadata instead of user.fullName.
+  const queryClient = useQueryClient();
+
   const metadataName = typeof user?.unsafeMetadata?.fullName === 'string' ? user.unsafeMetadata.fullName.trim() : '';
   const initialName = metadataName || user?.fullName?.trim() || 'Alexander Laurent';
   const [fullName, setFullName] = useState(initialName);
@@ -84,16 +98,30 @@ export default function ProfileScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [openArticleId, setOpenArticleId] = useState<string | null>(null);
-  const [notifPrefs, setNotifPrefs] = useState<MockNotificationPreference[]>(mockNotificationPreferences);
-  // Clerk always returns some imageUrl (a generated default) even when the user hasn't set a
-  // real photo, so only seed a src when hasImage is true — otherwise show initials, matching AppHeader.
   const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.hasImage ? user?.imageUrl : undefined);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
   const [signingOut, setSigningOut] = useState(false);
-  // Local-only for now; not persisted to Clerk/backend yet.
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
 
+  // ── Real API: score + notification prefs ──────────────────────────────────
+  const { data: scoreResult } = useGetScore();
+  const { data: notifPrefs } = useListNotificationPreferences();
+  const { mutateAsync: updatePref } = useUpdateNotificationPreference();
+
+  const score = scoreResult?.score ?? 842;
+  const tier = scoreResult ? getScoreTier(score) : getScoreTier(842);
+
+  const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
+    try {
+      await updatePref({ type, data: { enabled: !currentEnabled } });
+      await queryClient.invalidateQueries({ queryKey: getListNotificationPreferencesQueryKey() });
+    } catch {
+      toast({ title: 'Could not update preference', variant: 'destructive' });
+    }
+  };
+
+  // ── Auth handlers ─────────────────────────────────────────────────────────
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
@@ -107,7 +135,6 @@ export default function ProfileScreen() {
 
   const handlePickAvatar = async (source: 'camera' | 'library') => {
     setAvatarUploading(source);
-    // MOCK DATA - replace with real camera capture / photo library + upload API call
     await simulateAsync(true, 1400);
     const preset = mockAvatarPresets[Math.floor(Math.random() * mockAvatarPresets.length)];
     setAvatarSrc(preset);
@@ -142,17 +169,8 @@ export default function ProfileScreen() {
       setEditOpen(false);
       toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });
     } catch {
-      toast({
-        title: 'Could Not Save',
-        description: 'Something went wrong updating your profile. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Could Not Save', description: 'Something went wrong. Please try again.', variant: 'destructive' });
     }
-  };
-
-  const toggleNotifPref = (id: string) => {
-    // MOCK DATA - replace with a real notification-settings API call
-    setNotifPrefs((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)));
   };
 
   return (
@@ -166,10 +184,7 @@ export default function ProfileScreen() {
             <button
               type="button"
               aria-label="Edit profile"
-              onClick={() => {
-                setEditName(fullName);
-                setEditOpen(true);
-              }}
+              onClick={() => { setEditName(fullName); setEditOpen(true); }}
               className="w-10 h-10 p-0 bg-[#1F2937] border border-white/10 rounded-xl flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
             >
               <Pencil size={16} strokeWidth={2} />
@@ -198,13 +213,9 @@ export default function ProfileScreen() {
             </button>
           </div>
           <div className="flex flex-col gap-1 min-w-0">
-            <h1 className="text-white font-bold text-[28px] leading-[35px] tracking-[-1.4px]">
-              {fullName}
-            </h1>
+            <h1 className="text-white font-bold text-[28px] leading-[35px] tracking-[-1.4px]">{fullName}</h1>
             <div className="flex items-center gap-2">
-              <span className="text-[#3B82F6] font-bold text-xs uppercase tracking-[1.5px]">
-                {getScoreTier(842)} Tier
-              </span>
+              <span className="text-[#3B82F6] font-bold text-xs uppercase tracking-[1.5px]">{tier} Tier</span>
               <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full flex-shrink-0" />
             </div>
           </div>
@@ -217,17 +228,12 @@ export default function ProfileScreen() {
           data-testid="card-score"
         >
           <div className="flex flex-col gap-1">
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.2px]">
-              Goalsy Score
-            </span>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.2px]">Goalsy Score</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-white font-bold text-5xl leading-[72px] tracking-[-2.4px]">842</span>
-              <span className="text-[#22C55E] font-bold text-sm leading-[21px]">+12%</span>
+              <span className="text-white font-bold text-5xl leading-[72px] tracking-[-2.4px]">{score}</span>
             </div>
           </div>
-          {/* value controls the ring's fill (0-100 scale, ~842/1000); label keeps the
-              displayed number consistent with the actual Goalsy Score shown beside it. */}
-          <CircularScoreRing value={84} label="842" size={80} strokeWidth={7} color="#2563EB" showGlow={false} />
+          <CircularScoreRing value={Math.round(score / 10)} label={String(score)} size={80} strokeWidth={7} color="#2563EB" showGlow={false} />
         </div>
 
         {/* Achievements */}
@@ -280,9 +286,7 @@ export default function ProfileScreen() {
                     setBiometricsEnabled(checked);
                     toast({
                       title: checked ? 'Biometrics Enabled' : 'Biometrics Disabled',
-                      description: checked
-                        ? 'Face ID / Touch ID will be used to secure sign-in.'
-                        : 'Face ID / Touch ID has been turned off for this device.',
+                      description: checked ? 'Face ID / Touch ID will be used to secure sign-in.' : 'Face ID / Touch ID has been turned off for this device.',
                     });
                   }}
                 />
@@ -341,48 +345,25 @@ export default function ProfileScreen() {
       <AppModal open={avatarModalOpen} onOpenChange={setAvatarModalOpen} title="Change Profile Photo">
         <div className="flex flex-col gap-5 pb-4">
           <div className="flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => handlePickAvatar('camera')}
-              disabled={avatarUploading !== 'idle'}
-              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70"
-            >
-              {avatarUploading === 'camera' ? (
-                <Loader2 size={18} className="animate-spin text-[#2563EB]" />
-              ) : (
-                <Camera size={18} className="text-[#2563EB]" />
-              )}
+            <button type="button" onClick={() => handlePickAvatar('camera')} disabled={avatarUploading !== 'idle'}
+              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70">
+              {avatarUploading === 'camera' ? <Loader2 size={18} className="animate-spin text-[#2563EB]" /> : <Camera size={18} className="text-[#2563EB]" />}
               {avatarUploading === 'camera' ? 'Capturing Photo...' : 'Take Photo'}
             </button>
-            <button
-              type="button"
-              onClick={() => handlePickAvatar('library')}
-              disabled={avatarUploading !== 'idle'}
-              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70"
-            >
-              {avatarUploading === 'library' ? (
-                <Loader2 size={18} className="animate-spin text-[#2563EB]" />
-              ) : (
-                <Image size={18} className="text-[#2563EB]" />
-              )}
+            <button type="button" onClick={() => handlePickAvatar('library')} disabled={avatarUploading !== 'idle'}
+              className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70">
+              {avatarUploading === 'library' ? <Loader2 size={18} className="animate-spin text-[#2563EB]" /> : <Image size={18} className="text-[#2563EB]" />}
               {avatarUploading === 'library' ? 'Uploading...' : 'Choose from Library'}
             </button>
           </div>
-
           <div className="flex flex-col gap-3">
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Or pick an avatar</span>
             <div className="grid grid-cols-3 gap-3">
               {mockAvatarPresets.map((preset) => {
                 const isSelected = avatarSrc === preset;
                 return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`relative aspect-square rounded-2xl overflow-hidden border-2 active:scale-95 transition-transform ${
-                      isSelected ? 'border-[#2563EB]' : 'border-white/5'
-                    }`}
-                  >
+                  <button key={preset} type="button" onClick={() => handleSelectPreset(preset)}
+                    className={`relative aspect-square rounded-2xl overflow-hidden border-2 active:scale-95 transition-transform ${isSelected ? 'border-[#2563EB]' : 'border-white/5'}`}>
                     <img src={preset} alt="Avatar option" className="w-full h-full object-cover bg-[#111827]" />
                     {isSelected && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -394,13 +375,9 @@ export default function ProfileScreen() {
               })}
             </div>
           </div>
-
           {avatarSrc && (
-            <button
-              type="button"
-              onClick={handleRemoveAvatar}
-              className="w-full h-12 flex items-center justify-center gap-2 text-[#EF4444] font-bold text-sm active:scale-[0.98] transition-transform"
-            >
+            <button type="button" onClick={handleRemoveAvatar}
+              className="w-full h-12 flex items-center justify-center gap-2 text-[#EF4444] font-bold text-sm active:scale-[0.98] transition-transform">
               <Trash2 size={16} />
               Remove Current Photo
             </button>
@@ -412,47 +389,36 @@ export default function ProfileScreen() {
       <AppModal open={accountsOpen} onOpenChange={setAccountsOpen} title="Connected Accounts">
         <div className="flex flex-col gap-3 pb-4">
           {mockConnectedAccounts.map((account) => (
-            <div
-              key={account.id}
-              className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center gap-4"
-            >
+            <div key={account.id} className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-[#1F2937] border border-white/10 flex items-center justify-center flex-shrink-0">
                 <Building2 size={20} className="text-white" />
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-white font-bold text-[15px] leading-[22px]">{account.institution}</span>
-                <span className="text-[#808BA4] font-semibold text-[13px]">
-                  {account.accountType} &bull;&bull;&bull;&bull; {account.last4}
-                </span>
+                <span className="text-[#808BA4] font-semibold text-[13px]">{account.accountType} &bull;&bull;&bull;&bull; {account.last4}</span>
               </div>
               <span className="text-white font-bold text-sm flex-shrink-0">{account.balance}</span>
             </div>
           ))}
-          <ExecutiveButton
-            variant="outline"
-            text="Add Institution"
-            onClick={() =>
-              toast({ title: 'Add Institution', description: 'Opens the secure Plaid link flow to connect a new bank.' })
-            }
-          />
+          <ExecutiveButton variant="outline" text="Add Institution" onClick={() => toast({ title: 'Add Institution', description: 'Opens the secure Plaid link flow to connect a new bank.' })} />
         </div>
       </AppModal>
 
       {/* Notification preferences modal */}
       <AppModal open={notifOpen} onOpenChange={setNotifOpen} title="Notification Preferences">
         <div className="flex flex-col gap-3 pb-4">
-          {notifPrefs.map((pref) => (
-            <div
-              key={pref.id}
-              className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between gap-4"
-            >
-              <div className="flex flex-col min-w-0">
-                <span className="text-white font-bold text-[15px] leading-[22px]">{pref.label}</span>
-                <span className="text-[#808BA4] font-semibold text-[13px]">{pref.description}</span>
+          {(notifPrefs ?? []).map((pref) => {
+            const meta = NOTIF_META[pref.type] ?? { label: pref.type, description: '' };
+            return (
+              <div key={pref.id} className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between gap-4">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-white font-bold text-[15px] leading-[22px]">{meta.label}</span>
+                  <span className="text-[#808BA4] font-semibold text-[13px]">{meta.description}</span>
+                </div>
+                <Switch checked={pref.enabled} onCheckedChange={() => handleToggleNotif(pref.type, pref.enabled)} />
               </div>
-              <Switch checked={pref.enabled} onCheckedChange={() => toggleNotifPref(pref.id)} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </AppModal>
 
@@ -471,13 +437,7 @@ export default function ProfileScreen() {
               </div>
             ))}
           </div>
-          <ExecutiveButton
-            variant="outline"
-            text="Manage Subscription"
-            onClick={() =>
-              toast({ title: 'Manage Subscription', description: 'Opens billing management to change or cancel your plan.' })
-            }
-          />
+          <ExecutiveButton variant="outline" text="Manage Subscription" onClick={() => toast({ title: 'Manage Subscription', description: 'Opens billing management.' })} />
         </div>
       </AppModal>
 
@@ -488,20 +448,12 @@ export default function ProfileScreen() {
             const isOpen = openArticleId === article.id;
             return (
               <div key={article.id} className="bg-[#111827] border border-white/5 rounded-2xl overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setOpenArticleId(isOpen ? null : article.id)}
-                  className="w-full p-5 flex items-center justify-between gap-4 text-left"
-                >
+                <button type="button" onClick={() => setOpenArticleId(isOpen ? null : article.id)}
+                  className="w-full p-5 flex items-center justify-between gap-4 text-left">
                   <span className="text-white font-bold text-[15px] leading-[22px]">{article.question}</span>
-                  <ChevronDown
-                    size={18}
-                    className={`text-[#808BA4] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                  />
+                  <ChevronDown size={18} className={`text-[#808BA4] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isOpen && (
-                  <p className="px-5 pb-5 text-[#CBD5E1] font-semibold text-sm leading-6">{article.answer}</p>
-                )}
+                {isOpen && <p className="px-5 pb-5 text-[#CBD5E1] font-semibold text-sm leading-6">{article.answer}</p>}
               </div>
             );
           })}

@@ -8,12 +8,19 @@ import {
   Loader2,
   CheckCircle2,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import AppModal from '@/components/AppModal';
 import { Switch } from '@/components/ui/switch';
-import { mockUpcomingBill, mockBriefings, simulateAsync, type MockBriefing } from '@/lib/mockData';
+import {
+  useListBills,
+  usePayBill,
+  useListBriefings,
+  getListBillsQueryKey,
+} from '@workspace/api-client-react';
+import type { Briefing } from '@workspace/api-client-react';
 
 function DayDivider({ text, color = '#808BA4' }: { text: string; color?: string }) {
   return (
@@ -56,19 +63,36 @@ function AccentCard({
   );
 }
 
+function formatDateLabel(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function CalendarScreen() {
-  const [billStatus, setBillStatus] = useState<'unpaid' | 'processing' | 'paid'>('unpaid');
+  const queryClient = useQueryClient();
+
+  const { data: bills } = useListBills();
+  const { data: briefings } = useListBriefings();
+  const { mutateAsync: payBill, isPending: paying } = usePayBill();
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [autopay, setAutopay] = useState(false);
-  const [selectedBriefing, setSelectedBriefing] = useState<MockBriefing | null>(null);
+  const [selectedBriefing, setSelectedBriefing] = useState<Briefing | null>(null);
+
+  // Upcoming: the next unpaid bill sorted by due date
+  const upcomingBill = (bills ?? [])
+    .filter((b) => !b.isPaid)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
 
   const handleInitiatePayment = async () => {
-    if (billStatus !== 'unpaid') return;
-    setBillStatus('processing');
-    // MOCK DATA - replace with a real bill-pay API call
-    await simulateAsync(true, 1500);
-    setBillStatus('paid');
-    toast({ title: 'Payment Successful', description: `${mockUpcomingBill.merchant} bill of ${mockUpcomingBill.amount} paid.` });
+    if (!upcomingBill || paying) return;
+    try {
+      await payBill({ id: upcomingBill.id });
+      await queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
+      toast({ title: 'Payment Successful', description: `${upcomingBill.name} bill of $${upcomingBill.amount.toLocaleString()} paid.` });
+    } catch {
+      toast({ title: 'Payment Failed', description: 'Could not process payment. Please try again.', variant: 'destructive' });
+    }
   };
 
   return (
@@ -79,7 +103,7 @@ export default function CalendarScreen() {
       header={<AppHeader dashboard dashboardTitle="Financial Schedule" />}
     >
       <div className="flex flex-col gap-10">
-        {/* Today */}
+        {/* Today — mission status */}
         <div className="flex flex-col gap-4">
           <DayDivider text="Today" color="#3B82F6" />
           <AccentCard dimmed>
@@ -99,58 +123,54 @@ export default function CalendarScreen() {
           </AccentCard>
         </div>
 
-        {/* Tomorrow */}
-        <div className="flex flex-col gap-4">
-          <DayDivider text="Tomorrow" color="#CBD5E1" />
-          <AccentCard accentColor="rgba(255,255,255,0.05)">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Wallet size={16} className="text-[#EF4444]" />
-                  <span className="text-[#EF4444] font-bold text-xs uppercase tracking-[0.6px]">Upcoming Bill</span>
+        {/* Upcoming bill */}
+        {upcomingBill && (
+          <div className="flex flex-col gap-4">
+            <DayDivider text={`Due ${formatDateLabel(upcomingBill.dueDate)}`} color="#CBD5E1" />
+            <AccentCard accentColor="rgba(255,255,255,0.05)">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Wallet size={16} className="text-[#EF4444]" />
+                    <span className="text-[#EF4444] font-bold text-xs uppercase tracking-[0.6px]">Upcoming Bill</span>
+                  </div>
+                  <h3 className="text-white font-bold text-xl leading-[30px]">{upcomingBill.name}</h3>
                 </div>
-                <h3 className="text-white font-bold text-xl leading-[30px]">Amex Gold</h3>
+                <div className="flex flex-col items-end">
+                  <span className="text-white font-bold text-2xl leading-9">${upcomingBill.amount.toLocaleString()}</span>
+                  <span className="text-[#808BA4] font-semibold text-xs">
+                    Due {formatDateLabel(upcomingBill.dueDate)}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-white font-bold text-2xl leading-9">{mockUpcomingBill.amount}</span>
-                <span className="text-[#808BA4] font-semibold text-xs">
-                  {billStatus === 'paid' ? 'Paid' : mockUpcomingBill.dueLabel}
-                </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleInitiatePayment}
+                  disabled={paying}
+                  className="flex-1 h-12 bg-white rounded-xl text-[#05070A] font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {paying ? (
+                    <><Loader2 size={16} className="animate-spin" /> Processing</>
+                  ) : (
+                    'Initiate Payment'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  className="w-12 h-12 border border-white/10 rounded-xl flex items-center justify-center text-white active:scale-95 transition-transform flex-shrink-0"
+                >
+                  <SlidersHorizontal size={16} />
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleInitiatePayment}
-                disabled={billStatus !== 'unpaid'}
-                className="flex-1 h-12 bg-white rounded-xl text-[#05070A] font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2"
-              >
-                {billStatus === 'processing' ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> Processing
-                  </>
-                ) : billStatus === 'paid' ? (
-                  <>
-                    <CheckCircle2 size={16} /> Payment Sent
-                  </>
-                ) : (
-                  'Initiate Payment'
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="w-12 h-12 border border-white/10 rounded-xl flex items-center justify-center text-white active:scale-95 transition-transform flex-shrink-0"
-              >
-                <SlidersHorizontal size={16} />
-              </button>
-            </div>
-          </AccentCard>
-        </div>
+            </AccentCard>
+          </div>
+        )}
 
-        {/* Oct 14 */}
+        {/* Automated savings (static — Plaid/investment integration out of scope) */}
         <div className="flex flex-col gap-4">
-          <DayDivider text="Oct 14" />
+          <DayDivider text="Scheduled" />
           <AccentCard accentColor="#3B82F6">
             <div className="flex items-center gap-2">
               <ArrowRightLeft size={16} className="text-[#3B82F6]" />
@@ -169,7 +189,7 @@ export default function CalendarScreen() {
         {/* Future Briefings */}
         <div className="flex flex-col gap-4">
           <DayDivider text="Future Briefings" />
-          {mockBriefings.length === 0 ? (
+          {!briefings || briefings.length === 0 ? (
             <AccentCard>
               <div className="flex flex-col items-center gap-3 py-4 text-center">
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
@@ -185,16 +205,16 @@ export default function CalendarScreen() {
             </AccentCard>
           ) : (
             <div className="flex flex-col gap-4">
-              {mockBriefings.map((briefing) => (
+              {briefings.map((briefing) => (
                 <AccentCard key={briefing.id} onClick={() => setSelectedBriefing(briefing)}>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
-                        {briefing.dateLabel} &bull; {briefing.category}
+                        {formatDateLabel(briefing.scheduledDate)} &bull; {briefing.type ?? 'Briefing'}
                       </span>
                       <h3 className="text-white font-bold text-lg leading-[27px]">{briefing.title}</h3>
                     </div>
-                    {briefing.id === 'credit-chase' ? (
+                    {briefing.type === 'goal_review' ? (
                       <FileText size={24} className="text-white flex-shrink-0" />
                     ) : (
                       <Lightbulb size={24} className="text-white flex-shrink-0" />
@@ -216,7 +236,7 @@ export default function CalendarScreen() {
             <div className="flex flex-col gap-1">
               <span className="text-white font-bold text-[15px]">Autopay</span>
               <span className="text-[#808BA4] font-semibold text-[13px]">
-                Automatically pay {mockUpcomingBill.merchant} on the due date
+                Automatically pay {upcomingBill?.name ?? 'this bill'} on the due date
               </span>
             </div>
             <Switch
@@ -226,8 +246,8 @@ export default function CalendarScreen() {
                 toast({
                   title: next ? 'Autopay Enabled' : 'Autopay Disabled',
                   description: next
-                    ? `${mockUpcomingBill.merchant} will be paid automatically each cycle.`
-                    : `You'll need to pay ${mockUpcomingBill.merchant} manually.`,
+                    ? `${upcomingBill?.name ?? 'Bill'} will be paid automatically each cycle.`
+                    : `You'll need to pay ${upcomingBill?.name ?? 'this bill'} manually.`,
                 });
               }}
             />
@@ -248,9 +268,11 @@ export default function CalendarScreen() {
         {selectedBriefing && (
           <div className="flex flex-col gap-4 pb-4">
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
-              {selectedBriefing.dateLabel} &bull; {selectedBriefing.category}
+              {formatDateLabel(selectedBriefing.scheduledDate)} &bull; {selectedBriefing.type ?? 'Briefing'}
             </span>
-            <p className="text-[#E5E7EB] font-semibold text-base leading-6">{selectedBriefing.detail}</p>
+            <p className="text-[#E5E7EB] font-semibold text-base leading-6">
+              {selectedBriefing.summary ?? 'No additional details available.'}
+            </p>
           </div>
         )}
       </AppModal>
