@@ -29,16 +29,15 @@ export default function AppShell({
   contentClassName = '',
   headerHeight = 72,
 }: AppShellProps) {
-  // The scroll ref lives on the CONTENT div, not the root.
-  // This way the header is never inside the scroll container — it stays
-  // pinned at the top in normal flex flow — and useScroll correctly reads
-  // the element that actually moves.
+  // scrollRef lives on the content div — that's the element that actually
+  // scrolls. The header is absolutely overlaid on top, so it never moves.
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: scrollRef });
 
   // ── Header background ────────────────────────────────────────────────────
-  // At rest (scrollY=0): fully transparent — header blends into the dark page.
-  // By scrollY=60px: the standard dark tint (#0B0F17 @ 85% opacity) fades in.
+  // scrollY = 0:  fully transparent — header blends with the page behind it.
+  // scrollY ≥ 60: standard dark tint (#0B0F17 @ 85%) fades in as content
+  //               slides underneath, creating the frosted-glass separation.
   const headerBg = useTransform(
     scrollY,
     [0, 60],
@@ -46,7 +45,7 @@ export default function AppShell({
   );
 
   // ── Lift shadow ───────────────────────────────────────────────────────────
-  // A soft downward shadow that signals content is sliding beneath the header.
+  // Soft downward shadow signals content is actively scrolling under the bar.
   const headerShadow = useTransform(
     scrollY,
     [0, 50],
@@ -57,36 +56,59 @@ export default function AppShell({
   const borderOpacity = useTransform(scrollY, [0, 40], [0, 1]);
 
   // ── Header content micro-animations ──────────────────────────────────────
-  // Subtle scale + opacity shift so the header "settles" as you scroll,
-  // rather than feeling like a flat sticker on top of the page.
+  // Subtle scale + opacity so the header "settles" rather than sitting
+  // like a flat sticker once content is flowing beneath it.
   const contentScale = useTransform(scrollY, [0, 80], [1, 0.97]);
   const contentOpacity = useTransform(scrollY, [0, 80], [1, 0.92]);
 
   return (
-    // Root: fixed viewport height, flex column, no overflow of its own.
-    // BottomNav is position:fixed so it sits outside this flow regardless.
-    <div className={`h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col ${className}`}>
+    // Root: fixed viewport height, clipped. The scroll lives on the inner
+    // content div — not here — so the header overlay stays perfectly still.
+    <div className={`h-[100dvh] relative w-full bg-[#05070A] max-w-md mx-auto overflow-hidden ${className}`}>
 
+      {/* ── Scrollable content ──────────────────────────────────────────────
+          Fills the entire root div (inset-0) and owns the overflow-y-auto.
+          padding-top pushes the first content item below the transparent
+          header so it's visible on load; as the user scrolls, content rises
+          and passes behind the blurred header overlay above. */}
+      <div
+        ref={scrollRef}
+        className={`absolute inset-0 overflow-y-auto px-6 flex flex-col ${contentClassName}`}
+        style={showBottomNav
+          ? {
+              paddingTop: `calc(${headerHeight}px + var(--safe-top))`,
+              paddingBottom: 'calc(176px + var(--safe-bottom))',
+            }
+          : {
+              paddingTop: `calc(${headerHeight}px + var(--safe-top))`,
+              paddingBottom: 'calc(40px + var(--safe-bottom))',
+            }
+        }
+      >
+        {children}
+      </div>
+
+      {/* ── Header overlay ──────────────────────────────────────────────────
+          Absolutely positioned on top of the content div so it never scrolls.
+          Starts fully transparent so the content behind it is readable at the
+          top of the page; animates to opaque as scrollY increases.
+          pt-safe = pushes the header row below the status bar / notch.
+          backdrop-blur creates the frosted-glass "content under glass" effect. */}
       {header && (
-        // Header lives at the TOP of the flex column — not inside the scroll
-        // container — so it never moves as content scrolls beneath it.
-        // pt-safe pushes the header row below the status bar / Dynamic Island.
-        // The background extends all the way to the physical top edge because
-        // the root div starts at 0 (viewport-fit=cover in index.html).
         <motion.div
-          className={`shrink-0 relative px-6 flex flex-col justify-end backdrop-blur-[8px] pt-safe ${headerClassName}`}
+          className={`absolute top-0 left-0 right-0 z-50 px-6 flex flex-col justify-end backdrop-blur-[8px] pt-safe ${headerClassName}`}
           style={{
             backgroundColor: headerBg,
             boxShadow: headerShadow,
           }}
         >
-          {/* Hairline bottom edge — fades in once content scrolls under */}
+          {/* Hairline bottom edge — only visible once scrolled */}
           <motion.div
             className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.07]"
             style={{ opacity: borderOpacity }}
           />
 
-          {/* Inner row with the micro scale/fade */}
+          {/* Inner row — subtle scale/fade on scroll */}
           <motion.div
             style={{
               height: headerHeight,
@@ -99,20 +121,6 @@ export default function AppShell({
           </motion.div>
         </motion.div>
       )}
-
-      {/* Scroll container: flex-1 so it fills everything below the header.
-          paddingBottom gives breathing room above the fixed BottomNav
-          (84px nav + 92px extra) plus the home-indicator safe area. */}
-      <div
-        ref={scrollRef}
-        className={`flex-1 overflow-y-auto px-6 flex flex-col ${contentClassName}`}
-        style={showBottomNav
-          ? { paddingBottom: 'calc(176px + var(--safe-bottom))' }
-          : { paddingBottom: 'calc(40px + var(--safe-bottom))' }
-        }
-      >
-        {children}
-      </div>
 
       {showBottomNav && <BottomNav activeTab={activeTab} />}
     </div>
