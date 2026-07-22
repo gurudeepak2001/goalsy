@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
     // root-relative /api/* calls reach the API server and Clerk auth works.
     // ⚠️  BEFORE a store build: comment this url line out and run `cap sync`
     //     so the packaged app uses the bundled files in webDir instead.
-    url: 'https://b89a11ff-b052-43b2-b941-88baf72a4a02-00-1vdn0ng8937zm.kirk.replit.dev/goalsy-executive',
+    url: 'https://b89a11ff-b052-43b2-b941-88baf72a4a02-00-1vdn0ng8937zm.kirk.replit.dev/goalsy-executive/',
 
     // Allow Clerk's auth endpoints and the Replit dev domain to be reached from the WebView.
     allowNavigation: [
