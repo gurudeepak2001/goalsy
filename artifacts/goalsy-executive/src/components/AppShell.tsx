@@ -29,65 +29,64 @@ export default function AppShell({
   contentClassName = '',
   headerHeight = 72,
 }: AppShellProps) {
-  // Track scroll on the container div (not window) so useScroll works
-  // correctly inside a flex column that owns overflow-y-auto.
+  // The scroll ref lives on the CONTENT div, not the root.
+  // This way the header is never inside the scroll container — it stays
+  // pinned at the top in normal flex flow — and useScroll correctly reads
+  // the element that actually moves.
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: scrollRef });
 
   // ── Header background ────────────────────────────────────────────────────
-  // At rest (scrollY=0): fully transparent so the header blends into the page.
-  // By scrollY=60px: opaque dark tint matching the original /85 value.
-  // #0B0F17 = rgb(11,15,23)
+  // At rest (scrollY=0): fully transparent — header blends into the dark page.
+  // By scrollY=60px: the standard dark tint (#0B0F17 @ 85% opacity) fades in.
   const headerBg = useTransform(
     scrollY,
     [0, 60],
     ['rgba(11,15,23,0)', 'rgba(11,15,23,0.85)']
   );
 
-  // ── Bottom separator shadow ───────────────────────────────────────────────
-  // Fades in a soft downward shadow that gives visual lift to the header
-  // once content starts sliding underneath it.
+  // ── Lift shadow ───────────────────────────────────────────────────────────
+  // A soft downward shadow that signals content is sliding beneath the header.
   const headerShadow = useTransform(
     scrollY,
     [0, 50],
     ['0 2px 0px 0px rgba(0,0,0,0)', '0 4px 28px 0px rgba(0,0,0,0.5)']
   );
 
-  // ── Hairline border ───────────────────────────────────────────────────────
-  // A 1px bottom border at very low opacity reinforces the edge without
-  // looking like a hard rule. Goes from invisible → visible over 40px.
+  // ── Hairline separator ────────────────────────────────────────────────────
   const borderOpacity = useTransform(scrollY, [0, 40], [0, 1]);
 
   // ── Header content micro-animations ──────────────────────────────────────
-  // Subtle scale-down + slight opacity drop on the inner row so the header
-  // feels like it "settles" into a compact floating bar, not a static sticker.
+  // Subtle scale + opacity shift so the header "settles" as you scroll,
+  // rather than feeling like a flat sticker on top of the page.
   const contentScale = useTransform(scrollY, [0, 80], [1, 0.97]);
   const contentOpacity = useTransform(scrollY, [0, 80], [1, 0.92]);
 
   return (
-    <div
-      ref={scrollRef}
-      className={`relative min-h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col overflow-y-auto ${className}`}
-    >
+    // Root: fixed viewport height, flex column, no overflow of its own.
+    // BottomNav is position:fixed so it sits outside this flow regardless.
+    <div className={`h-[100dvh] w-full bg-[#05070A] max-w-md mx-auto flex flex-col ${className}`}>
+
       {header && (
-        // pt-safe pushes the header content below the status bar / Dynamic
-        // Island on notched iPhones. The background extends all the way to the
-        // physical top edge (viewport-fit=cover in index.html), so the dark
-        // blur fills the status bar area rather than leaving a gap.
+        // Header lives at the TOP of the flex column — not inside the scroll
+        // container — so it never moves as content scrolls beneath it.
+        // pt-safe pushes the header row below the status bar / Dynamic Island.
+        // The background extends all the way to the physical top edge because
+        // the root div starts at 0 (viewport-fit=cover in index.html).
         <motion.div
-          className={`absolute top-0 left-0 right-0 z-50 px-6 flex flex-col justify-end backdrop-blur-[8px] pt-safe ${headerClassName}`}
+          className={`shrink-0 relative px-6 flex flex-col justify-end backdrop-blur-[8px] pt-safe ${headerClassName}`}
           style={{
             backgroundColor: headerBg,
             boxShadow: headerShadow,
           }}
         >
-          {/* Hairline separator — only visible once scrolled */}
+          {/* Hairline bottom edge — fades in once content scrolls under */}
           <motion.div
             className="absolute bottom-0 left-0 right-0 h-px bg-white/[0.07]"
             style={{ opacity: borderOpacity }}
           />
 
-          {/* Inner row with micro-scale/fade */}
+          {/* Inner row with the micro scale/fade */}
           <motion.div
             style={{
               height: headerHeight,
@@ -101,20 +100,20 @@ export default function AppShell({
         </motion.div>
       )}
 
-      {/* Content padding:
-          - top: headerHeight + safe-area-inset-top (status bar on notched devices)
-          - bottom: 176px (bottom nav 84px + extra breathing room 92px)
-                    + safe-area-inset-bottom (home indicator on iPhone/Android)
-          On desktop/non-notch both env() values are 0px so nothing changes. */}
+      {/* Scroll container: flex-1 so it fills everything below the header.
+          paddingBottom gives breathing room above the fixed BottomNav
+          (84px nav + 92px extra) plus the home-indicator safe area. */}
       <div
-        className={`px-6 flex-1 flex flex-col ${contentClassName}`}
+        ref={scrollRef}
+        className={`flex-1 overflow-y-auto px-6 flex flex-col ${contentClassName}`}
         style={showBottomNav
-          ? { paddingTop: `calc(${headerHeight}px + var(--safe-top))`, paddingBottom: 'calc(176px + var(--safe-bottom))' }
+          ? { paddingBottom: 'calc(176px + var(--safe-bottom))' }
           : { paddingBottom: 'calc(40px + var(--safe-bottom))' }
         }
       >
         {children}
       </div>
+
       {showBottomNav && <BottomNav activeTab={activeTab} />}
     </div>
   );
