@@ -16,6 +16,7 @@ router.get("/financial-profile", requireAuth, async (req, res) => {
 
     res.json({ profile: profile ?? null });
   } catch (err) {
+    console.error("[GET /api/financial-profile]", err);
     res.status(500).json({ message: "Failed to fetch financial profile" });
   }
 });
@@ -67,6 +68,7 @@ router.put("/financial-profile", requireAuth, async (req, res) => {
 
     res.json(profile);
   } catch (err) {
+    console.error("[PUT /api/financial-profile]", err);
     res.status(500).json({ message: "Failed to save financial profile" });
   }
 });

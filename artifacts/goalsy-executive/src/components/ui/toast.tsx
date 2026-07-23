@@ -16,6 +16,10 @@ const ToastViewport = React.forwardRef<
       'fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]',
       className,
     )}
+    // On real iPhones the Dynamic Island / notch eats into top-0.
+    // Combine safe-area-inset-top with the base 1rem (p-4) padding so
+    // toasts never render behind the status bar.
+    style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
     {...props}
   />
 ));
