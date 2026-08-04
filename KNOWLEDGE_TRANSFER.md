@@ -326,7 +326,127 @@ All managed via Replit Secrets (never committed to git):
 
 ---
 
-## 11. Known Issues & Status
+## 11. What's Still To Be Built (Pending Work)
+
+The following features are either fully mocked, partially implemented, or have no backend at all. Each item references the exact file and line so the next developer can jump straight in.
+
+### A. Plaid / Bank Account Integration — Fully Mocked
+**Affected files:** `FinancialConnectionScreen.tsx` (line 101), `TodayScreen.tsx` (line 38), `ProfileScreen.tsx` (line 391)
+
+The "Connect Accounts" button in Step 03 of onboarding calls `simulateAsync(mockConnectedAccounts, 1800)` — a fake 1.8-second delay that pretends to connect. No real Plaid SDK is installed.
+
+| Screen | What's mocked | What needs building |
+|--------|--------------|-------------------|
+| `FinancialConnectionScreen` (Step 03) | Entire connect flow is `simulateAsync` | Integrate Plaid Link SDK (`react-plaid-link` or Capacitor equivalent); call real Plaid `/link/token/create` and exchange token endpoint; store linked institution IDs |
+| `TodayScreen` (total balance card) | `totalBalance` calculated from `mockConnectedAccounts` | Pull real balances from Plaid `/accounts/balance/get` after account linking; store and serve via a new `/api/accounts/balance` endpoint |
+| `ProfileScreen` (Connected Accounts section) | Renders `mockConnectedAccounts` list | Show real linked accounts from DB after Plaid integration |
+
+---
+
+### B. Financial Health Screen — Entire Screen is Mock Data
+**File:** `FinancialHealthScreen.tsx` (line 165)  
+**No backend routes exist for this screen at all.**
+
+The credit factors section renders `mockCreditFactors` imported from `mockData.ts`. There is no `/api/financial-health` or `/api/credit` endpoint.
+
+**What needs building:**
+- Define credit/health factor data model in the DB schema
+- Add `GET /api/financial-health` route to the API server
+- Add to OpenAPI spec → regenerate client hooks
+- Wire `FinancialHealthScreen` to real API hook
+
+---
+
+### C. AI Home Screen — Action Button is Mock
+**File:** `AIHomeScreen.tsx` (line 25–26)
+
+The primary action button on this screen has a code comment `// MOCK DATA - replace with a real funds-transfer API call` and calls `simulateAsync(2400, 1500)`. No real AI or funds-transfer integration exists.
+
+**What needs building:**
+- Decide what this button should actually do (initiate a transfer? trigger an AI recommendation?)
+- Build the corresponding API endpoint
+- Integrate a real AI provider (OpenAI/Gemini via Replit AI Integrations) for recommendations if required
+
+---
+
+### D. Avatar / Profile Photo — Simulated, Not Saved
+**File:** `ProfileScreen.tsx` (line 138–139)
+
+Tapping "Change Avatar" runs `simulateAsync(true, 1400)` then picks a random emoji preset from `mockAvatarPresets`. No image is uploaded, no file is stored, and the selection is not persisted to the database.
+
+**What needs building:**
+- Add Replit Object Storage (or S3-compatible) for avatar file uploads
+- Add `PUT /api/profile/avatar` endpoint
+- Wire the avatar picker to upload the file and update `userProfiles.avatarKey`
+- On app load, resolve the avatar URL from the stored key
+
+---
+
+### E. Biometric Login (FaceID) — Visual Preview Only
+**File:** `SignInScreen.tsx` (line 197–201)
+
+The FaceID button runs a scanning animation then shows a toast: *"Biometric Login Coming Soon — This is a preview of the FaceID experience."* Explicitly commented: *"no real biometric check and no session is created, so it must not grant navigation."*
+
+**What needs building:**
+- Install `@capacitor-community/biometric-auth` (or `@aparajita/capacitor-biometric-auth`)
+- On successful biometric verification, call Clerk's passwordless sign-in or retrieve a stored token
+- Handle fallback for devices without biometric capability
+
+---
+
+### F. Biometrics Toggle in Profile — Local State Only
+**File:** `ProfileScreen.tsx` (line 105, 281–288)
+
+The Security & Biometrics toggle sets `biometricsEnabled` React state only. It is not persisted to the database or device keychain and resets on every app launch.
+
+**What needs building:**
+- Store biometric preference in `notification_preferences` table (new type) or a separate `security_settings` table
+- On toggle, call the Capacitor Biometric API to enroll/unenroll
+- Read the persisted value on app start to restore the correct toggle state
+
+---
+
+### G. Subscription / Billing — Fully Mock
+**File:** `ProfileScreen.tsx` (line 307, 426–433)
+
+The "Plan & Subscription" section in Profile renders `mockSubscription` (tier, price, renewal date, features list). There is no payment provider, no real subscription record, and no billing API.
+
+**What needs building:**
+- Integrate a payment provider (Stripe for web/Android; RevenueCat for iOS in-app purchase)
+- Store subscription status in the DB
+- Add `GET /api/subscription` endpoint
+- Show real tier, renewal date, and manage subscription link
+
+---
+
+### H. Help & Support Articles — Static Mock
+**File:** `ProfileScreen.tsx` (line 447)
+
+The Help & Support section renders `mockHelpArticles` — a static array of three hardcoded articles. Tapping them does nothing (no navigation, no external link).
+
+**What needs building:**
+- Either wire articles to a CMS (Notion, Contentful) or to a static JSON in the API
+- Add navigation to a detail view or open an external URL
+- Consider in-app chat/support via Intercom or similar
+
+---
+
+### Summary Table
+
+| Feature | Screen | Status | Priority |
+|---------|--------|--------|----------|
+| Plaid bank connection | FinancialConnection, Today, Profile | 🔴 Fully mocked | High |
+| Financial Health data | FinancialHealthScreen | 🔴 No backend, all mock | High |
+| AI Home action | AIHomeScreen | 🔴 Simulated delay | Medium |
+| Avatar upload & persistence | ProfileScreen | 🟡 Simulated, not saved | Medium |
+| FaceID / biometric login | SignInScreen | 🟡 Visual only, no auth | Medium |
+| Biometrics toggle persistence | ProfileScreen | 🟡 Local state only | Low |
+| Subscription & billing | ProfileScreen | 🔴 Fully mocked | Medium |
+| Help & support articles | ProfileScreen | 🟡 Static mock data | Low |
+
+---
+
+## 12. Known Issues & Status (Active Bugs)
 
 | Issue | Status | Notes |
 |-------|--------|-------|
@@ -336,7 +456,7 @@ All managed via Replit Secrets (never committed to git):
 
 ---
 
-## 12. Codebase Conventions
+## 13. Codebase Conventions
 
 - **All API route errors must log `console.error(err)`** before returning 500 — silent catch blocks make debugging impossible (this was retrofitted on financial-profile routes)
 - **Components use `AppShell`** for standard screens (handles safe-area, scroll, header) — only onboarding screens (`FinancialConnectionScreen`) use manual layout
@@ -346,7 +466,7 @@ All managed via Replit Secrets (never committed to git):
 
 ---
 
-## 13. Contacts & Access
+## 14. Contacts & Access
 
 | Resource | Details |
 |----------|---------|
