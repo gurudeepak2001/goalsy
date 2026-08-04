@@ -30,3 +30,10 @@ id = "xJTZwzL1buJOJfPUiH44o"
 uri = "file://artifacts/goalsy-executive/public/favicon-32.png"
 type = "image"
 title = "Web Favicon — 32×32"
+
+[[outputs]]
+id = "QQJ6szeRVVym3Hnfiw9Ly"
+uri = "file://KNOWLEDGE_TRANSFER.md"
+type = "text"
+title = "Goalsy Executive — Knowledge Transfer Document"
+description = "Full KT report covering architecture, screens, API routes, database schema, auth, native build process, environment variables, and known issues."
