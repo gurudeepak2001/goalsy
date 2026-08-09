@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import {
+  ResponsiveContainer, LineChart, Line,
+  XAxis, YAxis, Tooltip,
+} from 'recharts';
 import { useParams, useLocation } from 'wouter';
 import {
   TrendingUp, CheckCircle2, Clock, AlertTriangle,
@@ -483,6 +487,18 @@ export default function GoalDetailScreen() {
     }
   }
 
+  // Chart data — past milestones with expected vs confirmed amounts
+  // (computed here so it's available when JSX renders; only used when ≥2 confirmed)
+  const buildChartPoints = () => {
+    const past = computeWeeklyMilestones(goal).filter((m) => m.isPast);
+    return past.map((m) => ({
+      label: m.dateLabel,
+      expected: m.expectedAmount,
+      confirmed: confirmedMap.has(m.weekIndex) ? confirmedMap.get(m.weekIndex) : undefined,
+    }));
+  };
+  const chartPoints = confirmedMap.size >= 2 ? buildChartPoints() : [];
+
   // Adjust plan form
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustContrib, setAdjustContrib] = useState('');
@@ -734,6 +750,77 @@ export default function GoalDetailScreen() {
             ))}
           </div>
         </div>
+
+        {/* ── Progress History Chart ─────────────────────────────────────── */}
+        {confirmedMap.size >= 2 && (
+          <div>
+            <span className={labelCls}>Progress History</span>
+            <div className="bg-[#111827] border border-white/5 rounded-2xl px-3 pt-4 pb-2">
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={chartPoints} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: '#4B5563', fontSize: 9, fontWeight: 600 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fill: '#4B5563', fontSize: 9, fontWeight: 600 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={42}
+                    tickFormatter={(v: number) => formatDollars(v)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#1F2937',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      padding: '6px 10px',
+                    }}
+                    labelStyle={{ color: '#CBD5E1', fontWeight: 600, marginBottom: 2 }}
+                    formatter={(value: unknown, name: string) => [
+                      formatDollars(value as number),
+                      name === 'confirmed' ? 'Confirmed' : 'Expected',
+                    ]}
+                  />
+                  {/* Expected trajectory — dashed, muted */}
+                  <Line
+                    type="monotone"
+                    dataKey="expected"
+                    stroke="rgba(255,255,255,0.18)"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 3"
+                    dot={false}
+                    connectNulls
+                  />
+                  {/* Confirmed actuals — solid, goal colour */}
+                  <Line
+                    type="monotone"
+                    dataKey="confirmed"
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={{ fill: color, r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: color, strokeWidth: 0 }}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-4 px-1 pb-1 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-px border-t-2 border-dashed border-white/25" />
+                  <span className="text-[#4B5563] text-[10px] font-semibold">Expected</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-0.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-[#4B5563] text-[10px] font-semibold">Confirmed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Weekly Milestones ──────────────────────────────────────────── */}
         <div>
