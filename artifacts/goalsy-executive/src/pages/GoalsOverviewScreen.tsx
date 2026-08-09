@@ -333,12 +333,31 @@ export default function GoalsOverviewScreen() {
                     </div>
 
                     {behindGoals.length > 0 && (
-                      <div className="flex items-center gap-1.5 pt-1 border-t border-white/5">
-                        <AlertTriangle size={11} className="text-[#EF4444] flex-shrink-0" />
-                        <span className="text-[#808BA4] text-[11px] font-semibold leading-4">
-                          {behindGoals.length} goal{behindGoals.length !== 1 ? 's' : ''} behind — showing required amount.{' '}
-                          <span className="text-[#EF4444]">Update your plan to stay on track.</span>
-                        </span>
+                      <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle size={11} className="text-[#EF4444] flex-shrink-0" />
+                          <span className="text-[#808BA4] text-[11px] font-semibold leading-4">
+                            {behindGoals.length} goal{behindGoals.length !== 1 ? 's' : ''} not on track — showing required amount.{' '}
+                            <span className="text-[#EF4444]">Update your plan to stay on track.</span>
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1 pl-4">
+                          {behindGoals.map((g) => (
+                            <button
+                              key={g.id}
+                              type="button"
+                              onClick={() => navigate(`/goals/${g.id}`)}
+                              className="flex items-center justify-between text-left active:opacity-70 transition-opacity"
+                            >
+                              <span className="text-[#EF4444] text-[11px] font-semibold leading-4 truncate pr-2">
+                                • {g.name}
+                              </span>
+                              <span className="text-[#808BA4] text-[10px] font-semibold whitespace-nowrap">
+                                needs {formatDollars(computeRequiredMonthly(g))}/mo
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {unplannedGoals.length > 0 && (
