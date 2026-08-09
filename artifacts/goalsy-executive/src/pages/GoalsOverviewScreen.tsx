@@ -14,6 +14,7 @@ import {
   useCreateGoal,
   getListGoalsQueryKey,
 } from '@workspace/api-client-react';
+import type { Goal } from '@workspace/api-client-react';
 
 // ── Helper functions ─────────────────────────────────────────────────────────
 
@@ -54,6 +55,17 @@ function formatDollars(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
   return `$${n.toLocaleString()}`;
+}
+
+/** Live required monthly contribution for a single goal. Returns 0 for goals
+ *  with no target date, already completed, or whose target date has passed. */
+function computeRequiredMonthly(goal: Goal): number {
+  const remaining = goal.targetAmount - goal.currentAmount;
+  if (remaining <= 0) return 0;              // goal already complete
+  if (!goal.targetDate) return 0;           // no deadline → can't compute
+  const months = (new Date(goal.targetDate).getTime() - Date.now()) / MS_PER_MONTH;
+  if (months <= 0) return 0;               // target date passed → $0 (handled elsewhere)
+  return Math.ceil(remaining / months);
 }
 
 function computeProjectedDate(current: number, target: number, monthly: number): string {
@@ -142,6 +154,13 @@ export default function GoalsOverviewScreen() {
   const [createFeasibility, setCreateFeasibility] = useState<string | null>(null);
 
   const goals = goalsData ?? [];
+
+  // ── Contribution summary ───────────────────────────────────────────────────
+  const activeGoals = goals.filter(
+    (g) => g.status === 'active' && g.currentAmount < g.targetAmount,
+  );
+  const summaryMonthly = activeGoals.reduce((sum, g) => sum + computeRequiredMonthly(g), 0);
+  const summaryWeekly = Math.round(summaryMonthly * 12 / 52);
 
   // ── Auto-fill blur handlers ────────────────────────────────────────────────
 
@@ -266,23 +285,56 @@ export default function GoalsOverviewScreen() {
               </div>
             </div>
           ) : (
-            goals.filter((g) => g.status !== 'deleted').map((goal) => {
-              const card = goalToCard(goal);
-              return (
-                <GoalCard
-                  key={goal.id}
-                  title={card.title}
-                  subtitle={card.subtitle}
-                  progress={card.progress}
-                  current={card.current}
-                  target={card.target}
-                  projectedDate={card.projectedDate}
-                  color={card.color}
-                  milestones={card.milestones}
-                  onClick={() => navigate(`/goals/${goal.id}`)}
-                />
-              );
-            })
+            <>
+              {/* ── Contribution summary card ───────────────────────────── */}
+              <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px]">
+                    Total Contributions
+                  </span>
+                  <span className="text-[#808BA4] text-[11px] font-semibold">
+                    {activeGoals.length} active goal{activeGoals.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {activeGoals.length === 0 ? (
+                  <p className="text-[#22C55E] font-semibold text-sm">
+                    🎉 All goals on track — no contributions needed right now.
+                  </p>
+                ) : (
+                  <div className="flex items-stretch">
+                    <div className="flex-1 flex flex-col gap-0.5">
+                      <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Week</span>
+                      <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryWeekly)}</span>
+                    </div>
+                    <div className="w-px bg-white/10 mx-4 self-stretch" />
+                    <div className="flex-1 flex flex-col gap-0.5">
+                      <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Month</span>
+                      <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryMonthly)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Goal cards ─────────────────────────────────────────── */}
+              {goals.filter((g) => g.status !== 'deleted').map((goal) => {
+                const card = goalToCard(goal);
+                return (
+                  <GoalCard
+                    key={goal.id}
+                    title={card.title}
+                    subtitle={card.subtitle}
+                    progress={card.progress}
+                    current={card.current}
+                    target={card.target}
+                    projectedDate={card.projectedDate}
+                    color={card.color}
+                    milestones={card.milestones}
+                    onClick={() => navigate(`/goals/${goal.id}`)}
+                  />
+                );
+              })}
+            </>
           )}
         </div>
       </div>
