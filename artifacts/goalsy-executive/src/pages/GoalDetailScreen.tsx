@@ -766,7 +766,7 @@ export default function GoalDetailScreen() {
               type="button"
               disabled={togglingPin}
               onClick={handleTogglePriority}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors active:scale-95 min-h-[44px] min-w-[44px]"
               style={isPinned
                 ? { borderColor: '#F59E0B40', backgroundColor: '#F59E0B12' }
                 : { borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'transparent' }}
@@ -825,14 +825,14 @@ export default function GoalDetailScreen() {
                     type="button"
                     disabled={savingTarget}
                     onClick={handleSaveTarget}
-                    className="text-[#22C55E] active:opacity-60"
+                    className="text-[#22C55E] active:opacity-60 -m-[15px] p-[15px] flex items-center justify-center"
                   >
                     <Check size={14} />
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingTarget(false)}
-                    className="text-[#808BA4] active:opacity-60"
+                    className="text-[#808BA4] active:opacity-60 -m-[15px] p-[15px] flex items-center justify-center"
                   >
                     <X size={14} />
                   </button>
@@ -841,7 +841,7 @@ export default function GoalDetailScreen() {
                 <button
                   type="button"
                   onClick={() => { setEditTargetValue(String(goal.targetAmount)); setEditingTarget(true); }}
-                  className="flex items-center gap-1 group"
+                  className="flex items-center gap-1 group -my-[16px] py-[16px] -mx-2 px-2"
                 >
                   <span className="text-[#808BA4] font-semibold text-xs group-active:text-white transition-colors">
                     of {formatDollars(goal.targetAmount)}
