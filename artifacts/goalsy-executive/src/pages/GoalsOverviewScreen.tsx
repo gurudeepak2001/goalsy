@@ -159,6 +159,8 @@ export default function GoalsOverviewScreen() {
   const activeGoals = goals.filter(
     (g) => g.status === 'active' && g.currentAmount < g.targetAmount,
   );
+  // Goals with no target date can't contribute to the live total (no deadline = no months remaining)
+  const unplannedGoals = activeGoals.filter((g) => !g.targetDate);
   const summaryMonthly = activeGoals.reduce((sum, g) => sum + computeRequiredMonthly(g), 0);
   const summaryWeekly = Math.round(summaryMonthly * 12 / 52);
 
@@ -302,17 +304,29 @@ export default function GoalsOverviewScreen() {
                     🎉 All goals on track — no contributions needed right now.
                   </p>
                 ) : (
-                  <div className="flex items-stretch">
-                    <div className="flex-1 flex flex-col gap-0.5">
-                      <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Week</span>
-                      <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryWeekly)}</span>
+                  <>
+                    <div className="flex items-stretch">
+                      <div className="flex-1 flex flex-col gap-0.5">
+                        <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Week</span>
+                        <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryWeekly)}</span>
+                      </div>
+                      <div className="w-px bg-white/10 mx-4 self-stretch" />
+                      <div className="flex-1 flex flex-col gap-0.5">
+                        <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Month</span>
+                        <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryMonthly)}</span>
+                      </div>
                     </div>
-                    <div className="w-px bg-white/10 mx-4 self-stretch" />
-                    <div className="flex-1 flex flex-col gap-0.5">
-                      <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1px]">Per Month</span>
-                      <span className="text-white font-bold text-[26px] leading-tight">{formatDollars(summaryMonthly)}</span>
-                    </div>
-                  </div>
+
+                    {unplannedGoals.length > 0 && (
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-white/5">
+                        <AlertTriangle size={11} className="text-[#F59E0B] flex-shrink-0" />
+                        <span className="text-[#808BA4] text-[11px] font-semibold leading-4">
+                          {unplannedGoals.length} goal{unplannedGoals.length !== 1 ? 's' : ''} excluded — no target date set.{' '}
+                          <span className="text-[#F59E0B]">Open each goal to add one.</span>
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
