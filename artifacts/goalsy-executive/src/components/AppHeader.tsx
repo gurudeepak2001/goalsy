@@ -111,7 +111,7 @@ export default function AppHeader({
   const realAvatarSrc = user?.hasImage ? user?.imageUrl : undefined;
 
   // ── Notification API hooks ─────────────────────────────────────────────────
-  const { data: notifications } = useListNotifications({ query: { enabled: dashboard && showNotification } });
+  const { data: notifications } = useListNotifications({ query: { enabled: dashboard && showNotification, queryKey: getListNotificationsQueryKey() } });
   const { mutateAsync: markRead } = useMarkNotificationRead();
   const { mutateAsync: dismiss } = useDismissNotification();
   const { mutateAsync: clearAll, isPending: clearing } = useClearNotifications();

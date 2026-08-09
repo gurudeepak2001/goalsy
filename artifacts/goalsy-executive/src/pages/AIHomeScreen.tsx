@@ -50,29 +50,28 @@ function pickPriorityGoal(goals: { id: string; name: string; type: string; targe
   // If any goal has been manually pinned as top priority, always surface it first.
   // Among pinned goals (priority > 1), pick the one with the highest priority value;
   // ties fall through to the urgency sort below.
+  // If any goals are manually pinned, pick the one with the highest priority value.
   const pinned = active.filter((g) => (g.priority ?? 1) > 1);
-  if (pinned.length === 1) {
-    const g = pinned[0];
+  if (pinned.length > 0) {
+    const g = pinned.reduce((best, cur) => (cur.priority ?? 1) > (best.priority ?? 1) ? cur : best);
     const progress = Math.min(1, g.currentAmount / g.targetAmount);
     const estimatedMonths =
       g.monthlyContribution > 0 && g.targetAmount > g.currentAmount
         ? Math.ceil((g.targetAmount - g.currentAmount) / g.monthlyContribution)
         : null;
-    const now = new Date();
-    const msPerMonth = 30.44 * 24 * 60 * 60 * 1000;
+    const nowP = new Date();
     let status: 'behind' | 'on_track' | 'no_data' = 'no_data';
     if (g.targetDate) {
       const createdAt = new Date(g.createdAt);
       const targetDate = new Date(g.targetDate);
       const totalMs = targetDate.getTime() - createdAt.getTime();
-      const elapsedMs = now.getTime() - createdAt.getTime();
+      const elapsedMs = nowP.getTime() - createdAt.getTime();
       if (totalMs > 0) {
         const expectedFraction = Math.min(1, Math.max(0, elapsedMs / totalMs));
         const expectedAmount = g.targetAmount * expectedFraction;
         status = g.currentAmount < expectedAmount * 0.9 ? 'behind' : 'on_track';
       }
     }
-    void msPerMonth;
     return { goal: g, progress, status, estimatedMonths };
   }
 

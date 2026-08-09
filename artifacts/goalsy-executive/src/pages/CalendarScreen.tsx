@@ -25,7 +25,7 @@ import {
   useListGoals,
   getListBillsQueryKey,
 } from '@workspace/api-client-react';
-import type { Briefing } from '@workspace/api-client-react';
+import type { Briefing, Goal } from '@workspace/api-client-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
 
 function computeGoalCheckpoints(
-  goals: ReturnType<typeof useListGoals>['data'],
+  goals: Goal[] | undefined,
 ): GoalCheckpoint[] {
   if (!goals) return [];
   const now = new Date();

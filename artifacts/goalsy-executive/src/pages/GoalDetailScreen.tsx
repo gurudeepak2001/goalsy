@@ -490,7 +490,7 @@ export default function GoalDetailScreen() {
   // Chart data — past milestones with expected vs confirmed amounts
   // (computed here so it's available when JSX renders; only used when ≥2 confirmed)
   const buildChartPoints = () => {
-    const past = computeWeeklyMilestones(goal).filter((m) => m.isPast);
+    const past = computeWeeklyMilestones(goal!).filter((m) => m.isPast);
     return past.map((m) => ({
       label: m.dateLabel,
       expected: m.expectedAmount,
@@ -513,6 +513,7 @@ export default function GoalDetailScreen() {
   const [savingTarget, setSavingTarget] = useState(false);
 
   const handleSaveTarget = async () => {
+    if (!goal) return;
     const newTarget = parseInt(editTargetValue.replace(/[^0-9]/g, ''), 10);
     if (isNaN(newTarget) || newTarget <= 0) {
       toast({ title: 'Enter a valid target amount', variant: 'destructive' });
@@ -555,9 +556,10 @@ export default function GoalDetailScreen() {
 
   // ── Pin as Top Priority ───────────────────────────────────────────────────────
   const [togglingPin, setTogglingPin] = useState(false);
-  const isPinned = goal.priority > 1;
+  const isPinned = (goal?.priority ?? 1) > 1;
 
   const handleTogglePriority = async () => {
+    if (!goal) return;
     const newPriority = isPinned ? 1 : 2;
     setTogglingPin(true);
     try {
