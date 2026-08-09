@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { useParams, useLocation } from 'wouter';
 import {
-  TrendingUp, CheckCircle2, Clock, AlertTriangle,
+  TrendingUp, CheckCircle2, Clock, AlertTriangle, Pencil, Check, X,
   Loader2, Trash2, Zap, DollarSign, CalendarDays, Award,
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
@@ -507,6 +507,52 @@ export default function GoalDetailScreen() {
   const [dateAutoFilled, setDateAutoFilled] = useState(false);
   const [adjustFeasibility, setAdjustFeasibility] = useState<string | null>(null);
 
+  // Inline target-amount edit
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [editTargetValue, setEditTargetValue] = useState('');
+  const [savingTarget, setSavingTarget] = useState(false);
+
+  const handleSaveTarget = async () => {
+    const newTarget = parseInt(editTargetValue.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(newTarget) || newTarget <= 0) {
+      toast({ title: 'Enter a valid target amount', variant: 'destructive' });
+      return;
+    }
+    setSavingTarget(true);
+    try {
+      await updateGoal({
+        id: goal.id,
+        data: {
+          name: goal.name,
+          type: goal.type,
+          targetAmount: newTarget,
+          currentAmount: goal.currentAmount,
+          monthlyContribution: goal.monthlyContribution,
+          targetDate: goal.targetDate ?? null,
+          status: goal.status,
+          priority: goal.priority,
+        },
+      });
+      // Patch caches immediately so Total Contributions updates without waiting for refetch
+      queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
+        old?.map((g) => g.id === goal.id ? { ...g, targetAmount: newTarget } : g),
+      );
+      queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
+        old ? { ...old, targetAmount: newTarget } : old,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
+      ]);
+      setEditingTarget(false);
+      toast({ title: 'Target Updated' });
+    } catch {
+      toast({ title: 'Failed to update target', variant: 'destructive' });
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
   // Status banner
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -696,7 +742,49 @@ export default function GoalDetailScreen() {
               </span>
             </div>
             <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[#808BA4] font-semibold text-xs">of {formatDollars(goal.targetAmount)}</span>
+              {editingTarget ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#808BA4] font-semibold text-xs">$</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="w-28 bg-[#1F2937] border border-[#2563EB]/60 rounded-lg px-2 py-1 text-white text-xs font-bold text-right focus:outline-none"
+                    value={editTargetValue}
+                    autoFocus
+                    onChange={(e) => setEditTargetValue(e.target.value.replace(/[^0-9]/g, ''))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTarget();
+                      if (e.key === 'Escape') setEditingTarget(false);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={savingTarget}
+                    onClick={handleSaveTarget}
+                    className="text-[#22C55E] active:opacity-60"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTarget(false)}
+                    className="text-[#808BA4] active:opacity-60"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setEditTargetValue(String(goal.targetAmount)); setEditingTarget(true); }}
+                  className="flex items-center gap-1 group"
+                >
+                  <span className="text-[#808BA4] font-semibold text-xs group-active:text-white transition-colors">
+                    of {formatDollars(goal.targetAmount)}
+                  </span>
+                  <Pencil size={10} className="text-[#4B5563] group-active:text-[#808BA4] transition-colors" />
+                </button>
+              )}
               <span className="font-bold text-lg leading-7" style={{ color }}>{progress}%</span>
             </div>
           </div>
