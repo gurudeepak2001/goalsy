@@ -19,6 +19,7 @@ import FinancialHealthScreen from '@/pages/FinancialHealthScreen';
 import TodayScreen from '@/pages/TodayScreen';
 import CalendarScreen from '@/pages/CalendarScreen';
 import GoalsOverviewScreen from '@/pages/GoalsOverviewScreen';
+import GoalDetailScreen from '@/pages/GoalDetailScreen';
 import ProfileScreen from '@/pages/ProfileScreen';
 import ScoreScreen from '@/pages/ScoreScreen';
 
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/financial-health" component={() => <AuthGate component={FinancialHealthScreen} />} />
       <Route path="/calendar" component={() => <AuthGate component={CalendarScreen} />} />
       <Route path="/goals" component={() => <AuthGate component={GoalsOverviewScreen} />} />
+      <Route path="/goals/:id" component={() => <AuthGate component={GoalDetailScreen} />} />
       <Route path="/profile" component={() => <AuthGate component={ProfileScreen} />} />
       <Route path="/score" component={() => <AuthGate component={ScoreScreen} />} />
       <Route component={NotFound} />

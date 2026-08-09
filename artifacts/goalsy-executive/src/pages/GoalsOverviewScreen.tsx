@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ArrowRight, TrendingUp, Target, Trash2, Loader2 } from 'lucide-react';
+import { Plus, ArrowRight, Target, Loader2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -12,11 +12,8 @@ import ExecutiveInput from '@/components/ExecutiveInput';
 import {
   useListGoals,
   useCreateGoal,
-  useUpdateGoal,
-  useDeleteGoal,
   getListGoalsQueryKey,
 } from '@workspace/api-client-react';
-import type { Goal } from '@workspace/api-client-react';
 
 // ── Helper functions ─────────────────────────────────────────────────────────
 
@@ -93,15 +90,10 @@ export default function GoalsOverviewScreen() {
   // ── API hooks ──────────────────────────────────────────────────────────────
   const { data: goalsData, isLoading } = useListGoals();
   const { mutateAsync: createGoal, isPending: creating } = useCreateGoal();
-  const { mutateAsync: updateGoal, isPending: updating } = useUpdateGoal();
-  const { mutateAsync: deleteGoal, isPending: deleting } = useDeleteGoal();
 
   const invalidateGoals = () => queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() });
 
   // ── UI state ───────────────────────────────────────────────────────────────
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
-  const [isAdjusting, setIsAdjusting] = useState(false);
-  const [adjustAmount, setAdjustAmount] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   // Create form state
@@ -113,51 +105,8 @@ export default function GoalsOverviewScreen() {
   const [newGoalTargetDate, setNewGoalTargetDate] = useState('');
 
   const goals = goalsData ?? [];
-  const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) ?? null : null;
-  const selectedCard = selectedGoal ? goalToCard(selectedGoal) : null;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const closeGoalDetail = () => {
-    setSelectedGoalId(null);
-    setIsAdjusting(false);
-    setAdjustAmount('');
-  };
-
-  const startAdjusting = () => {
-    if (!selectedGoal) return;
-    setAdjustAmount(String(selectedGoal.monthlyContribution ?? 0));
-    setIsAdjusting(true);
-  };
-
-  const handleSaveContribution = async () => {
-    if (!selectedGoal) return;
-    const amount = parseInt(adjustAmount.replace(/[^0-9]/g, ''), 10);
-    if (!adjustAmount.trim() || isNaN(amount)) {
-      toast({ title: 'Enter an amount', description: 'Add a monthly contribution to continue.' });
-      return;
-    }
-    try {
-      await updateGoal({ id: selectedGoal.id, data: { monthlyContribution: amount } });
-      await invalidateGoals();
-      toast({ title: 'Contribution Updated', description: `Set to $${amount.toLocaleString()}/mo.` });
-      closeGoalDetail();
-    } catch {
-      toast({ title: 'Failed to update', variant: 'destructive' });
-    }
-  };
-
-  const handleDeleteGoal = async () => {
-    if (!selectedGoal) return;
-    try {
-      await deleteGoal({ id: selectedGoal.id });
-      await invalidateGoals();
-      toast({ title: 'Goal Deleted', description: `"${selectedGoal.name}" removed.` });
-      closeGoalDetail();
-    } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
-    }
-  };
-
   const handleCreateGoal = async () => {
     const name = newGoalName.trim();
     const target = parseInt(newGoalTarget.replace(/[^0-9]/g, ''), 10);
@@ -254,7 +203,7 @@ export default function GoalsOverviewScreen() {
                   projectedDate={card.projectedDate}
                   color={card.color}
                   milestones={card.milestones}
-                  onClick={() => setSelectedGoalId(goal.id)}
+                  onClick={() => navigate(`/goals/${goal.id}`)}
                 />
               );
             })
@@ -272,98 +221,6 @@ export default function GoalsOverviewScreen() {
           style={{ boxShadow: '0px 12px 24px -8px rgba(37, 99, 235, 0.4)', letterSpacing: '-0.000976562em' }}
         />
       </div>
-
-      {/* ── Goal detail modal ─────────────────────────────────────────────── */}
-      <AppModal open={!!selectedGoal} onOpenChange={(open) => !open && closeGoalDetail()} title={selectedCard?.title ?? ''}>
-        {selectedGoal && selectedCard && (
-          <div className="flex flex-col gap-6 pb-4">
-            <span className="text-[#808BA4] font-semibold text-sm">{selectedCard.subtitle}</span>
-
-            {/* Stats card */}
-            <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
-              <div className="flex items-end justify-between">
-                <span className="text-white font-bold text-2xl leading-8">{selectedCard.current}</span>
-                <span className="text-[#808BA4] font-semibold text-sm">of {selectedCard.target}</span>
-              </div>
-
-              {/* Progress bar with milestone ticks */}
-              <div className="relative h-2 bg-[#1F2937] rounded-full overflow-visible">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, selectedCard.progress)}%`, backgroundColor: selectedCard.color }} />
-                {selectedCard.milestones.map((m) => (
-                  <div key={m.pct} className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none" style={{ left: `${m.pct}%`, transform: 'translateX(-50%)' }}>
-                    <div className="w-[2px] h-full rounded-full" style={{ backgroundColor: m.reached ? selectedCard.color : 'rgba(255,255,255,0.15)' }} />
-                    <div className="absolute" style={{ top: '-5px', width: '5px', height: '5px', backgroundColor: m.reached ? selectedCard.color : '#374151', border: `1.5px solid ${m.reached ? selectedCard.color : 'rgba(255,255,255,0.15)'}`, borderRadius: '2px', transform: 'rotate(45deg)' }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Milestone labels */}
-              <div className="relative h-4">
-                {selectedCard.milestones.map((m) => (
-                  <span key={m.pct} className="absolute text-[9px] font-bold uppercase" style={{ left: `${m.pct}%`, transform: 'translateX(-50%)', color: m.reached ? selectedCard.color : 'rgba(255,255,255,0.2)', letterSpacing: '0.5px' }}>
-                    {m.pct}%
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={16} className="text-[#22C55E]" />
-                  <span className="text-[#CBD5E1] font-semibold text-sm">Monthly Contribution</span>
-                </div>
-                <span className="text-white font-bold text-sm">
-                  {selectedGoal.monthlyContribution > 0 ? `$${selectedGoal.monthlyContribution.toLocaleString()}/mo` : 'None set'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#CBD5E1] font-semibold text-sm">Estimated Completion</span>
-                <span className="text-white font-bold text-sm">{selectedCard.projectedDate}</span>
-              </div>
-            </div>
-
-            {isAdjusting ? (
-              <div className="flex flex-col gap-4">
-                <ExecutiveInput
-                  label="New Monthly Contribution"
-                  leftIcon={<span className="font-bold">$</span>}
-                  inputMode="decimal"
-                  placeholder="e.g. 3500"
-                  value={adjustAmount}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9.]/g, '');
-                    const parts = raw.split('.');
-                    setAdjustAmount(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw);
-                  }}
-                  autoFocus
-                />
-                <div className="flex gap-3">
-                  <ExecutiveButton variant="outline" text="Cancel" className="flex-1" onClick={() => { setIsAdjusting(false); setAdjustAmount(''); }} />
-                  <ExecutiveButton
-                    text={updating ? 'Saving…' : 'Save'}
-                    icon={updating ? <Loader2 size={16} className="animate-spin" /> : null}
-                    className="flex-1"
-                    disabled={updating}
-                    onClick={handleSaveContribution}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <ExecutiveButton text="Adjust Contribution" onClick={startAdjusting} />
-                <button
-                  type="button"
-                  onClick={handleDeleteGoal}
-                  disabled={deleting}
-                  className="flex items-center justify-center gap-2 text-[#EF4444] text-sm font-semibold py-2 opacity-70 hover:opacity-100 transition-opacity disabled:opacity-40"
-                >
-                  {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  Remove Goal
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </AppModal>
 
       {/* ── Create goal modal ─────────────────────────────────────────────── */}
       <AppModal open={createOpen} onOpenChange={setCreateOpen} title="Create New Goal">
