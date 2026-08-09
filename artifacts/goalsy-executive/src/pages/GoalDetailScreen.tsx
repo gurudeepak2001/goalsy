@@ -16,6 +16,7 @@ import {
   useDeleteGoal,
   useGetFinancialProfile,
   getListGoalsQueryKey,
+  getGetGoalQueryKey,
   useListGoalProgress,
   useCreateGoalProgress,
   getListGoalProgressQueryKey,
@@ -579,7 +580,10 @@ export default function GoalDetailScreen() {
     }
     try {
       await updateGoal({ id: goal.id, data: { monthlyContribution: contrib, targetDate: adjustDate || null } });
-      await queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
+      ]);
       toast({ title: 'Plan Updated' });
       setIsAdjusting(false);
     } catch {
@@ -601,6 +605,7 @@ export default function GoalDetailScreen() {
       // Backend also patches currentAmount — invalidate both caches
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
         queryClient.invalidateQueries({ queryKey: getListGoalProgressQueryKey(goal.id) }),
       ]);
       toast({ title: 'Progress Logged', description: `Week ${confirmingWeekIdx} confirmed at ${formatDollars(amount)}.` });
