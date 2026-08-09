@@ -441,7 +441,7 @@ function WeeklyMilestoneRow({
   );
 }
 
-function ConfirmForm({
+export function ConfirmForm({
   expectedAmount,
   confirmValue,
   onConfirmChange,
