@@ -483,6 +483,7 @@ export default function GoalDetailScreen() {
   const allMilestones = computeWeeklyMilestones(goal);
   const pastMilestones = allMilestones.filter((m) => m.isPast);
   const futureMilestones = allMilestones.filter((m) => !m.isPast);
+  const targetDatePassed = !!goal.targetDate && new Date(goal.targetDate) < new Date();
   // Show last 8 past + first 52 future unless expanded
   const PAST_CAP = 8;
   const FUTURE_CAP = 52;
@@ -520,6 +521,11 @@ export default function GoalDetailScreen() {
 
   const handleDateBlur = () => {
     if (!adjustDate) return;
+    // Reject past dates immediately
+    if (new Date(adjustDate) < new Date()) {
+      setAdjustFeasibility('Target date is in the past — please choose a future date.');
+      return;
+    }
     if (!adjustContrib) {
       // Auto-fill contribution
       const computed = calcRequiredContrib(goal.currentAmount, goal.targetAmount, adjustDate);
@@ -694,13 +700,34 @@ export default function GoalDetailScreen() {
           </div>
 
           {allMilestones.length === 0 ? (
-            <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-4 text-center">
-              <p className="text-[#808BA4] text-sm font-semibold">
-                Set a monthly contribution or target date to see weekly milestones.
-              </p>
+            <div className={`border rounded-2xl px-5 py-4 ${targetDatePassed ? 'bg-[#1c1007] border-[#F59E0B]/30' : 'bg-[#111827] border-white/5'}`}>
+              {targetDatePassed ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-[#F59E0B] flex-shrink-0" />
+                    <span className="text-[#F59E0B] font-bold text-sm">Target date passed</span>
+                  </div>
+                  <p className="text-[#F59E0B]/80 text-xs font-semibold leading-4">
+                    Your goal's target date ({new Date(goal.targetDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}) has passed.
+                    Tap <strong>Adjust Plan</strong> below to set a new date.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[#808BA4] text-sm font-semibold text-center">
+                  Set a monthly contribution or target date to see weekly milestones.
+                </p>
+              )}
             </div>
           ) : (
             <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-1">
+              {targetDatePassed && (
+                <div className="flex items-start gap-2 py-3 border-b border-[#F59E0B]/20 mb-1">
+                  <AlertTriangle size={13} className="text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                  <p className="text-[#F59E0B] text-xs font-semibold leading-4">
+                    Target date ({new Date(goal.targetDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}) has passed — tap <strong>Adjust Plan</strong> to set a new date.
+                  </p>
+                </div>
+              )}
               {pastMilestones.length > PAST_CAP && !milestoneExpanded && (
                 <button
                   type="button"

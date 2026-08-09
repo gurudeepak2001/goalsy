@@ -164,6 +164,11 @@ export default function GoalsOverviewScreen() {
 
   const handleCreateDateBlur = () => {
     if (!newGoalTargetDate) return;
+    // Reject past dates immediately
+    if (new Date(newGoalTargetDate) < new Date()) {
+      setCreateFeasibility('Target date is in the past — please choose a future date.');
+      return;
+    }
     const { target, current, contrib } = getCreateNumbers();
     if (!target) return;
     if (!contrib) {
