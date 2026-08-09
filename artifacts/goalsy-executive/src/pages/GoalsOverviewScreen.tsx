@@ -110,6 +110,7 @@ export default function GoalsOverviewScreen() {
   const [newGoalTarget, setNewGoalTarget] = useState('');
   const [newGoalCurrent, setNewGoalCurrent] = useState('');
   const [newGoalContrib, setNewGoalContrib] = useState('');
+  const [newGoalTargetDate, setNewGoalTargetDate] = useState('');
 
   const goals = goalsData ?? [];
   const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) ?? null : null;
@@ -175,6 +176,7 @@ export default function GoalsOverviewScreen() {
           targetAmount: target,
           currentAmount: isNaN(currentAmount) ? 0 : currentAmount,
           monthlyContribution: isNaN(monthlyContribution) ? 0 : monthlyContribution,
+          targetDate: newGoalTargetDate || null,
           status: 'active',
           priority: 1,
         },
@@ -185,6 +187,7 @@ export default function GoalsOverviewScreen() {
       setNewGoalTarget('');
       setNewGoalCurrent('');
       setNewGoalContrib('');
+      setNewGoalTargetDate('');
       setCreateOpen(false);
       toast({ title: 'Goal Created', description: `"${name}" added to your roadmap.` });
     } catch {
@@ -393,7 +396,7 @@ export default function GoalsOverviewScreen() {
           <div className="flex gap-3">
             <div className="flex-1">
               <ExecutiveInput
-                label="Current Amount"
+                label="Current Amount Towards Goal"
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"
@@ -403,7 +406,7 @@ export default function GoalsOverviewScreen() {
             </div>
             <div className="flex-1">
               <ExecutiveInput
-                label="Monthly Contribution"
+                label="Monthly Contribution Towards Goal"
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"
@@ -411,6 +414,19 @@ export default function GoalsOverviewScreen() {
                 onChange={(e) => setNewGoalContrib(e.target.value.replace(/[^0-9.]/g, ''))}
               />
             </div>
+          </div>
+
+          {/* Target completion date */}
+          <div>
+            <label className={labelCls}>Target Completion Date</label>
+            <input
+              type="date"
+              value={newGoalTargetDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setNewGoalTargetDate(e.target.value)}
+              className={selectCls}
+              style={{ colorScheme: 'dark' }}
+            />
           </div>
 
           <ExecutiveButton
