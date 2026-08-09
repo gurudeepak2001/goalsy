@@ -375,7 +375,7 @@ function WeeklyMilestoneRow({
         type="button"
         disabled={!isPast}
         onClick={isPast ? onTap : undefined}
-        className={`w-full flex items-center gap-3 py-2.5 text-left ${isPast && !isConfirming ? 'active:opacity-70' : ''}`}
+        className={`w-full flex items-center gap-3 py-2.5 min-h-[44px] text-left ${isPast && !isConfirming ? 'active:opacity-70' : ''}`}
       >
         {/* Marker */}
         <div className="flex-shrink-0 w-5 flex items-center justify-center">
