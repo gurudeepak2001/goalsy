@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
   TrendingUp, CheckCircle2, Clock, AlertTriangle,
-  Loader2, Trash2, Zap, DollarSign, CalendarDays,
+  Loader2, Trash2, Zap, DollarSign, CalendarDays, Award,
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -372,17 +372,32 @@ function WeeklyMilestoneRow({
         onClick={isPast ? onTap : undefined}
         className={`w-full flex items-center gap-3 py-2.5 text-left ${isPast && !isConfirming ? 'active:opacity-70' : ''}`}
       >
-        {/* Diamond marker */}
+        {/* Marker */}
         <div className="flex-shrink-0 w-5 flex items-center justify-center">
-          <div
-            style={{
-              width: 12, height: 12,
-              backgroundColor: (isHistoryConfirmed || status === 'reached') ? markerColor : 'transparent',
-              border: `2px solid ${markerColor}`,
-              borderRadius: 2,
-              transform: 'rotate(45deg)',
-            }}
-          />
+          {isHistoryConfirmed ? (
+            // Confirmed via explicit progress log → medal icon with subtle glow
+            <div
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: 18, height: 18,
+                backgroundColor: `${color}22`,
+                boxShadow: `0 0 6px 1px ${color}44`,
+              }}
+            >
+              <Award size={11} style={{ color }} />
+            </div>
+          ) : (
+            // Unconfirmed (inferred from currentAmount) → rotating diamond
+            <div
+              style={{
+                width: 12, height: 12,
+                backgroundColor: status === 'reached' ? markerColor : 'transparent',
+                border: `2px solid ${markerColor}`,
+                borderRadius: 2,
+                transform: 'rotate(45deg)',
+              }}
+            />
+          )}
         </div>
 
         <div className="flex-1 flex items-center justify-between min-w-0">
