@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ResponsiveContainer, LineChart, Line,
   XAxis, YAxis, Tooltip,
@@ -428,7 +428,46 @@ function WeeklyMilestoneRow({
 
       {/* Inline confirm form */}
       {isConfirming && (
-        <div className="pb-3 pl-8 flex flex-col gap-2">
+        <ConfirmForm
+          expectedAmount={expectedAmount}
+          confirmValue={confirmValue}
+          onConfirmChange={onConfirmChange}
+          onSave={onSave}
+          onCancelConfirm={onCancelConfirm}
+          isSaving={isSaving}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmForm({
+  expectedAmount,
+  confirmValue,
+  onConfirmChange,
+  onSave,
+  onCancelConfirm,
+  isSaving,
+}: {
+  expectedAmount: number;
+  confirmValue: string;
+  onConfirmChange: (v: string) => void;
+  onSave: () => void;
+  onCancelConfirm: () => void;
+  isSaving: boolean;
+}) {
+  const formRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Give the keyboard a moment to appear before scrolling
+    const timer = setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+        <div ref={formRef} className="pb-3 pl-8 flex flex-col gap-2">
           <p className="text-[#808BA4] text-xs font-semibold">
             How much have you actually saved as of this week?
           </p>
@@ -460,8 +499,6 @@ function WeeklyMilestoneRow({
             />
           </div>
         </div>
-      )}
-    </div>
   );
 }
 
