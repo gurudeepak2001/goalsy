@@ -211,6 +211,44 @@ export const DeleteGoalResponse = zod.void()
 
 
 /**
+ * @summary List all confirmed progress entries for a goal
+ */
+export const ListGoalProgressParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ListGoalProgressResponseItem = zod.object({
+  "id": zod.string(),
+  "goalId": zod.string(),
+  "weekIndex": zod.number(),
+  "confirmedAmount": zod.number(),
+  "confirmedAt": zod.string()
+})
+export const ListGoalProgressResponse = zod.array(ListGoalProgressResponseItem)
+
+
+/**
+ * @summary Log a confirmed progress snapshot for a weekly milestone
+ */
+export const CreateGoalProgressParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CreateGoalProgressBody = zod.object({
+  "weekIndex": zod.number(),
+  "confirmedAmount": zod.number()
+})
+
+export const CreateGoalProgressResponse = zod.object({
+  "id": zod.string(),
+  "goalId": zod.string(),
+  "weekIndex": zod.number(),
+  "confirmedAmount": zod.number(),
+  "confirmedAt": zod.string()
+})
+
+
+/**
  * @summary Get (or generate) today's mission for the current user
  */
 export const GetTodayMissionResponse = zod.object({

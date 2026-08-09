@@ -16,6 +16,9 @@ import {
   useDeleteGoal,
   useGetFinancialProfile,
   getListGoalsQueryKey,
+  useListGoalProgress,
+  useCreateGoalProgress,
+  getListGoalProgressQueryKey,
 } from '@workspace/api-client-react';
 import type { Goal, FinancialProfile } from '@workspace/api-client-react';
 
@@ -325,6 +328,8 @@ function PlanStepRow({ step, color }: { step: PlanStep; color: string }) {
 function WeeklyMilestoneRow({
   milestone,
   color,
+  isHistoryConfirmed,
+  historyAmount,
   isConfirming,
   confirmValue,
   onConfirmChange,
@@ -335,6 +340,8 @@ function WeeklyMilestoneRow({
 }: {
   milestone: WeekMilestone;
   color: string;
+  isHistoryConfirmed: boolean;
+  historyAmount?: number;
   isConfirming: boolean;
   confirmValue: string;
   onConfirmChange: (v: string) => void;
@@ -346,10 +353,16 @@ function WeeklyMilestoneRow({
   const { dateLabel, expectedAmount, status, isPast } = milestone;
 
   const markerColor =
-    status === 'reached' ? color : status === 'behind' ? '#F59E0B' : 'rgba(255,255,255,0.12)';
+    isHistoryConfirmed ? color
+    : status === 'reached' ? color
+    : status === 'behind' ? '#F59E0B'
+    : 'rgba(255,255,255,0.12)';
 
   const labelColor =
-    status === 'reached' ? color : status === 'behind' ? '#F59E0B' : '#4B5563';
+    isHistoryConfirmed ? color
+    : status === 'reached' ? color
+    : status === 'behind' ? '#F59E0B'
+    : '#4B5563';
 
   return (
     <div className="border-b border-white/5 last:border-0">
@@ -361,37 +374,34 @@ function WeeklyMilestoneRow({
       >
         {/* Diamond marker */}
         <div className="flex-shrink-0 w-5 flex items-center justify-center">
-          {status === 'reached' ? (
-            <div
-              style={{
-                width: 12, height: 12,
-                backgroundColor: color,
-                border: `2px solid ${color}`,
-                borderRadius: 2,
-                transform: 'rotate(45deg)',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 12, height: 12,
-                backgroundColor: 'transparent',
-                border: `2px solid ${markerColor}`,
-                borderRadius: 2,
-                transform: 'rotate(45deg)',
-              }}
-            />
-          )}
+          <div
+            style={{
+              width: 12, height: 12,
+              backgroundColor: (isHistoryConfirmed || status === 'reached') ? markerColor : 'transparent',
+              border: `2px solid ${markerColor}`,
+              borderRadius: 2,
+              transform: 'rotate(45deg)',
+            }}
+          />
         </div>
 
         <div className="flex-1 flex items-center justify-between min-w-0">
           <span className="text-[#CBD5E1] font-semibold text-[13px]">{dateLabel}</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-[13px]" style={{ color: labelColor }}>
-              {formatDollars(expectedAmount)}
-            </span>
-            {status === 'reached' && <CheckCircle2 size={12} style={{ color }} />}
-            {status === 'behind' && <AlertTriangle size={12} className="text-[#F59E0B]" />}
+            {isHistoryConfirmed && historyAmount !== undefined ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#808BA4] font-semibold text-[11px] line-through">{formatDollars(expectedAmount)}</span>
+                <span className="font-bold text-[13px]" style={{ color }}>{formatDollars(historyAmount)}</span>
+                <CheckCircle2 size={12} style={{ color }} />
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-[13px]" style={{ color: labelColor }}>
+                  {formatDollars(expectedAmount)}
+                </span>
+                {status === 'behind' && <AlertTriangle size={12} className="text-[#F59E0B]" />}
+              </div>
+            )}
           </div>
         </div>
       </button>
@@ -444,8 +454,18 @@ export default function GoalDetailScreen() {
 
   const { data: goal, isLoading } = useGetGoal(id ?? '');
   const { data: fpData } = useGetFinancialProfile();
+  const { data: progressData } = useListGoalProgress(id ?? '');
   const { mutateAsync: updateGoal, isPending: updating } = useUpdateGoal();
+  const { mutateAsync: logProgress, isPending: loggingProgress } = useCreateGoalProgress();
   const { mutateAsync: deleteGoal, isPending: deleting } = useDeleteGoal();
+
+  // Map of weekIndex → most recent confirmed amount (entries arrive newest-first)
+  const confirmedMap = new Map<number, number>();
+  for (const entry of (progressData ?? [])) {
+    if (!confirmedMap.has(entry.weekIndex)) {
+      confirmedMap.set(entry.weekIndex, entry.confirmedAmount);
+    }
+  }
 
   // Adjust plan form
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -555,15 +575,20 @@ export default function GoalDetailScreen() {
   // ── Milestone confirm handler ─────────────────────────────────────────────
 
   const handleConfirmMilestone = async () => {
+    if (confirmingWeekIdx === null) return;
     const amount = parseInt(confirmAmount.replace(/[^0-9]/g, ''), 10);
     if (!confirmAmount.trim() || isNaN(amount) || amount < 0) {
       toast({ title: 'Enter your saved amount', variant: 'destructive' });
       return;
     }
     try {
-      await updateGoal({ id: goal.id, data: { currentAmount: amount } });
-      await queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() });
-      toast({ title: 'Progress Logged', description: `Saved amount updated to ${formatDollars(amount)}.` });
+      await logProgress({ id: goal.id, data: { weekIndex: confirmingWeekIdx, confirmedAmount: amount } });
+      // Backend also patches currentAmount — invalidate both caches
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getListGoalProgressQueryKey(goal.id) }),
+      ]);
+      toast({ title: 'Progress Logged', description: `Week ${confirmingWeekIdx} confirmed at ${formatDollars(amount)}.` });
       setConfirmingWeekIdx(null);
       setConfirmAmount('');
     } catch {
@@ -738,23 +763,28 @@ export default function GoalDetailScreen() {
                 </button>
               )}
 
-              {shownMilestones.map((m) => (
-                <WeeklyMilestoneRow
-                  key={m.weekIndex}
-                  milestone={m}
-                  color={color}
-                  isConfirming={confirmingWeekIdx === m.weekIndex}
-                  confirmValue={confirmAmount}
-                  onConfirmChange={setConfirmAmount}
-                  onTap={() => {
-                    setConfirmingWeekIdx(m.weekIndex);
-                    setConfirmAmount(String(goal.currentAmount));
-                  }}
-                  onSave={handleConfirmMilestone}
-                  onCancelConfirm={() => { setConfirmingWeekIdx(null); setConfirmAmount(''); }}
-                  isSaving={updating}
-                />
-              ))}
+              {shownMilestones.map((m) => {
+                const histAmt = confirmedMap.get(m.weekIndex);
+                return (
+                  <WeeklyMilestoneRow
+                    key={m.weekIndex}
+                    milestone={m}
+                    color={color}
+                    isHistoryConfirmed={confirmedMap.has(m.weekIndex)}
+                    historyAmount={histAmt}
+                    isConfirming={confirmingWeekIdx === m.weekIndex}
+                    confirmValue={confirmAmount}
+                    onConfirmChange={setConfirmAmount}
+                    onTap={() => {
+                      setConfirmingWeekIdx(m.weekIndex);
+                      setConfirmAmount(histAmt !== undefined ? String(histAmt) : String(goal.currentAmount));
+                    }}
+                    onSave={handleConfirmMilestone}
+                    onCancelConfirm={() => { setConfirmingWeekIdx(null); setConfirmAmount(''); }}
+                    isSaving={loggingProgress}
+                  />
+                );
+              })}
 
               {hiddenCount > 0 && !milestoneExpanded && futureMilestones.length > FUTURE_CAP && (
                 <button

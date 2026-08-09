@@ -1,4 +1,5 @@
 export * from "./userProfiles";
+export * from "./goalProgressEntries";
 export * from "./financialProfiles";
 export * from "./goals";
 export * from "./dailyMissions";

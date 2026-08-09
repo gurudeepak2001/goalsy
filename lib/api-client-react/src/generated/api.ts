@@ -24,9 +24,11 @@ import type {
   Bill,
   Briefing,
   CreateGoalBody,
+  CreateGoalProgressBody,
   FinancialProfile,
   FinancialProfileResponse,
   Goal,
+  GoalProgressEntry,
   HealthStatus,
   Mission,
   NotFoundResponse,
@@ -808,6 +810,155 @@ export const useDeleteGoal = <TError = ErrorType<UnauthorizedResponse | NotFound
         TContext
       > => {
       return useMutation(getDeleteGoalMutationOptions(options));
+    }
+
+export const getListGoalProgressUrl = (id: string,) => {
+
+
+
+
+  return `/api/goals/${id}/progress`
+}
+
+/**
+ * @summary List all confirmed progress entries for a goal
+ */
+export const listGoalProgress = async (id: string, options?: RequestInit): Promise<GoalProgressEntry[]> => {
+
+  return customFetch<GoalProgressEntry[]>(getListGoalProgressUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGoalProgressQueryKey = (id: string,) => {
+    return [
+    `/api/goals/${id}/progress`
+    ] as const;
+    }
+
+
+export const getListGoalProgressQueryOptions = <TData = Awaited<ReturnType<typeof listGoalProgress>>, TError = ErrorType<UnauthorizedResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGoalProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGoalProgressQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGoalProgress>>> = ({ signal }) => listGoalProgress(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGoalProgress>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGoalProgressQueryResult = NonNullable<Awaited<ReturnType<typeof listGoalProgress>>>
+export type ListGoalProgressQueryError = ErrorType<UnauthorizedResponse>
+
+
+/**
+ * @summary List all confirmed progress entries for a goal
+ */
+
+export function useListGoalProgress<TData = Awaited<ReturnType<typeof listGoalProgress>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGoalProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGoalProgressQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateGoalProgressUrl = (id: string,) => {
+
+
+
+
+  return `/api/goals/${id}/progress`
+}
+
+/**
+ * @summary Log a confirmed progress snapshot for a weekly milestone
+ */
+export const createGoalProgress = async (id: string,
+    createGoalProgressBody: CreateGoalProgressBody, options?: RequestInit): Promise<GoalProgressEntry> => {
+
+  return customFetch<GoalProgressEntry>(getCreateGoalProgressUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createGoalProgressBody)
+  }
+);}
+
+
+
+
+
+export const getCreateGoalProgressMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGoalProgress>>, TError,{id: string;data: BodyType<CreateGoalProgressBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGoalProgress>>, TError,{id: string;data: BodyType<CreateGoalProgressBody>}, TContext> => {
+
+const mutationKey = ['createGoalProgress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGoalProgress>>, {id: string;data: BodyType<CreateGoalProgressBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createGoalProgress(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGoalProgressMutationResult = NonNullable<Awaited<ReturnType<typeof createGoalProgress>>>
+    export type CreateGoalProgressMutationBody = BodyType<CreateGoalProgressBody>
+    export type CreateGoalProgressMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+    /**
+ * @summary Log a confirmed progress snapshot for a weekly milestone
+ */
+export const useCreateGoalProgress = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGoalProgress>>, TError,{id: string;data: BodyType<CreateGoalProgressBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGoalProgress>>,
+        TError,
+        {id: string;data: BodyType<CreateGoalProgressBody>},
+        TContext
+      > => {
+      return useMutation(getCreateGoalProgressMutationOptions(options));
     }
 
 export const getGetTodayMissionUrl = () => {

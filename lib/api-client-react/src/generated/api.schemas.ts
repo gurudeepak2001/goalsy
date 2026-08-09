@@ -70,6 +70,19 @@ export interface UpdateFinancialProfileBody {
   primaryGoalType?: string | null;
 }
 
+export interface GoalProgressEntry {
+  id: string;
+  goalId: string;
+  weekIndex: number;
+  confirmedAmount: number;
+  confirmedAt: string;
+}
+
+export interface CreateGoalProgressBody {
+  weekIndex: number;
+  confirmedAmount: number;
+}
+
 export interface Goal {
   id: string;
   userId: string;

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, goals } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
+import { db, goals, goalProgressEntries } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -128,6 +128,76 @@ router.delete("/goals/:id", requireAuth, async (req, res) => {
     res.status(204).send();
   } catch {
     res.status(500).json({ message: "Failed to delete goal" });
+  }
+});
+
+// GET /api/goals/:id/progress
+router.get("/goals/:id/progress", requireAuth, async (req, res) => {
+  const userId = res.locals.userId as string;
+  try {
+    // Verify the goal belongs to this user
+    const [goal] = await db
+      .select({ id: goals.id })
+      .from(goals)
+      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+    if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
+
+    const entries = await db
+      .select()
+      .from(goalProgressEntries)
+      .where(
+        and(
+          eq(goalProgressEntries.goalId, req.params.id),
+          eq(goalProgressEntries.userId, userId),
+        ),
+      )
+      .orderBy(desc(goalProgressEntries.confirmedAt));
+    res.json(entries);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch progress entries" });
+  }
+});
+
+// POST /api/goals/:id/progress
+router.post("/goals/:id/progress", requireAuth, async (req, res) => {
+  const userId = res.locals.userId as string;
+  const { weekIndex, confirmedAmount } = req.body as {
+    weekIndex: number;
+    confirmedAmount: number;
+  };
+
+  if (weekIndex === undefined || confirmedAmount === undefined) {
+    res.status(400).json({ message: "weekIndex and confirmedAmount are required" });
+    return;
+  }
+
+  try {
+    // Verify the goal belongs to this user
+    const [goal] = await db
+      .select({ id: goals.id })
+      .from(goals)
+      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+    if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
+
+    const [entry] = await db
+      .insert(goalProgressEntries)
+      .values({
+        goalId: req.params.id,
+        userId,
+        weekIndex,
+        confirmedAmount,
+      })
+      .returning();
+
+    // Also update the goal's currentAmount to the latest confirmed snapshot
+    await db
+      .update(goals)
+      .set({ currentAmount: confirmedAmount, updatedAt: new Date() })
+      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+
+    res.status(201).json(entry);
+  } catch {
+    res.status(500).json({ message: "Failed to log progress" });
   }
 });
 

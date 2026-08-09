@@ -201,6 +201,48 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /goals/{id}/progress:
+    get:
+      operationId: listGoalProgress
+      tags: [goals]
+      summary: List all confirmed progress entries for a goal
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Progress entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GoalProgressEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createGoalProgress
+      tags: [goals]
+      summary: Log a confirmed progress snapshot for a weekly milestone
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGoalProgressBody"
+      responses:
+        "201":
+          description: Created progress entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalProgressEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /missions/today:
     get:
       operationId: getTodayMission
@@ -567,6 +609,30 @@ components:
           type: ["string", "null"]
         primaryGoalType:
           type: ["string", "null"]
+
+    GoalProgressEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        goalId:
+          type: string
+        weekIndex:
+          type: integer
+        confirmedAmount:
+          type: integer
+        confirmedAt:
+          type: string
+      required: [id, goalId, weekIndex, confirmedAmount, confirmedAt]
+
+    CreateGoalProgressBody:
+      type: object
+      properties:
+        weekIndex:
+          type: integer
+        confirmedAmount:
+          type: integer
+      required: [weekIndex, confirmedAmount]
 
     Goal:
       type: object
