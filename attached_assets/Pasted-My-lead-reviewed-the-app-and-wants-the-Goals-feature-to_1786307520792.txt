@@ -1,0 +1,92 @@
+My lead reviewed the app and wants the Goals feature to become AI-driven 
+and adaptive. IMPORTANT: implement this using our EXISTING screens as 
+much as possible (Goals Overview, AI Home, Calendar). If a new screen is 
+genuinely needed, it must be a SUB-SCREEN reached by tapping into one of 
+the existing main screens (same pattern already used for Financial 
+Health from Goals, or Score from Profile) — never a new top-level 
+destination or bottom nav item.
+
+Here's what's needed:
+
+1. GOALS SCREEN — Create Goal modal:
+   - Relabel "Current Amount" to "Current Amount Towards Goal"
+   - Relabel "Monthly Contribution" to "Monthly Contribution Towards Goal"
+   - Add a date picker field for the user to select their target 
+     completion date for the goal
+
+2. GOAL DETAIL — tapping into a goal should open a dedicated sub-screen 
+   for that specific goal (upgrading the current lightweight modal into 
+   a full sub-screen, same navigation pattern as Financial Health/Score), 
+   showing:
+   - The goal's AI-generated roadmap/plan (e.g. "Save $1,000/month," 
+     "Spend under $500/week") based on the goal's target amount, current 
+     amount, monthly contribution, target date, and the user's financial 
+     profile data
+   - That goal's checkpoints/milestones and progress toward each
+   - Achievement/status indicators for checkpoints already reached
+   - Adjust Contribution stays here, same as it works today
+
+3. AI HOME SCREEN — still show a summarized version of the top 
+   recommendation/insight pulled from the user's active goal(s), as a 
+   natural addition to the existing AI Home card layout — but the FULL 
+   roadmap and checkpoint detail lives on the goal's own sub-screen from 
+   point 2, not on AI Home.
+
+4. CALENDAR SCREEN — add goal checkpoints/milestones:
+   - Generate milestone checkpoints on the calendar based on each goal's 
+     timeline
+   - When a checkpoint date is reached, compare actual progress against 
+     the plan
+   - If BEHIND schedule: do NOT silently change the plan. Notify the 
+     user and ask if they'd like to adjust (accept or keep original), 
+     reflected on the goal's sub-screen.
+   - If AHEAD of schedule: show positive reinforcement — a celebratory 
+     badge/toast — also reflected on the goal's sub-screen.
+
+5. REMINDERS:
+   - Users should get reminded to hit their monthly/weekly targets — use 
+     the existing notification preferences/toast pattern, not new 
+     infrastructure
+
+6. AI CHATBOT — add a conversational AI assistant for goal-related 
+   questions (e.g. "how do I reach my goal faster", "what does APR mean", 
+   "how much interest will I pay", general money/goal calculation 
+   questions).
+
+   IMPORTANT: Do not convert AI Home's existing card layout into a chat 
+   interface. Instead:
+   - Add a floating circular button (FAB) fixed to the bottom of the AI 
+     Home screen (similar positioning/pattern to the "Create New Goal" 
+     FAB already used on the Goals screen), with a chat icon
+   - Tapping it opens a chat sub-screen (e.g. /ai/chat) — same sub-screen 
+     pattern as Goal Detail, back chevron, AppShell layout, no new bottom 
+     nav item
+   - The chat screen itself is a real chat interface: scrollable message 
+     thread, persistent text input pinned at the bottom
+
+   The chatbot should have context on the user's actual goals and 
+   financial profile data so it can answer specifically rather than only 
+   generic advice. This will need a real LLM API call (not deterministic 
+   logic like the roadmap) — confirm what's needed to wire that up (API 
+   key, provider) as part of your Stage 1 response.
+
+Please do this in stages:
+
+STAGE 1 — Propose a plan, no code yet:
+Confirm this can be implemented using the existing screens plus two new 
+sub-screens (Goal Detail from point 2, and the AI Chat from point 6), 
+both reached the same way Financial Health/Score are reached today. If 
+anything else genuinely needs its own screen, flag it specifically and 
+explain why before proceeding.
+
+Also clarify: since real Plaid financial data isn't connected yet (still 
+pending approval per my lead), should the roadmap logic run on the 
+existing real financial profile data now, so the feature is functionally 
+complete and ready to plug in live Plaid data once approved?
+
+STAGE 2 — Once I approve the plan, build one piece at a time (Create 
+Goal fields → Goal Detail sub-screen → AI Home summary → Calendar 
+checkpoints → Reminders → AI Chatbot), showing me each before moving to 
+the next.
+
+Show me the Stage 1 plan now.
