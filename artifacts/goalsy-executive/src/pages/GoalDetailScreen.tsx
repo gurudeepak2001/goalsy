@@ -596,6 +596,14 @@ export default function GoalDetailScreen() {
     }
     try {
       await updateGoal({ id: goal.id, data: { monthlyContribution: contrib, targetDate: adjustDate || null } });
+      // Patch caches immediately so the summary card on Goals Overview updates without waiting for refetch
+      const patchedDate = adjustDate || null;
+      queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
+        old?.map((g) => g.id === goal.id ? { ...g, monthlyContribution: contrib, targetDate: patchedDate } : g),
+      );
+      queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
+        old ? { ...old, monthlyContribution: contrib, targetDate: patchedDate } : old,
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
@@ -618,7 +626,13 @@ export default function GoalDetailScreen() {
     }
     try {
       await logProgress({ id: goal.id, data: { weekIndex: confirmingWeekIdx, confirmedAmount: amount } });
-      // Backend also patches currentAmount — invalidate both caches
+      // Patch caches immediately so Goals Overview total contributions updates without waiting for refetch
+      queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
+        old?.map((g) => g.id === goal.id ? { ...g, currentAmount: amount } : g),
+      );
+      queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
+        old ? { ...old, currentAmount: amount } : old,
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
