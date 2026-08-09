@@ -159,9 +159,15 @@ export default function GoalsOverviewScreen() {
   const activeGoals = goals.filter(
     (g) => g.status === 'active' && g.currentAmount < g.targetAmount,
   );
-  // Goals with no target date can't contribute to the live total (no deadline = no months remaining)
-  const unplannedGoals = activeGoals.filter((g) => !g.targetDate);
-  const summaryMonthly = activeGoals.reduce((sum, g) => sum + computeRequiredMonthly(g), 0);
+  // A goal is "unplanned" when it has no saved monthly contribution AND no target date
+  // (no way to compute or display a meaningful contribution amount)
+  const unplannedGoals = activeGoals.filter(
+    (g) => !(g.monthlyContribution > 0) && !g.targetDate,
+  );
+  // Use the goal's saved monthly contribution when set; fall back to live-computed required amount
+  const goalMonthly = (g: Goal) =>
+    g.monthlyContribution > 0 ? g.monthlyContribution : computeRequiredMonthly(g);
+  const summaryMonthly = activeGoals.reduce((sum, g) => sum + goalMonthly(g), 0);
   const summaryWeekly = Math.round(summaryMonthly * 12 / 52);
 
   // ── Auto-fill blur handlers ────────────────────────────────────────────────
