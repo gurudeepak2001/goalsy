@@ -6,6 +6,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 const DEFAULT_TYPES = [
   "mission_reminders",
   "goal_updates",
+  "goal_reminders",
   "market_alerts",
   "weekly_summary",
   "ai_insights",
@@ -23,13 +24,21 @@ router.get("/notification-preferences", requireAuth, async (req, res) => {
       .from(notificationPreferences)
       .where(eq(notificationPreferences.userId, userId));
 
-    if (prefs.length === 0) {
+    // Seed any missing types (handles both first-time users and new types added later)
+    const existingTypes = new Set(prefs.map((p) => p.type));
+    const missing = DEFAULT_TYPES.filter((t) => !existingTypes.has(t));
+    if (missing.length > 0) {
       const inserted = await db
         .insert(notificationPreferences)
-        .values(DEFAULT_TYPES.map((type) => ({ userId, type, enabled: true })))
+        .values(missing.map((type) => ({ userId, type, enabled: true })))
+        .onConflictDoNothing()
         .returning();
-      prefs = inserted;
+      prefs = [...prefs, ...inserted];
     }
+
+    // Return in consistent DEFAULT_TYPES order (unknown types appended at end)
+    const order = Object.fromEntries(DEFAULT_TYPES.map((t, i) => [t, i]));
+    prefs.sort((a, b) => (order[a.type] ?? 999) - (order[b.type] ?? 999));
 
     res.json(prefs);
   } catch {

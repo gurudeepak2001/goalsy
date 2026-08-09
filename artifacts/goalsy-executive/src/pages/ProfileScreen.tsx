@@ -50,6 +50,7 @@ import {
 const NOTIF_META: Record<string, { label: string; description: string }> = {
   mission_reminders: { label: 'Mission Reminders', description: 'Daily alerts to complete your mission' },
   goal_updates: { label: 'Goal Updates', description: 'Celebrate milestone achievements on your goals' },
+  goal_reminders: { label: 'Goal Reminders', description: 'Alerts when goals fall behind schedule' },
   market_alerts: { label: 'Market Alerts', description: 'Important market movements affecting your portfolio' },
   weekly_summary: { label: 'Weekly Summary', description: 'Digest of your financial week every Sunday' },
   ai_insights: { label: 'AI Insights', description: 'Daily strategic recommendations' },

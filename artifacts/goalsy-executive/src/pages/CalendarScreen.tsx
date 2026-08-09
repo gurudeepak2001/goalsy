@@ -7,7 +7,11 @@ import {
   Lightbulb,
   Loader2,
   CheckCircle2,
+  Flag,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
@@ -18,9 +22,93 @@ import {
   useListBills,
   usePayBill,
   useListBriefings,
+  useListGoals,
   getListBillsQueryKey,
 } from '@workspace/api-client-react';
 import type { Briefing } from '@workspace/api-client-react';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const GOAL_TYPE_COLORS: Record<string, string> = {
+  home_purchase: '#22C55E',
+  retirement: '#3B82F6',
+  education: '#F59E0B',
+  emergency_fund: '#10B981',
+  investment: '#8B5CF6',
+  other: '#6B7280',
+};
+
+function formatDollarsShort(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+  return `$${n.toLocaleString()}`;
+}
+
+interface GoalCheckpoint {
+  goalId: string;
+  goalName: string;
+  goalColor: string;
+  pct: number;
+  requiredAmount: number;
+  estimatedDate: Date;
+  dateLabel: string;
+  status: 'behind' | 'upcoming';
+}
+
+function computeGoalCheckpoints(
+  goals: ReturnType<typeof useListGoals>['data'],
+): GoalCheckpoint[] {
+  if (!goals) return [];
+  const now = new Date();
+  const msPerMonth = 30.44 * 24 * 60 * 60 * 1000;
+
+  const items: GoalCheckpoint[] = [];
+
+  for (const g of goals) {
+    if (g.status === 'deleted' || g.targetAmount <= 0) continue;
+    const monthly = g.monthlyContribution ?? 0;
+    if (monthly <= 0) continue; // can't estimate without contribution
+
+    const createdAt = new Date(g.createdAt);
+    const targetDate = g.targetDate ? new Date(g.targetDate) : null;
+
+    for (const pct of [25, 50, 75, 100]) {
+      const requiredAmount = Math.round(g.targetAmount * (pct / 100));
+      if (g.currentAmount >= requiredAmount) continue; // already reached
+
+      const remaining = requiredAmount - g.currentAmount;
+      const monthsToMilestone = remaining / monthly;
+      const estimatedDate = new Date(now.getTime() + monthsToMilestone * msPerMonth);
+
+      let status: GoalCheckpoint['status'] = 'upcoming';
+      if (targetDate) {
+        const totalMs = targetDate.getTime() - createdAt.getTime();
+        const proportionalTarget = new Date(
+          createdAt.getTime() + (pct / 100) * totalMs,
+        );
+        if (estimatedDate > proportionalTarget && now > proportionalTarget) {
+          status = 'behind';
+        }
+      }
+
+      items.push({
+        goalId: g.id,
+        goalName: g.name,
+        goalColor: GOAL_TYPE_COLORS[g.type] ?? '#6B7280',
+        pct,
+        requiredAmount,
+        estimatedDate,
+        dateLabel: estimatedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        status,
+      });
+      break; // only show the NEXT upcoming milestone per goal
+    }
+  }
+
+  return items
+    .sort((a, b) => a.estimatedDate.getTime() - b.estimatedDate.getTime())
+    .slice(0, 5);
+}
 
 function DayDivider({ text, color = '#808BA4' }: { text: string; color?: string }) {
   return (
@@ -69,11 +157,15 @@ function formatDateLabel(iso: string): string {
 }
 
 export default function CalendarScreen() {
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
   const { data: bills } = useListBills();
   const { data: briefings } = useListBriefings();
+  const { data: goals } = useListGoals();
   const { mutateAsync: payBill, isPending: paying } = usePayBill();
+
+  const goalCheckpoints = computeGoalCheckpoints(goals);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [autopay, setAutopay] = useState(false);
@@ -185,6 +277,50 @@ export default function CalendarScreen() {
             </div>
           </AccentCard>
         </div>
+
+        {/* Goal Checkpoints */}
+        {goalCheckpoints.length > 0 && (
+          <div className="flex flex-col gap-4">
+            <DayDivider text="Goal Milestones" />
+            <div className="flex flex-col gap-3">
+              {goalCheckpoints.map((cp) => (
+                <AccentCard
+                  key={`${cp.goalId}-${cp.pct}`}
+                  accentColor={cp.status === 'behind' ? '#F59E0B' : cp.goalColor}
+                  onClick={() => navigate(`/goals/${cp.goalId}`)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {cp.status === 'behind' ? (
+                          <AlertTriangle size={14} className="text-[#F59E0B] flex-shrink-0" />
+                        ) : (
+                          <Flag size={14} style={{ color: cp.goalColor }} className="flex-shrink-0" />
+                        )}
+                        <span
+                          className="font-bold text-xs uppercase tracking-[0.6px]"
+                          style={{ color: cp.status === 'behind' ? '#F59E0B' : cp.goalColor }}
+                        >
+                          {cp.status === 'behind' ? 'Behind Schedule' : `${cp.pct}% Milestone`}
+                        </span>
+                      </div>
+                      <h3 className="text-white font-bold text-base leading-5 truncate">{cp.goalName}</h3>
+                      <span className="text-[#808BA4] font-semibold text-[13px]">
+                        {formatDollarsShort(cp.requiredAmount)} target
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-[#808BA4]" />
+                        <span className="text-[#CBD5E1] font-bold text-sm">{cp.dateLabel}</span>
+                      </div>
+                    </div>
+                  </div>
+                </AccentCard>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Future Briefings */}
         <div className="flex flex-col gap-4">
