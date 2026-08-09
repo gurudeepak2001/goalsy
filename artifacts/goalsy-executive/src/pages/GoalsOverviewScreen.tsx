@@ -164,9 +164,18 @@ export default function GoalsOverviewScreen() {
   const unplannedGoals = activeGoals.filter(
     (g) => !(g.monthlyContribution > 0) && !g.targetDate,
   );
-  // Use the goal's saved monthly contribution when set; fall back to live-computed required amount
-  const goalMonthly = (g: Goal) =>
-    g.monthlyContribution > 0 ? g.monthlyContribution : computeRequiredMonthly(g);
+  // A goal is "behind" when the live-required amount exceeds the saved plan
+  const isBehind = (g: Goal): boolean => {
+    if (!(g.monthlyContribution > 0) || !g.targetDate) return false;
+    return computeRequiredMonthly(g) > g.monthlyContribution;
+  };
+  const behindGoals = activeGoals.filter(isBehind);
+  // When on-track/ahead use the saved plan; when behind use the higher required amount
+  const goalMonthly = (g: Goal) => {
+    const required = computeRequiredMonthly(g);
+    if (g.monthlyContribution > 0) return Math.max(g.monthlyContribution, required);
+    return required;
+  };
   const summaryMonthly = activeGoals.reduce((sum, g) => sum + goalMonthly(g), 0);
   const summaryWeekly = Math.round(summaryMonthly * 12 / 52);
 
@@ -323,6 +332,15 @@ export default function GoalsOverviewScreen() {
                       </div>
                     </div>
 
+                    {behindGoals.length > 0 && (
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-white/5">
+                        <AlertTriangle size={11} className="text-[#EF4444] flex-shrink-0" />
+                        <span className="text-[#808BA4] text-[11px] font-semibold leading-4">
+                          {behindGoals.length} goal{behindGoals.length !== 1 ? 's' : ''} behind — showing required amount.{' '}
+                          <span className="text-[#EF4444]">Update your plan to stay on track.</span>
+                        </span>
+                      </div>
+                    )}
                     {unplannedGoals.length > 0 && (
                       <div className="flex items-center gap-1.5 pt-1 border-t border-white/5">
                         <AlertTriangle size={11} className="text-[#F59E0B] flex-shrink-0" />
