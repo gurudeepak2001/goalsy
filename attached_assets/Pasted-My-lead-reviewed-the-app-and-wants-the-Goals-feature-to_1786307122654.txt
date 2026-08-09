@@ -1,0 +1,83 @@
+My lead reviewed the app and wants the Goals feature to become AI-driven 
+and adaptive. IMPORTANT: implement this using our EXISTING screens as 
+much as possible (Goals Overview, AI Home, Calendar). If a new screen is 
+genuinely needed, it must be a SUB-SCREEN reached by tapping into one of 
+the existing main screens (same pattern already used for Financial 
+Health from Goals, or Score from Profile) — never a new top-level 
+destination or bottom nav item.
+
+Here's what's needed:
+
+1. GOALS SCREEN — Create Goal modal:
+   - Relabel "Current Amount" to "Current Amount Towards Goal"
+   - Relabel "Monthly Contribution" to "Monthly Contribution Towards Goal"
+   - Add a date picker field for the user to select their target 
+     completion date for the goal
+
+2. GOAL DETAIL — tapping into a goal should open a dedicated sub-screen 
+   for that specific goal (upgrading the current lightweight modal into 
+   a full sub-screen, same navigation pattern as Financial Health/Score), 
+   showing:
+   - The goal's AI-generated roadmap/plan (e.g. "Save $1,000/month," 
+     "Spend under $500/week") based on the goal's target amount, current 
+     amount, monthly contribution, target date, and the user's financial 
+     profile data
+   - That goal's checkpoints/milestones and progress toward each
+   - Achievement/status indicators for checkpoints already reached (see 
+     point 3 below for behind/ahead behavior)
+   - Adjust Contribution stays here, same as it works today
+
+3. AI HOME SCREEN — still show a summarized version of the top 
+   recommendation/insight pulled from the user's active goal(s), as a 
+   natural addition to the existing AI Home card layout — but the FULL 
+   roadmap and checkpoint detail lives on the goal's own sub-screen from 
+   point 2, not on AI Home.
+
+4. CALENDAR SCREEN — add goal checkpoints/milestones:
+   - Generate milestone checkpoints on the calendar based on each goal's 
+     timeline (e.g. if the goal is to save $20,000 in 6 months, show 
+     interim checkpoints like "$1,000 saved by day 12")
+   - When a checkpoint date is reached, the system should compare actual 
+     progress against the plan
+   - If the user is BEHIND schedule, do NOT silently change the plan. 
+     Instead, notify the user they're behind and ask if they'd like to 
+     adjust the plan (e.g. "You're behind on your Home Purchase goal — 
+     would you like to update your monthly contribution or target date?"), 
+     with a clear option to accept the adjustment or keep the original 
+     plan as-is. This check-in and any resulting update should be 
+     reflected on that goal's sub-screen from point 2.
+   - If the user is AHEAD of schedule, show positive reinforcement — a 
+     small celebratory visual cue (e.g. a badge, checkmark animation, or 
+     encouraging message like "You're ahead of pace! Keep it up.") 
+     rather than just a neutral status update, also reflected on the 
+     goal's sub-screen. Use whatever celebration/toast pattern already 
+     exists elsewhere in the app if one does, otherwise keep it simple 
+     and consistent with the existing design system.
+
+5. REMINDERS:
+   - Users should get reminded to hit their monthly/weekly targets 
+     (e.g. spending under a weekly limit) — check what reminder/
+     notification UI already exists (Profile's notification preferences, 
+     any toast/banner patterns) and use that instead of building new 
+     notification infrastructure
+
+Please do this in stages:
+
+STAGE 1 — Propose a plan, no code yet:
+Confirm this can be implemented using the existing screens plus one new 
+sub-screen (the goal detail page from point 2), reached the same way 
+Financial Health/Score are reached today. If anything else genuinely 
+needs its own screen, flag it specifically and explain why before 
+proceeding — don't build it without my confirmation.
+
+Also clarify: since real Plaid financial data isn't connected yet (still 
+pending approval per my lead), should this roadmap logic run on the 
+existing mock/sample financial data for now, so the feature is visually 
+and functionally complete and ready to plug in real data once Plaid is 
+approved?
+
+STAGE 2 — Once I approve the plan, build one piece at a time (Create 
+Goal fields → Goal Detail sub-screen → AI Home summary → Calendar 
+checkpoints → reminders), showing me each before moving to the next.
+
+Show me the Stage 1 plan now.
