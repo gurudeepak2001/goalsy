@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
   TrendingUp, CheckCircle2, Clock, AlertTriangle,
-  Trophy, Loader2, Trash2, Zap, DollarSign, Target,
+  Loader2, Trash2, Zap, DollarSign, CalendarDays,
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -45,9 +45,44 @@ const TYPE_COLORS: Record<string, string> = {
   other: '#6B7280',
 };
 
-// ── Roadmap computation (deterministic, no LLM) ──────────────────────────────
+// ── Auto-fill helpers ─────────────────────────────────────────────────────────
 
-type CheckpointStatus = 'reached' | 'behind' | 'upcoming';
+const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
+
+function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
+  const remaining = target - current;
+  if (remaining <= 0) return new Date().toISOString().split('T')[0];
+  if (contrib <= 0) return null;
+  const d = new Date(Date.now() + (remaining / contrib) * MS_PER_MONTH);
+  return d.toISOString().split('T')[0];
+}
+
+function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
+  const remaining = target - current;
+  if (remaining <= 0) return 0;
+  const months = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
+  if (months <= 0) return null;
+  return Math.ceil(remaining / months);
+}
+
+function feasibilityNote(
+  current: number, target: number, contrib: number, targetDateStr: string,
+): string | null {
+  const remaining = target - current;
+  if (remaining <= 0 || contrib <= 0 || !targetDateStr) return null;
+  const monthsNeeded = remaining / contrib;
+  const monthsAvailable = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
+  if (monthsAvailable <= 0) return 'Target date is in the past.';
+  if (monthsNeeded > monthsAvailable * 1.05) {
+    const yearsNeeded = monthsNeeded >= 12 ? `${(monthsNeeded / 12).toFixed(1)} yrs` : `${Math.ceil(monthsNeeded)} mo`;
+    const yearsAvail = monthsAvailable >= 12 ? `${(monthsAvailable / 12).toFixed(1)} yrs` : `${Math.ceil(monthsAvailable)} mo`;
+    return `At $${contrib.toLocaleString()}/mo you'll reach this in ${yearsNeeded} — your target is ${yearsAvail} away.`;
+  }
+  return null;
+}
+
+// ── Roadmap computation ───────────────────────────────────────────────────────
+
 type OverallStatus = 'ahead' | 'on_track' | 'behind' | 'complete' | 'no_data';
 
 interface PlanStep {
@@ -56,18 +91,10 @@ interface PlanStep {
   description: string;
 }
 
-interface Checkpoint {
-  pct: 25 | 50 | 75 | 100;
-  requiredAmount: number;
-  estimatedDate: string | null;
-  status: CheckpointStatus;
-}
-
 interface RoadmapResult {
   overallStatus: OverallStatus;
   expectedByNow: number | null;
   plan: PlanStep[];
-  checkpoints: Checkpoint[];
   estimatedCompletionDate: string | null;
   requiredMonthly: number | null;
 }
@@ -79,28 +106,19 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
   const createdAt = new Date(goal.createdAt);
   const targetDate = goal.targetDate ? new Date(goal.targetDate) : null;
 
-  // Months to target date from now
-  const msPerMonth = 30.44 * 24 * 60 * 60 * 1000;
   const msToTarget = targetDate ? targetDate.getTime() - now.getTime() : null;
-  const monthsToTarget = msToTarget && msToTarget > 0 ? msToTarget / msPerMonth : null;
-
-  // What monthly contribution is needed to hit targetDate
-  const requiredMonthly =
-    monthsToTarget && gap > 0 ? Math.ceil(gap / monthsToTarget) : null;
-
-  // Estimated months at current monthly pace
+  const monthsToTarget = msToTarget && msToTarget > 0 ? msToTarget / MS_PER_MONTH : null;
+  const requiredMonthly = monthsToTarget && gap > 0 ? Math.ceil(gap / monthsToTarget) : null;
   const estimatedMonths = monthly > 0 && gap > 0 ? gap / monthly : null;
 
-  // Estimated completion date
   let estimatedCompletionDate: string | null = null;
   if (goal.currentAmount >= goal.targetAmount) {
     estimatedCompletionDate = 'Complete';
   } else if (estimatedMonths) {
-    const d = new Date(now.getTime() + estimatedMonths * msPerMonth);
+    const d = new Date(now.getTime() + estimatedMonths * MS_PER_MONTH);
     estimatedCompletionDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
-  // ── Overall status vs target date ────────────────────────────────────────
   let overallStatus: OverallStatus = 'no_data';
   let expectedByNow: number | null = null;
 
@@ -112,27 +130,19 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
     if (totalMs > 0) {
       const fraction = Math.min(1, Math.max(0, elapsedMs / totalMs));
       expectedByNow = Math.round(goal.targetAmount * fraction);
-      if (goal.currentAmount >= expectedByNow * 1.05) {
-        overallStatus = 'ahead';
-      } else if (goal.currentAmount < expectedByNow * 0.9) {
-        overallStatus = 'behind';
-      } else {
-        overallStatus = 'on_track';
-      }
+      if (goal.currentAmount >= expectedByNow * 1.05) overallStatus = 'ahead';
+      else if (goal.currentAmount < expectedByNow * 0.9) overallStatus = 'behind';
+      else overallStatus = 'on_track';
     }
   } else if (monthly > 0) {
     overallStatus = 'on_track';
   }
 
-  // ── Financial context from profile ───────────────────────────────────────
   const monthlyIncome = fp?.annualIncome ? Math.round(fp.annualIncome / 12) : null;
   const monthlyExpenses = fp?.monthlyExpenses ?? null;
   const monthlySurplus =
-    monthlyIncome !== null && monthlyExpenses !== null
-      ? monthlyIncome - monthlyExpenses
-      : null;
+    monthlyIncome !== null && monthlyExpenses !== null ? monthlyIncome - monthlyExpenses : null;
 
-  // ── Plan steps ───────────────────────────────────────────────────────────
   const plan: PlanStep[] = [];
   const targetMonthly = requiredMonthly ?? (monthly > 0 ? monthly : null);
 
@@ -174,129 +184,111 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
     });
   }
 
-  // ── Checkpoints ──────────────────────────────────────────────────────────
-  const referenceEndDate =
-    targetDate ??
-    (estimatedMonths
-      ? new Date(now.getTime() + estimatedMonths * msPerMonth)
-      : null);
-
-  const checkpoints: Checkpoint[] = ([25, 50, 75, 100] as const).map((pct) => {
-    const requiredAmount = Math.round(goal.targetAmount * (pct / 100));
-    const isReached = goal.currentAmount >= requiredAmount;
-
-    if (isReached) {
-      return { pct, requiredAmount, estimatedDate: 'Reached', status: 'reached' as const };
-    }
-
-    let estimatedDate: string | null = null;
-    let status: CheckpointStatus = 'upcoming';
-
-    const remaining = Math.max(0, requiredAmount - goal.currentAmount);
-    const monthsToCheckpoint = monthly > 0 ? remaining / monthly : null;
-
-    if (monthsToCheckpoint !== null) {
-      const checkpointDate = new Date(now.getTime() + monthsToCheckpoint * msPerMonth);
-      estimatedDate = checkpointDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-      // Is this checkpoint behind the proportional schedule?
-      if (targetDate) {
-        const proportionalTarget = new Date(
-          createdAt.getTime() +
-            (pct / 100) * (targetDate.getTime() - createdAt.getTime()),
-        );
-        if (checkpointDate > proportionalTarget && now > proportionalTarget) {
-          status = 'behind';
-        }
-      }
-    } else if (referenceEndDate) {
-      // No monthly contribution set — interpolate from end date
-      const fraction = pct / 100;
-      const d = new Date(
-        createdAt.getTime() +
-          fraction * (referenceEndDate.getTime() - createdAt.getTime()),
-      );
-      estimatedDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    }
-
-    return { pct, requiredAmount, estimatedDate, status };
-  });
-
-  return {
-    overallStatus,
-    expectedByNow,
-    plan,
-    checkpoints,
-    estimatedCompletionDate,
-    requiredMonthly,
-  };
+  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly };
 }
 
-// ── Status banner ────────────────────────────────────────────────────────────
+// ── Weekly milestones computation ─────────────────────────────────────────────
+
+interface WeekMilestone {
+  weekIndex: number;
+  weekDate: Date;
+  dateLabel: string;
+  expectedAmount: number;
+  status: 'reached' | 'behind' | 'upcoming';
+  isPast: boolean;
+}
+
+function computeWeeklyMilestones(goal: Goal): WeekMilestone[] {
+  if (goal.targetAmount <= 0) return [];
+  const now = new Date();
+  const createdAt = new Date(goal.createdAt);
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+
+  let endDate: Date | null = null;
+  if (goal.targetDate) {
+    endDate = new Date(goal.targetDate);
+  } else if (goal.monthlyContribution > 0 && goal.currentAmount < goal.targetAmount) {
+    const remaining = goal.targetAmount - goal.currentAmount;
+    const months = remaining / goal.monthlyContribution;
+    endDate = new Date(now.getTime() + months * MS_PER_MONTH);
+  }
+  if (!endDate || endDate <= createdAt) return [];
+
+  const totalMs = endDate.getTime() - createdAt.getTime();
+  const totalWeeks = Math.ceil(totalMs / msPerWeek);
+
+  const milestones: WeekMilestone[] = [];
+  for (let i = 1; i <= totalWeeks; i++) {
+    const weekDate = new Date(createdAt.getTime() + i * msPerWeek);
+    const expectedAmount = Math.round(goal.targetAmount * (i / totalWeeks));
+    const isPast = weekDate <= now;
+    const status: WeekMilestone['status'] = isPast
+      ? goal.currentAmount >= expectedAmount ? 'reached' : 'behind'
+      : 'upcoming';
+    milestones.push({
+      weekIndex: i,
+      weekDate,
+      dateLabel: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
+      expectedAmount,
+      status,
+      isPast,
+    });
+  }
+  return milestones;
+}
+
+// ── Status banner ─────────────────────────────────────────────────────────────
 
 function StatusBanner({
-  status,
-  onAdjust,
-  dismissed,
-  onDismiss,
+  status, onAdjust, dismissed, onDismiss,
 }: {
   status: OverallStatus;
   onAdjust: () => void;
   dismissed: boolean;
   onDismiss: () => void;
 }) {
-  if (status === 'no_data' || status === 'on_track' || dismissed) return null;
+  if (dismissed || status === 'no_data') return null;
 
-  if (status === 'complete' || status === 'ahead') {
+  if (status === 'complete') {
     return (
-      <div className="bg-[#052E16] border border-[#22C55E]/30 rounded-2xl p-4 flex items-start gap-3">
-        <div className="w-8 h-8 bg-[#22C55E]/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Trophy size={16} className="text-[#22C55E]" />
+      <div className="flex items-center gap-3 bg-[#052e16] border border-[#22C55E]/30 rounded-2xl px-5 py-4">
+        <CheckCircle2 size={18} className="text-[#22C55E] flex-shrink-0" />
+        <span className="text-[#22C55E] font-bold text-sm">Goal achieved! 🎉</span>
+      </div>
+    );
+  }
+
+  if (status === 'ahead') {
+    return (
+      <div className="flex items-center justify-between bg-[#052e16] border border-[#22C55E]/30 rounded-2xl px-5 py-4">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 size={18} className="text-[#22C55E] flex-shrink-0" />
+          <span className="text-[#22C55E] font-bold text-sm">Ahead of schedule — great work!</span>
         </div>
-        <div className="flex-1">
-          <p className="text-[#22C55E] font-bold text-sm leading-5">
-            {status === 'complete' ? 'Goal Complete! 🎉' : "You're Ahead of Pace!"}
-          </p>
-          <p className="text-[#86EFAC] font-semibold text-xs leading-4 mt-0.5">
-            {status === 'complete'
-              ? "You've reached your target. Excellent work."
-              : "Keep it up — you're saving faster than your plan requires."}
-          </p>
-        </div>
-        <button
-          onClick={onDismiss}
-          className="text-[#22C55E]/50 hover:text-[#22C55E] text-xs font-bold leading-none mt-0.5"
-        >
-          ✕
-        </button>
+        <button type="button" onClick={onDismiss} className="text-[#22C55E]/60 text-xs font-semibold">✕</button>
       </div>
     );
   }
 
   if (status === 'behind') {
     return (
-      <div className="bg-[#2D1B0E] border border-[#F59E0B]/30 rounded-2xl p-4 flex flex-col gap-3">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 bg-[#F59E0B]/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-            <AlertTriangle size={16} className="text-[#F59E0B]" />
-          </div>
-          <div className="flex-1">
-            <p className="text-[#F59E0B] font-bold text-sm leading-5">Behind Schedule</p>
-            <p className="text-[#FDE68A] font-semibold text-xs leading-4 mt-0.5">
-              You're behind on this goal. Would you like to adjust your plan?
-            </p>
-          </div>
+      <div className="flex flex-col gap-3 bg-[#451a03] border border-[#F59E0B]/30 rounded-2xl px-5 py-4">
+        <div className="flex items-center gap-3">
+          <AlertTriangle size={18} className="text-[#F59E0B] flex-shrink-0" />
+          <span className="text-[#F59E0B] font-bold text-sm">Behind schedule — consider adjusting your plan</span>
         </div>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={onAdjust}
-            className="flex-1 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-xl py-2 text-[#F59E0B] font-bold text-xs text-center"
+            className="flex-1 bg-[#F59E0B]/20 text-[#F59E0B] font-bold text-xs py-2 rounded-xl border border-[#F59E0B]/30"
           >
             Adjust Plan
           </button>
           <button
+            type="button"
             onClick={onDismiss}
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 text-[#94A3B8] font-bold text-xs text-center"
+            className="flex-1 bg-white/5 text-[#808BA4] font-bold text-xs py-2 rounded-xl border border-white/5"
           >
             Keep Original
           </button>
@@ -308,22 +300,15 @@ function StatusBanner({
   return null;
 }
 
-// ── Plan step row ────────────────────────────────────────────────────────────
-
-const PLAN_ICONS = {
-  save: DollarSign,
-  spend: Target,
-  rate: TrendingUp,
-  setup: Zap,
-};
+// ── Plan step row ─────────────────────────────────────────────────────────────
 
 function PlanStepRow({ step, color }: { step: PlanStep; color: string }) {
-  const Icon = PLAN_ICONS[step.icon];
+  const Icon = step.icon === 'save' ? DollarSign : step.icon === 'spend' ? Zap : step.icon === 'rate' ? TrendingUp : DollarSign;
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
+    <div className="flex items-start gap-3 py-4 border-b border-white/5 last:border-0">
       <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ backgroundColor: `${color}20` }}
+        className="w-8 h-8 flex-shrink-0 rounded-xl flex items-center justify-center"
+        style={{ backgroundColor: `${color}18` }}
       >
         <Icon size={15} style={{ color }} />
       </div>
@@ -335,50 +320,122 @@ function PlanStepRow({ step, color }: { step: PlanStep; color: string }) {
   );
 }
 
-// ── Checkpoint row ───────────────────────────────────────────────────────────
+// ── Weekly milestone row ──────────────────────────────────────────────────────
 
-function CheckpointRow({
-  checkpoint,
+function WeeklyMilestoneRow({
+  milestone,
   color,
+  isConfirming,
+  confirmValue,
+  onConfirmChange,
+  onTap,
+  onSave,
+  onCancelConfirm,
+  isSaving,
 }: {
-  checkpoint: Checkpoint;
+  milestone: WeekMilestone;
   color: string;
+  isConfirming: boolean;
+  confirmValue: string;
+  onConfirmChange: (v: string) => void;
+  onTap: () => void;
+  onSave: () => void;
+  onCancelConfirm: () => void;
+  isSaving: boolean;
 }) {
-  const { pct, requiredAmount, estimatedDate, status } = checkpoint;
+  const { dateLabel, expectedAmount, status, isPast } = milestone;
 
-  const statusColor =
-    status === 'reached' ? '#22C55E' : status === 'behind' ? '#F59E0B' : '#4B5563';
-  const StatusIcon =
-    status === 'reached' ? CheckCircle2 : status === 'behind' ? AlertTriangle : Clock;
+  const markerColor =
+    status === 'reached' ? color : status === 'behind' ? '#F59E0B' : 'rgba(255,255,255,0.12)';
+
+  const labelColor =
+    status === 'reached' ? color : status === 'behind' ? '#F59E0B' : '#4B5563';
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0">
-      {/* Diamond tick */}
-      <div
-        className="w-4 h-4 flex-shrink-0"
-        style={{
-          backgroundColor: status === 'reached' ? color : 'transparent',
-          border: `1.5px solid ${status === 'reached' ? color : 'rgba(255,255,255,0.15)'}`,
-          borderRadius: '3px',
-          transform: 'rotate(45deg)',
-        }}
-      />
-      <div className="flex-1 flex flex-col gap-0.5">
-        <span className="text-white font-bold text-sm leading-5">
-          {pct === 100 ? 'Goal Complete' : `${pct}% — ${formatDollars(requiredAmount)}`}
-        </span>
-        {estimatedDate && (
-          <span className="font-semibold text-xs leading-4" style={{ color: statusColor }}>
-            {estimatedDate}
-          </span>
-        )}
-      </div>
-      <StatusIcon size={14} style={{ color: statusColor }} />
+    <div className="border-b border-white/5 last:border-0">
+      <button
+        type="button"
+        disabled={!isPast}
+        onClick={isPast ? onTap : undefined}
+        className={`w-full flex items-center gap-3 py-2.5 text-left ${isPast && !isConfirming ? 'active:opacity-70' : ''}`}
+      >
+        {/* Diamond marker */}
+        <div className="flex-shrink-0 w-5 flex items-center justify-center">
+          {status === 'reached' ? (
+            <div
+              style={{
+                width: 12, height: 12,
+                backgroundColor: color,
+                border: `2px solid ${color}`,
+                borderRadius: 2,
+                transform: 'rotate(45deg)',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 12, height: 12,
+                backgroundColor: 'transparent',
+                border: `2px solid ${markerColor}`,
+                borderRadius: 2,
+                transform: 'rotate(45deg)',
+              }}
+            />
+          )}
+        </div>
+
+        <div className="flex-1 flex items-center justify-between min-w-0">
+          <span className="text-[#CBD5E1] font-semibold text-[13px]">{dateLabel}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[13px]" style={{ color: labelColor }}>
+              {formatDollars(expectedAmount)}
+            </span>
+            {status === 'reached' && <CheckCircle2 size={12} style={{ color }} />}
+            {status === 'behind' && <AlertTriangle size={12} className="text-[#F59E0B]" />}
+          </div>
+        </div>
+      </button>
+
+      {/* Inline confirm form */}
+      {isConfirming && (
+        <div className="pb-3 pl-8 flex flex-col gap-2">
+          <p className="text-[#808BA4] text-xs font-semibold">
+            How much have you actually saved as of this week?
+          </p>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <ExecutiveInput
+                label=""
+                leftIcon={<span className="font-bold text-sm">$</span>}
+                inputMode="decimal"
+                placeholder={String(expectedAmount)}
+                value={confirmValue}
+                onChange={(e) => onConfirmChange(e.target.value.replace(/[^0-9.]/g, ''))}
+                autoFocus
+              />
+            </div>
+            <button
+              type="button"
+              onClick={onCancelConfirm}
+              className="text-[#808BA4] text-xs font-semibold px-3 py-2"
+            >
+              Cancel
+            </button>
+            <ExecutiveButton
+              text={isSaving ? '…' : 'Save'}
+              icon={isSaving ? <Loader2 size={13} className="animate-spin" /> : undefined}
+              disabled={isSaving}
+              onClick={onSave}
+              className="!py-2 !text-xs"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Main screen ──────────────────────────────────────────────────────────────
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function GoalDetailScreen() {
   const { id } = useParams<{ id: string }>();
@@ -390,9 +447,21 @@ export default function GoalDetailScreen() {
   const { mutateAsync: updateGoal, isPending: updating } = useUpdateGoal();
   const { mutateAsync: deleteGoal, isPending: deleting } = useDeleteGoal();
 
+  // Adjust plan form
   const [isAdjusting, setIsAdjusting] = useState(false);
-  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustContrib, setAdjustContrib] = useState('');
+  const [adjustDate, setAdjustDate] = useState('');
+  const [contribAutoFilled, setContribAutoFilled] = useState(false);
+  const [dateAutoFilled, setDateAutoFilled] = useState(false);
+  const [adjustFeasibility, setAdjustFeasibility] = useState<string | null>(null);
+
+  // Status banner
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Weekly milestone confirm
+  const [confirmingWeekIdx, setConfirmingWeekIdx] = useState<number | null>(null);
+  const [confirmAmount, setConfirmAmount] = useState('');
+  const [milestoneExpanded, setMilestoneExpanded] = useState(false);
 
   if (isLoading || !goal) {
     return (
@@ -408,27 +477,91 @@ export default function GoalDetailScreen() {
   const roadmap = computeRoadmap(goal, fp);
   const color = TYPE_COLORS[goal.type] ?? '#6B7280';
   const progress =
-    goal.targetAmount > 0
-      ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
-      : 0;
-  const milestones = [25, 50, 75].map((pct) => ({ pct, reached: progress >= pct }));
+    goal.targetAmount > 0 ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) : 0;
+  const progressTicks = [25, 50, 75].map((pct) => ({ pct, reached: progress >= pct }));
+
+  const allMilestones = computeWeeklyMilestones(goal);
+  const pastMilestones = allMilestones.filter((m) => m.isPast);
+  const futureMilestones = allMilestones.filter((m) => !m.isPast);
+  // Show last 8 past + first 52 future unless expanded
+  const PAST_CAP = 8;
+  const FUTURE_CAP = 52;
+  const visiblePast = milestoneExpanded ? pastMilestones : pastMilestones.slice(-PAST_CAP);
+  const visibleFuture = milestoneExpanded ? futureMilestones : futureMilestones.slice(0, FUTURE_CAP);
+  const hiddenCount =
+    (pastMilestones.length - visiblePast.length) + (futureMilestones.length - visibleFuture.length);
+  const shownMilestones = [...visiblePast, ...visibleFuture];
 
   const labelCls = 'text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-3 block';
 
-  const handleSaveContribution = async () => {
-    const amount = parseInt(adjustAmount.replace(/[^0-9]/g, ''), 10);
-    if (!adjustAmount.trim() || isNaN(amount) || amount <= 0) {
-      toast({ title: 'Enter an amount', description: 'Add a monthly contribution to continue.' });
+  // ── Adjust plan handlers ──────────────────────────────────────────────────
+
+  const startAdjusting = () => {
+    setAdjustContrib(goal.monthlyContribution > 0 ? String(goal.monthlyContribution) : '');
+    setAdjustDate(goal.targetDate ?? '');
+    setContribAutoFilled(false);
+    setDateAutoFilled(false);
+    setAdjustFeasibility(null);
+    setIsAdjusting(true);
+  };
+
+  const handleContribBlur = () => {
+    const contrib = parseInt(adjustContrib, 10);
+    if (isNaN(contrib) || contrib <= 0) return;
+    if (!adjustDate) {
+      // Auto-fill date
+      const computed = calcCompletionDateStr(goal.currentAmount, goal.targetAmount, contrib);
+      if (computed) { setAdjustDate(computed); setDateAutoFilled(true); }
+    } else {
+      // Both filled — check feasibility
+      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, contrib, adjustDate));
+    }
+  };
+
+  const handleDateBlur = () => {
+    if (!adjustDate) return;
+    if (!adjustContrib) {
+      // Auto-fill contribution
+      const computed = calcRequiredContrib(goal.currentAmount, goal.targetAmount, adjustDate);
+      if (computed !== null) { setAdjustContrib(String(computed)); setContribAutoFilled(true); }
+    } else {
+      const contrib = parseInt(adjustContrib, 10);
+      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, contrib || 0, adjustDate));
+    }
+  };
+
+  const handleSavePlan = async () => {
+    const contrib = parseInt(adjustContrib, 10);
+    if (!adjustContrib.trim() || isNaN(contrib) || contrib <= 0) {
+      toast({ title: 'Enter a monthly contribution', variant: 'destructive' });
       return;
     }
     try {
-      await updateGoal({ id: goal.id, data: { monthlyContribution: amount } });
+      await updateGoal({ id: goal.id, data: { monthlyContribution: contrib, targetDate: adjustDate || null } });
       await queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() });
-      toast({ title: 'Contribution Updated', description: `Set to $${amount.toLocaleString()}/mo.` });
+      toast({ title: 'Plan Updated' });
       setIsAdjusting(false);
-      setAdjustAmount('');
     } catch {
       toast({ title: 'Failed to update', variant: 'destructive' });
+    }
+  };
+
+  // ── Milestone confirm handler ─────────────────────────────────────────────
+
+  const handleConfirmMilestone = async () => {
+    const amount = parseInt(confirmAmount.replace(/[^0-9]/g, ''), 10);
+    if (!confirmAmount.trim() || isNaN(amount) || amount < 0) {
+      toast({ title: 'Enter your saved amount', variant: 'destructive' });
+      return;
+    }
+    try {
+      await updateGoal({ id: goal.id, data: { currentAmount: amount } });
+      await queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() });
+      toast({ title: 'Progress Logged', description: `Saved amount updated to ${formatDollars(amount)}.` });
+      setConfirmingWeekIdx(null);
+      setConfirmAmount('');
+    } catch {
+      toast({ title: 'Failed to log progress', variant: 'destructive' });
     }
   };
 
@@ -443,16 +576,15 @@ export default function GoalDetailScreen() {
     }
   };
 
-  const startAdjusting = () => {
-    setAdjustAmount(String(goal.monthlyContribution ?? 0));
-    setIsAdjusting(true);
-  };
+  const today = new Date().toISOString().split('T')[0];
+  const selectCls =
+    'w-full bg-[#111827] border border-[#2D3748] rounded-xl px-4 py-3 text-white text-sm font-semibold focus:outline-none focus:border-[#2563EB]/60 transition-colors';
 
   return (
     <AppShell activeTab="goals" header={<AppHeader backTo="/goals" dashboardTitle={goal.name} />}>
       <div className="flex flex-col gap-6 pb-8">
 
-        {/* ── Goal title + type ─────────────────────────────────────────── */}
+        {/* ── Goal title + type ──────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
           <div
             className="self-start px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[1.5px]"
@@ -460,15 +592,12 @@ export default function GoalDetailScreen() {
           >
             {TYPE_LABELS[goal.type] ?? goal.type}
           </div>
-          <h1
-            className="text-white font-bold text-[32px] leading-[38px]"
-            style={{ letterSpacing: '-1px' }}
-          >
+          <h1 className="text-white font-bold text-[32px] leading-[38px]" style={{ letterSpacing: '-1px' }}>
             {goal.name}
           </h1>
         </div>
 
-        {/* ── Status banner ─────────────────────────────────────────────── */}
+        {/* ── Status banner ──────────────────────────────────────────────── */}
         <StatusBanner
           status={roadmap.overallStatus}
           onAdjust={startAdjusting}
@@ -476,7 +605,7 @@ export default function GoalDetailScreen() {
           onDismiss={() => setBannerDismissed(true)}
         />
 
-        {/* ── Progress card ─────────────────────────────────────────────── */}
+        {/* ── Progress card ──────────────────────────────────────────────── */}
         <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
           <div className="flex items-end justify-between">
             <div className="flex flex-col gap-0.5">
@@ -491,13 +620,13 @@ export default function GoalDetailScreen() {
             </div>
           </div>
 
-          {/* Progress bar with milestone ticks */}
+          {/* Progress bar */}
           <div className="relative h-2 bg-[#1F2937] rounded-full overflow-visible">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${progress}%`, backgroundColor: color }}
             />
-            {milestones.map((m) => (
+            {progressTicks.map((m) => (
               <div
                 key={m.pct}
                 className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none"
@@ -507,29 +636,23 @@ export default function GoalDetailScreen() {
                 <div
                   className="absolute"
                   style={{
-                    top: '-5px',
-                    width: '5px',
-                    height: '5px',
+                    top: '-5px', width: 5, height: 5,
                     backgroundColor: m.reached ? color : '#374151',
                     border: `1.5px solid ${m.reached ? color : 'rgba(255,255,255,0.15)'}`,
-                    borderRadius: '2px',
-                    transform: 'rotate(45deg)',
+                    borderRadius: 2, transform: 'rotate(45deg)',
                   }}
                 />
               </div>
             ))}
           </div>
 
-          {/* Stats row */}
           <div className="flex items-center justify-between pt-1 border-t border-white/5">
             <div className="flex items-center gap-2">
               <TrendingUp size={14} className="text-[#22C55E]" />
               <span className="text-[#CBD5E1] font-semibold text-xs">Monthly</span>
             </div>
             <span className="text-white font-bold text-sm">
-              {goal.monthlyContribution > 0
-                ? `$${goal.monthlyContribution.toLocaleString()}/mo`
-                : 'None set'}
+              {goal.monthlyContribution > 0 ? `$${goal.monthlyContribution.toLocaleString()}/mo` : 'None set'}
             </span>
           </div>
 
@@ -547,13 +670,11 @@ export default function GoalDetailScreen() {
 
           <div className="flex items-center justify-between">
             <span className="text-[#CBD5E1] font-semibold text-xs">Est. Completion</span>
-            <span className="text-white font-bold text-sm">
-              {roadmap.estimatedCompletionDate ?? 'TBD'}
-            </span>
+            <span className="text-white font-bold text-sm">{roadmap.estimatedCompletionDate ?? 'TBD'}</span>
           </div>
         </div>
 
-        {/* ── AI Roadmap ────────────────────────────────────────────────── */}
+        {/* ── AI Roadmap ─────────────────────────────────────────────────── */}
         <div>
           <span className={labelCls}>AI Roadmap</span>
           <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-1">
@@ -563,63 +684,165 @@ export default function GoalDetailScreen() {
           </div>
         </div>
 
-        {/* ── Checkpoints ───────────────────────────────────────────────── */}
+        {/* ── Weekly Milestones ──────────────────────────────────────────── */}
         <div>
-          <span className={labelCls}>Milestones</span>
-          <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-1">
-            {roadmap.checkpoints.map((cp) => (
-              <CheckpointRow key={cp.pct} checkpoint={cp} color={color} />
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <span className={labelCls} style={{ marginBottom: 0 }}>Weekly Milestones</span>
+            {allMilestones.length > 0 && (
+              <span className="text-[#808BA4] text-[10px] font-semibold">Tap a past week to log progress</span>
+            )}
           </div>
+
+          {allMilestones.length === 0 ? (
+            <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-4 text-center">
+              <p className="text-[#808BA4] text-sm font-semibold">
+                Set a monthly contribution or target date to see weekly milestones.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-[#111827] border border-white/5 rounded-2xl px-5 py-1">
+              {pastMilestones.length > PAST_CAP && !milestoneExpanded && (
+                <button
+                  type="button"
+                  onClick={() => setMilestoneExpanded(true)}
+                  className="w-full text-center text-[#808BA4] text-xs font-semibold py-2"
+                >
+                  ↑ {pastMilestones.length - PAST_CAP} earlier weeks hidden
+                </button>
+              )}
+
+              {shownMilestones.map((m) => (
+                <WeeklyMilestoneRow
+                  key={m.weekIndex}
+                  milestone={m}
+                  color={color}
+                  isConfirming={confirmingWeekIdx === m.weekIndex}
+                  confirmValue={confirmAmount}
+                  onConfirmChange={setConfirmAmount}
+                  onTap={() => {
+                    setConfirmingWeekIdx(m.weekIndex);
+                    setConfirmAmount(String(goal.currentAmount));
+                  }}
+                  onSave={handleConfirmMilestone}
+                  onCancelConfirm={() => { setConfirmingWeekIdx(null); setConfirmAmount(''); }}
+                  isSaving={updating}
+                />
+              ))}
+
+              {hiddenCount > 0 && !milestoneExpanded && futureMilestones.length > FUTURE_CAP && (
+                <button
+                  type="button"
+                  onClick={() => setMilestoneExpanded(true)}
+                  className="w-full text-center text-[#808BA4] text-xs font-semibold py-2"
+                >
+                  + {hiddenCount} more weeks — tap to expand
+                </button>
+              )}
+              {milestoneExpanded && (
+                <button
+                  type="button"
+                  onClick={() => setMilestoneExpanded(false)}
+                  className="w-full text-center text-[#808BA4] text-xs font-semibold py-2"
+                >
+                  Collapse
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ── Adjust Contribution ───────────────────────────────────────── */}
+        {/* ── Adjust Plan ────────────────────────────────────────────────── */}
         <div>
-          <span className={labelCls}>Contribution</span>
+          <span className={labelCls}>Plan</span>
           {isAdjusting ? (
             <div className="flex flex-col gap-3">
-              <ExecutiveInput
-                label="New Monthly Contribution"
-                leftIcon={<span className="font-bold">$</span>}
-                inputMode="decimal"
-                placeholder="e.g. 1500"
-                value={adjustAmount}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9.]/g, '');
-                  const parts = raw.split('.');
-                  setAdjustAmount(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw);
-                }}
-                autoFocus
-              />
+              <div>
+                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 block">
+                  Monthly Contribution
+                </label>
+                <div className="relative">
+                  <ExecutiveInput
+                    label=""
+                    leftIcon={<span className="font-bold">$</span>}
+                    inputMode="decimal"
+                    placeholder="e.g. 1500"
+                    value={adjustContrib}
+                    onChange={(e) => {
+                      setAdjustContrib(e.target.value.replace(/[^0-9.]/g, ''));
+                      setContribAutoFilled(false);
+                      setAdjustFeasibility(null);
+                    }}
+                    onBlur={handleContribBlur}
+                    autoFocus
+                    className={contribAutoFilled ? 'italic opacity-70' : ''}
+                  />
+                  {contribAutoFilled && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#2563EB] font-bold pointer-events-none">auto</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 flex items-center gap-1.5">
+                  <CalendarDays size={11} />
+                  Target Completion Date
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={adjustDate}
+                    min={today}
+                    onChange={(e) => {
+                      setAdjustDate(e.target.value);
+                      setDateAutoFilled(false);
+                      setAdjustFeasibility(null);
+                    }}
+                    onBlur={handleDateBlur}
+                    className={`${selectCls} appearance-none${dateAutoFilled ? ' italic opacity-70' : ''}`}
+                    style={{ colorScheme: 'dark' }}
+                  />
+                  {dateAutoFilled && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#2563EB] font-bold pointer-events-none">auto</span>
+                  )}
+                </div>
+              </div>
+
+              {adjustFeasibility && (
+                <div className="flex items-start gap-2 bg-[#451a03] border border-[#F59E0B]/30 rounded-xl px-4 py-3">
+                  <AlertTriangle size={13} className="text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                  <p className="text-[#F59E0B] text-xs font-semibold leading-4">{adjustFeasibility}</p>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <ExecutiveButton
                   variant="outline"
                   text="Cancel"
                   className="flex-1"
-                  onClick={() => { setIsAdjusting(false); setAdjustAmount(''); }}
+                  onClick={() => setIsAdjusting(false)}
                 />
                 <ExecutiveButton
-                  text={updating ? 'Saving…' : 'Save'}
+                  text={updating ? 'Saving…' : 'Save Plan'}
                   icon={updating ? <Loader2 size={16} className="animate-spin" /> : undefined}
                   className="flex-1"
                   disabled={updating}
-                  onClick={handleSaveContribution}
+                  onClick={handleSavePlan}
                 />
               </div>
             </div>
           ) : (
-            <ExecutiveButton text="Adjust Contribution" onClick={startAdjusting} />
+            <ExecutiveButton text="Adjust Contribution & Date" onClick={startAdjusting} />
           )}
         </div>
 
-        {/* ── Remove goal ───────────────────────────────────────────────── */}
+        {/* ── Remove goal ────────────────────────────────────────────────── */}
         <button
           type="button"
           onClick={handleDelete}
           disabled={deleting}
           className="flex items-center justify-center gap-2 text-[#EF4444] text-sm font-semibold py-2 opacity-70 hover:opacity-100 transition-opacity disabled:opacity-40"
         >
-          {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          {deleting ? <Loader2 size={14} className="animate-spin" /> : null}
           Remove Goal
         </button>
       </div>

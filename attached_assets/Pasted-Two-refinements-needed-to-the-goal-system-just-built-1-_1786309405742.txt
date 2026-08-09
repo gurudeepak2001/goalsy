@@ -1,0 +1,39 @@
+Two refinements needed to the goal system just built:
+
+1. MILESTONES SHOULD BE WEEKLY, not just 25/50/75/100% of target.
+   Replace the current quarterly milestone breakdown with weekly 
+   checkpoints spanning from goal creation to target date. Each week 
+   should show the expected cumulative amount saved by that point, and 
+   behind/on-track/ahead status per week, same visual pattern already 
+   used (diamond markers, amber for behind, green for ahead). This 
+   applies to both the Goal Detail sub-screen and the Calendar's Goal 
+   Milestones section.
+
+   Milestones should also be INTERACTIVE, not just a passive display:
+   - Tapping a milestone should let the user log/update their actual 
+     amount saved as of that checkpoint (a quick input to confirm "I 
+     actually have $X saved by this week")
+   - Once confirmed, mark that milestone visually as completed 
+     (checkmark or filled marker), distinct from upcoming/estimated ones
+   - Confirmed amounts should feed into the behind/on-track/ahead status 
+     for future milestones and the roadmap, rather than relying only on 
+     the goal's static currentAmount
+
+2. CREATE GOAL / GOAL DETAIL — make Monthly Contribution and Target Date 
+   work together instead of being two independent required fields:
+   - The user can fill in BOTH fields if they want.
+   - If the user fills in ONLY Monthly Contribution, auto-calculate and 
+     fill in the expected completion date on blur.
+   - If the user fills in ONLY Target Date, auto-calculate and fill in 
+     the required monthly contribution on blur.
+   - If the user fills in BOTH, don't override — but show a feasibility 
+     note if the numbers don't line up (e.g. "At $300/mo you'll reach 
+     this in 18 months — your target is 12 months away").
+   - Auto-filled values should be visually distinguished (muted/italic) 
+     until the user edits them.
+   - Applies to both the Create Goal modal and Adjust Contribution flow.
+
+Please show me your plan for both the milestone interaction (tap 
+behavior, where confirmed amounts are stored) and confirm the blur-based 
+auto-fill approach before building. Then implement everything, showing me 
+the result before considering this done.

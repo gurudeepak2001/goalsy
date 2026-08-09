@@ -48,45 +48,58 @@ interface GoalCheckpoint {
   goalId: string;
   goalName: string;
   goalColor: string;
-  pct: number;
-  requiredAmount: number;
-  estimatedDate: Date;
+  weekIndex: number;
+  expectedAmount: number;
+  weekDate: Date;
   dateLabel: string;
   status: 'behind' | 'upcoming';
 }
+
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
 
 function computeGoalCheckpoints(
   goals: ReturnType<typeof useListGoals>['data'],
 ): GoalCheckpoint[] {
   if (!goals) return [];
   const now = new Date();
-  const msPerMonth = 30.44 * 24 * 60 * 60 * 1000;
-
   const items: GoalCheckpoint[] = [];
 
   for (const g of goals) {
     if (g.status === 'deleted' || g.targetAmount <= 0) continue;
-    const monthly = g.monthlyContribution ?? 0;
-    if (monthly <= 0) continue; // can't estimate without contribution
+    if (g.currentAmount >= g.targetAmount) continue; // complete
 
     const createdAt = new Date(g.createdAt);
-    const targetDate = g.targetDate ? new Date(g.targetDate) : null;
 
-    for (const pct of [25, 50, 75, 100]) {
-      const requiredAmount = Math.round(g.targetAmount * (pct / 100));
-      if (g.currentAmount >= requiredAmount) continue; // already reached
+    // Determine end date
+    let endDate: Date | null = null;
+    if (g.targetDate) {
+      endDate = new Date(g.targetDate);
+    } else if (g.monthlyContribution > 0) {
+      const remaining = g.targetAmount - g.currentAmount;
+      const months = remaining / g.monthlyContribution;
+      endDate = new Date(now.getTime() + months * MS_PER_MONTH);
+    }
+    if (!endDate || endDate <= createdAt) continue;
 
-      const remaining = requiredAmount - g.currentAmount;
-      const monthsToMilestone = remaining / monthly;
-      const estimatedDate = new Date(now.getTime() + monthsToMilestone * msPerMonth);
+    const totalMs = endDate.getTime() - createdAt.getTime();
+    const totalWeeks = Math.ceil(totalMs / MS_PER_WEEK);
 
+    // Find the next upcoming week (first week in the future)
+    let pushed = false;
+    for (let i = 1; i <= totalWeeks; i++) {
+      const weekDate = new Date(createdAt.getTime() + i * MS_PER_WEEK);
+      if (weekDate <= now) continue; // past week
+      const expectedAmount = Math.round(g.targetAmount * (i / totalWeeks));
+      if (g.currentAmount >= expectedAmount) continue; // already reached this week's target
+
+      // Status: compare to goal schedule
       let status: GoalCheckpoint['status'] = 'upcoming';
-      if (targetDate) {
-        const totalMs = targetDate.getTime() - createdAt.getTime();
-        const proportionalTarget = new Date(
-          createdAt.getTime() + (pct / 100) * totalMs,
-        );
-        if (estimatedDate > proportionalTarget && now > proportionalTarget) {
+      if (g.targetDate) {
+        // Check if the PREVIOUS week was behind schedule
+        const prevWeekDate = new Date(createdAt.getTime() + (i - 1) * MS_PER_WEEK);
+        const prevExpected = Math.round(g.targetAmount * ((i - 1) / totalWeeks));
+        if (prevWeekDate <= now && g.currentAmount < prevExpected * 0.9) {
           status = 'behind';
         }
       }
@@ -95,19 +108,21 @@ function computeGoalCheckpoints(
         goalId: g.id,
         goalName: g.name,
         goalColor: GOAL_TYPE_COLORS[g.type] ?? '#6B7280',
-        pct,
-        requiredAmount,
-        estimatedDate,
-        dateLabel: estimatedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        weekIndex: i,
+        expectedAmount,
+        weekDate,
+        dateLabel: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         status,
       });
-      break; // only show the NEXT upcoming milestone per goal
+      pushed = true;
+      break; // one upcoming week per goal
     }
+    void pushed;
   }
 
   return items
-    .sort((a, b) => a.estimatedDate.getTime() - b.estimatedDate.getTime())
-    .slice(0, 5);
+    .sort((a, b) => a.weekDate.getTime() - b.weekDate.getTime())
+    .slice(0, 4); // show next 4 upcoming across all goals
 }
 
 function DayDivider({ text, color = '#808BA4' }: { text: string; color?: string }) {
@@ -285,7 +300,7 @@ export default function CalendarScreen() {
             <div className="flex flex-col gap-3">
               {goalCheckpoints.map((cp) => (
                 <AccentCard
-                  key={`${cp.goalId}-${cp.pct}`}
+                  key={`${cp.goalId}-w${cp.weekIndex}`}
                   accentColor={cp.status === 'behind' ? '#F59E0B' : cp.goalColor}
                   onClick={() => navigate(`/goals/${cp.goalId}`)}
                 >
@@ -301,12 +316,12 @@ export default function CalendarScreen() {
                           className="font-bold text-xs uppercase tracking-[0.6px]"
                           style={{ color: cp.status === 'behind' ? '#F59E0B' : cp.goalColor }}
                         >
-                          {cp.status === 'behind' ? 'Behind Schedule' : `${cp.pct}% Milestone`}
+                          {cp.status === 'behind' ? 'Behind Schedule' : `Week ${cp.weekIndex} Milestone`}
                         </span>
                       </div>
                       <h3 className="text-white font-bold text-base leading-5 truncate">{cp.goalName}</h3>
                       <span className="text-[#808BA4] font-semibold text-[13px]">
-                        {formatDollarsShort(cp.requiredAmount)} target
+                        {formatDollarsShort(cp.expectedAmount)} target
                       </span>
                     </div>
                     <div className="flex flex-col items-end flex-shrink-0">

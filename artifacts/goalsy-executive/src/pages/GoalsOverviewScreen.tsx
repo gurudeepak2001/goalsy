@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ArrowRight, Target, Loader2 } from 'lucide-react';
+import { Plus, ArrowRight, Target, Loader2, AlertTriangle, CalendarDays } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -16,6 +16,39 @@ import {
 } from '@workspace/api-client-react';
 
 // ── Helper functions ─────────────────────────────────────────────────────────
+
+const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
+
+function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
+  const remaining = target - current;
+  if (remaining <= 0) return new Date().toISOString().split('T')[0];
+  if (contrib <= 0) return null;
+  const d = new Date(Date.now() + (remaining / contrib) * MS_PER_MONTH);
+  return d.toISOString().split('T')[0];
+}
+
+function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
+  const remaining = target - current;
+  if (remaining <= 0) return 0;
+  const months = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
+  if (months <= 0) return null;
+  return Math.ceil(remaining / months);
+}
+
+function createFeasibilityNote(
+  current: number, target: number, contrib: number, targetDateStr: string,
+): string | null {
+  const remaining = target - current;
+  if (remaining <= 0 || contrib <= 0 || !targetDateStr) return null;
+  const monthsNeeded = remaining / contrib;
+  const monthsAvail = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
+  if (monthsAvail <= 0) return 'Target date is in the past.';
+  if (monthsNeeded > monthsAvail * 1.05) {
+    const fmt = (m: number) => m >= 12 ? `${(m / 12).toFixed(1)} yrs` : `${Math.ceil(m)} mo`;
+    return `At $${contrib.toLocaleString()}/mo you'll reach this in ${fmt(monthsNeeded)} — your target is ${fmt(monthsAvail)} away.`;
+  }
+  return null;
+}
 
 function formatDollars(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -103,8 +136,43 @@ export default function GoalsOverviewScreen() {
   const [newGoalCurrent, setNewGoalCurrent] = useState('');
   const [newGoalContrib, setNewGoalContrib] = useState('');
   const [newGoalTargetDate, setNewGoalTargetDate] = useState('');
+  // Auto-fill state
+  const [contribAutoFilled, setContribAutoFilled] = useState(false);
+  const [dateAutoFilled, setDateAutoFilled] = useState(false);
+  const [createFeasibility, setCreateFeasibility] = useState<string | null>(null);
 
   const goals = goalsData ?? [];
+
+  // ── Auto-fill blur handlers ────────────────────────────────────────────────
+
+  const getCreateNumbers = () => ({
+    target: parseInt(newGoalTarget.replace(/[^0-9]/g, ''), 10) || 0,
+    current: newGoalCurrent ? parseInt(newGoalCurrent.replace(/[^0-9]/g, ''), 10) || 0 : 0,
+    contrib: parseInt(newGoalContrib.replace(/[^0-9]/g, ''), 10) || 0,
+  });
+
+  const handleCreateContribBlur = () => {
+    const { target, current, contrib } = getCreateNumbers();
+    if (!contrib || !target) return;
+    if (!newGoalTargetDate) {
+      const computed = calcCompletionDateStr(current, target, contrib);
+      if (computed) { setNewGoalTargetDate(computed); setDateAutoFilled(true); }
+    } else {
+      setCreateFeasibility(createFeasibilityNote(current, target, contrib, newGoalTargetDate));
+    }
+  };
+
+  const handleCreateDateBlur = () => {
+    if (!newGoalTargetDate) return;
+    const { target, current, contrib } = getCreateNumbers();
+    if (!target) return;
+    if (!contrib) {
+      const computed = calcRequiredContrib(current, target, newGoalTargetDate);
+      if (computed !== null) { setNewGoalContrib(String(computed)); setContribAutoFilled(true); }
+    } else {
+      setCreateFeasibility(createFeasibilityNote(current, target, contrib, newGoalTargetDate));
+    }
+  };
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleCreateGoal = async () => {
@@ -137,6 +205,9 @@ export default function GoalsOverviewScreen() {
       setNewGoalCurrent('');
       setNewGoalContrib('');
       setNewGoalTargetDate('');
+      setContribAutoFilled(false);
+      setDateAutoFilled(false);
+      setCreateFeasibility(null);
       setCreateOpen(false);
       toast({ title: 'Goal Created', description: `"${name}" added to your roadmap.` });
     } catch {
@@ -261,30 +332,62 @@ export default function GoalsOverviewScreen() {
                 onChange={(e) => setNewGoalCurrent(e.target.value.replace(/[^0-9.]/g, ''))}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <ExecutiveInput
                 label="Monthly Contribution Towards Goal"
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"
                 value={newGoalContrib}
-                onChange={(e) => setNewGoalContrib(e.target.value.replace(/[^0-9.]/g, ''))}
+                className={contribAutoFilled ? 'italic opacity-75' : ''}
+                onChange={(e) => {
+                  setNewGoalContrib(e.target.value.replace(/[^0-9.]/g, ''));
+                  setContribAutoFilled(false);
+                  setCreateFeasibility(null);
+                }}
+                onBlur={handleCreateContribBlur}
               />
+              {contribAutoFilled && (
+                <span className="absolute right-3 top-6 text-[10px] text-[#2563EB] font-bold pointer-events-none">auto</span>
+              )}
             </div>
           </div>
 
-          {/* Target completion date */}
+          {/* Target completion date with auto-fill */}
           <div>
-            <label className={labelCls}>Target Completion Date</label>
-            <input
-              type="date"
-              value={newGoalTargetDate}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setNewGoalTargetDate(e.target.value)}
-              className={selectCls}
-              style={{ colorScheme: 'dark' }}
-            />
+            <label className={labelCls}>
+              <span className="flex items-center gap-1.5">
+                <CalendarDays size={11} />
+                Target Completion Date
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={newGoalTargetDate}
+                min={new Date().toISOString().split('T')[0]}
+                className={`${selectCls}${dateAutoFilled ? ' italic opacity-75' : ''}`}
+                style={{ colorScheme: 'dark' }}
+                onChange={(e) => {
+                  setNewGoalTargetDate(e.target.value);
+                  setDateAutoFilled(false);
+                  setCreateFeasibility(null);
+                }}
+                onBlur={handleCreateDateBlur}
+              />
+              {dateAutoFilled && (
+                <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] text-[#2563EB] font-bold pointer-events-none">auto</span>
+              )}
+            </div>
           </div>
+
+          {/* Feasibility note */}
+          {createFeasibility && (
+            <div className="flex items-start gap-2 bg-[#451a03] border border-[#F59E0B]/30 rounded-xl px-4 py-3">
+              <AlertTriangle size={13} className="text-[#F59E0B] flex-shrink-0 mt-0.5" />
+              <p className="text-[#F59E0B] text-xs font-semibold leading-4">{createFeasibility}</p>
+            </div>
+          )}
 
           <ExecutiveButton
             text={creating ? 'Creating…' : 'Add Goal'}
