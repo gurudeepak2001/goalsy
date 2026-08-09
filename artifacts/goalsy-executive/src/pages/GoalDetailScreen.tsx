@@ -6,7 +6,7 @@ import {
 import { useParams, useLocation } from 'wouter';
 import {
   TrendingUp, CheckCircle2, Clock, AlertTriangle, Pencil, Check, X,
-  Loader2, Trash2, Zap, DollarSign, CalendarDays, Award,
+  Loader2, Trash2, Zap, DollarSign, CalendarDays, Award, Star,
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -553,6 +553,45 @@ export default function GoalDetailScreen() {
     }
   };
 
+  // ── Pin as Top Priority ───────────────────────────────────────────────────────
+  const [togglingPin, setTogglingPin] = useState(false);
+  const isPinned = goal.priority > 1;
+
+  const handleTogglePriority = async () => {
+    const newPriority = isPinned ? 1 : 2;
+    setTogglingPin(true);
+    try {
+      await updateGoal({
+        id: goal.id,
+        data: {
+          name: goal.name,
+          type: goal.type,
+          targetAmount: goal.targetAmount,
+          currentAmount: goal.currentAmount,
+          monthlyContribution: goal.monthlyContribution,
+          targetDate: goal.targetDate ?? null,
+          status: goal.status,
+          priority: newPriority,
+        },
+      });
+      queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
+        old?.map((g) => g.id === goal.id ? { ...g, priority: newPriority } : g),
+      );
+      queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
+        old ? { ...old, priority: newPriority } : old,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
+      ]);
+      toast({ title: isPinned ? 'Removed from Top Priority' : '⭐ Set as Top Priority' });
+    } catch {
+      toast({ title: 'Failed to update priority', variant: 'destructive' });
+    } finally {
+      setTogglingPin(false);
+    }
+  };
+
   // Status banner
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -713,11 +752,34 @@ export default function GoalDetailScreen() {
 
         {/* ── Goal title + type ──────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
-          <div
-            className="self-start px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[1.5px]"
-            style={{ backgroundColor: `${color}20`, color }}
-          >
-            {TYPE_LABELS[goal.type] ?? goal.type}
+          <div className="flex items-center justify-between">
+            <div
+              className="self-start px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[1.5px]"
+              style={{ backgroundColor: `${color}20`, color }}
+            >
+              {TYPE_LABELS[goal.type] ?? goal.type}
+            </div>
+            {/* Top Priority pin */}
+            <button
+              type="button"
+              disabled={togglingPin}
+              onClick={handleTogglePriority}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors active:scale-95"
+              style={isPinned
+                ? { borderColor: '#F59E0B40', backgroundColor: '#F59E0B12' }
+                : { borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'transparent' }}
+            >
+              <Star
+                size={13}
+                className={isPinned ? 'fill-[#F59E0B] text-[#F59E0B]' : 'text-[#4B5563]'}
+              />
+              <span
+                className="text-[10px] font-bold uppercase tracking-[1.2px]"
+                style={{ color: isPinned ? '#F59E0B' : '#4B5563' }}
+              >
+                {isPinned ? 'Top Priority' : 'Set Priority'}
+              </span>
+            </button>
           </div>
           <h1 className="text-white font-bold text-[32px] leading-[38px]" style={{ letterSpacing: '-1px' }}>
             {goal.name}

@@ -350,6 +350,7 @@ export default function GoalsOverviewScreen() {
                     projectedDate={card.projectedDate}
                     color={card.color}
                     milestones={card.milestones}
+                    isPinned={goal.priority > 1}
                     onClick={() => navigate(`/goals/${goal.id}`)}
                   />
                 );

@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock, Star } from 'lucide-react';
 
 interface MilestoneMark {
   pct: number;    // 25 | 50 | 75
@@ -17,6 +17,8 @@ interface GoalCardProps {
   onClick?: () => void;
   /** When provided, renders milestone tick marks at each percentage position. */
   milestones?: MilestoneMark[];
+  /** When true, shows the Top Priority badge. */
+  isPinned?: boolean;
 }
 
 export default function GoalCard({
@@ -30,6 +32,7 @@ export default function GoalCard({
   className = '',
   onClick,
   milestones,
+  isPinned,
 }: GoalCardProps) {
   return (
     <div
@@ -42,6 +45,12 @@ export default function GoalCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
+          {isPinned && (
+            <div className="flex items-center gap-1 mb-0.5">
+              <Star size={10} className="fill-[#F59E0B] text-[#F59E0B]" />
+              <span className="text-[#F59E0B] text-[10px] font-bold uppercase tracking-[1.5px]">Top Priority</span>
+            </div>
+          )}
           <div className="text-white font-bold text-[22px] leading-[33px]" style={{ letterSpacing: '-0.00585938em' }}>
             {title}
           </div>
