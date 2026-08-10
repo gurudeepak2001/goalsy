@@ -1,4 +1,4 @@
-import { Clock, Star } from 'lucide-react';
+import { AlertTriangle, Clock, Star } from 'lucide-react';
 
 interface MilestoneMark {
   pct: number;    // 25 | 50 | 75
@@ -19,6 +19,18 @@ interface GoalCardProps {
   milestones?: MilestoneMark[];
   /** When true, shows the Top Priority badge. */
   isPinned?: boolean;
+  /** When true, shows the "behind — update plan" badge. */
+  isBehind?: boolean;
+  /** Required monthly contribution (shown in badge). */
+  requiredMonthly?: number;
+  /** Planned monthly contribution (shown in badge for comparison). */
+  plannedMonthly?: number;
+}
+
+function formatDollarsShort(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+  return `$${n.toLocaleString()}`;
 }
 
 export default function GoalCard({
@@ -33,6 +45,9 @@ export default function GoalCard({
   onClick,
   milestones,
   isPinned,
+  isBehind,
+  requiredMonthly,
+  plannedMonthly,
 }: GoalCardProps) {
   return (
     <div
@@ -118,6 +133,22 @@ export default function GoalCard({
           </div>
         )}
       </div>
+
+      {isBehind && (
+        <div className="flex items-center gap-2 bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-xl px-3 py-2">
+          <AlertTriangle size={13} className="text-[#EF4444] flex-shrink-0" />
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[#EF4444] text-[10px] font-bold uppercase tracking-[1.2px] leading-tight">
+              Behind — Update Plan
+            </span>
+            {requiredMonthly !== undefined && plannedMonthly !== undefined && (
+              <span className="text-[#808BA4] text-[11px] font-semibold leading-tight">
+                needs {formatDollarsShort(requiredMonthly)}/mo · planned {formatDollarsShort(plannedMonthly)}/mo
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="border-t border-white/5 pt-4 flex items-center justify-between">
         <div className="flex items-center gap-2">

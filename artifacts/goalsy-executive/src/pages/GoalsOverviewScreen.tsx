@@ -376,6 +376,7 @@ export default function GoalsOverviewScreen() {
               {/* ── Goal cards ─────────────────────────────────────────── */}
               {goals.filter((g) => g.status !== 'deleted').map((goal) => {
                 const card = goalToCard(goal);
+                const behind = isBehind(goal);
                 return (
                   <GoalCard
                     key={goal.id}
@@ -388,6 +389,9 @@ export default function GoalsOverviewScreen() {
                     color={card.color}
                     milestones={card.milestones}
                     isPinned={goal.priority > 1}
+                    isBehind={behind}
+                    requiredMonthly={behind ? computeRequiredMonthly(goal) : undefined}
+                    plannedMonthly={behind ? goal.monthlyContribution : undefined}
                     onClick={() => navigate(`/goals/${goal.id}`)}
                   />
                 );
