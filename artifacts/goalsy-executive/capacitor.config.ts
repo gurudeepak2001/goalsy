@@ -34,6 +34,14 @@ const config: CapacitorConfig = {
   ios: {
     // Matches the UIViewControllerBasedStatusBarAppearance key in Info.plist.
     // Keeps the status bar light (white text) to match the dark theme.
+    //
+    // Note: `contentInset: 'always'` only controls the WKWebView's top/bottom
+    // content inset relative to safe-area edges (notch / home indicator).
+    // It does NOT interact with keyboard resize behaviour — the two settings
+    // are orthogonal. When the keyboard appears, `resize: 'body'` below
+    // shrinks the <body> to the visible space; the top contentInset is
+    // unaffected and the bottom safe-area inset correctly becomes 0 because
+    // the keyboard now occupies that region.
     contentInset: 'always',
   },
 
@@ -48,10 +56,20 @@ const config: CapacitorConfig = {
       iosSplashResourceName: 'Splash',
     },
 
-    // Keyboard — resize the <body> (not just pan/scroll the WebView) when
-    // the soft keyboard appears on Android. This means our CSS layout
-    // reflows to the reduced viewport height, and scrollIntoView / visualViewport
-    // resize listeners work predictably in both web and Capacitor shells.
+    // Keyboard — resize the <body> when the soft keyboard appears.
+    //
+    // iOS (WKWebView): `resize: 'body'` shrinks the body to the available
+    // height above the keyboard. Combined with the AppShell's `h-[100dvh]`
+    // root container (which tracks the dynamic viewport height), the scroll
+    // container reflows and `scrollIntoView` correctly brings the ConfirmForm
+    // into view. ConfirmForm listens for `keyboardWillShow` on iOS so it can
+    // start scrolling during the keyboard slide-up animation rather than after.
+    //
+    // Android: `resize: 'body'` + `keyboardDidShow` remains the correct
+    // combination — the body is fully resized before the event fires.
+    //
+    // `resizeOnFullScreen: true` ensures the resize fires even when the app
+    // is running in fullscreen / edge-to-edge mode on both platforms.
     Keyboard: {
       resize: 'body',
       style: 'dark',

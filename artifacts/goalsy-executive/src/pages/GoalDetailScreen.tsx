@@ -470,16 +470,31 @@ export function ConfirmForm({
 
   useEffect(() => {
     // ── Strategy 1: Capacitor Keyboard plugin (Android / iOS native shell) ──
-    // `keyboardDidShow` fires after the keyboard has fully appeared and the
-    // body has been resized (because we set resize:'body' in capacitor.config.ts).
-    // This is more reliable than a fixed timeout on Android Capacitor builds.
+    // Event timing differs by platform:
+    //
+    // iOS WKWebView — `keyboardWillShow` fires *before* the slide-up animation
+    // begins, so scrolling during the animation means the form is already
+    // fully visible by the time the keyboard is up. `keyboardDidShow` would
+    // fire too late and cause a visible jump.
+    //
+    // Android — `keyboardDidShow` fires *after* resize:'body' has taken effect
+    // (body has been resized to the remaining viewport height). Scrolling at
+    // this point is reliable and correct on Android.
     let cleanupNative: (() => void) | undefined;
 
     if (Capacitor.isNativePlatform()) {
       // Dynamically import so the web bundle never tries to resolve the plugin
       // on platforms where it isn't registered.
       import('@capacitor/keyboard').then(({ Keyboard }) => {
-        Keyboard.addListener('keyboardDidShow', scrollFormIntoView).then((handle) => {
+        // iOS: listen on keyboardWillShow (fires before the slide-up animation)
+        // so we can scroll during the animation and the form is visible by the
+        // time the keyboard is fully shown. On Android, keyboardWillShow fires
+        // almost simultaneously with keyboardDidShow; we prefer keyboardDidShow
+        // there because resize:'body' has already taken effect at that point.
+        const listenerPromise = Capacitor.getPlatform() === 'ios'
+          ? Keyboard.addListener('keyboardWillShow', scrollFormIntoView)
+          : Keyboard.addListener('keyboardDidShow', scrollFormIntoView);
+        listenerPromise.then((handle) => {
           cleanupNative = () => handle.remove();
         });
       }).catch(() => {
