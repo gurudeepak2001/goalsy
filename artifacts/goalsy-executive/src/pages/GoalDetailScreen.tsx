@@ -49,6 +49,7 @@ const TYPE_LABELS: Record<string, string> = {
   education: 'Education',
   emergency_fund: 'Emergency Fund',
   investment: 'Investment Portfolio',
+  auto_purchase: 'Auto Purchase',
   other: 'Other',
 };
 
@@ -58,6 +59,7 @@ const TYPE_COLORS: Record<string, string> = {
   education: '#F59E0B',
   emergency_fund: '#10B981',
   investment: '#8B5CF6',
+  auto_purchase: '#F97316',
   other: '#6B7280',
 };
 
@@ -70,8 +72,9 @@ function calcCompletionDateStr(current: number, target: number, contrib: number)
   const remaining = target - current;
   if (remaining <= 0) return new Date().toISOString().split('T')[0];
   if (contrib <= 0) return null;
-  const d = new Date(Date.now() + (remaining / contrib) * MS_PER_MONTH);
-  return d.toISOString().split('T')[0];
+  const ms = (remaining / contrib) * MS_PER_MONTH;
+  if (ms > 30 * 365.25 * 24 * 60 * 60 * 1000) return null;
+  return new Date(Date.now() + ms).toISOString().split('T')[0];
 }
 
 function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
@@ -188,8 +191,8 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
   if (fp?.savingsRate && fp.savingsRate > 0) {
     plan.push({
       icon: 'rate',
-      label: `Maintain ${fp.savingsRate}% savings rate`,
-      description: 'Your current savings discipline keeps this goal on schedule',
+      label: `Save $${fp.savingsRate.toLocaleString()}/mo`,
+      description: 'Your monthly savings discipline keeps this goal on schedule',
     });
   }
 

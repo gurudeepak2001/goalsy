@@ -11,7 +11,7 @@ export const financialProfiles = pgTable("financial_profiles", {
   annualIncome: integer("annual_income"),
   monthlyExpenses: integer("monthly_expenses"),
   netWorth: integer("net_worth"),
-  // 0–100 percentage
+  // Monthly savings amount in dollars (e.g. 1500 = $1,500/mo); score engine derives % from income
   savingsRate: real("savings_rate"),
   riskTolerance: text("risk_tolerance"), // conservative | moderate | aggressive
   primaryGoalType: text("primary_goal_type"),

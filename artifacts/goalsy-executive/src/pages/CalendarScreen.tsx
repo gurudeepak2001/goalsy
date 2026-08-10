@@ -35,6 +35,7 @@ const GOAL_TYPE_COLORS: Record<string, string> = {
   education: '#F59E0B',
   emergency_fund: '#10B981',
   investment: '#8B5CF6',
+  auto_purchase: '#F97316',
   other: '#6B7280',
 };
 

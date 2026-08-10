@@ -116,6 +116,21 @@ function Router() {
 function ApiClientBootstrap() {
   const { getToken } = useAuth();
   useEffect(() => { initApiClient(getToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh the Clerk token whenever the app returns to the foreground.
+  // On mobile (Capacitor WebView), the JS runtime is suspended during sleep, so
+  // Clerk's background auto-refresh never runs. This listener fires on resume and
+  // silently fetches a fresh token so the next API call doesn't 401.
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        try { await getToken({ skipCache: true }); } catch { /* session expired — Clerk auth guard redirects */ }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [getToken]);
+
   return null;
 }
 

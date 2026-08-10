@@ -30,6 +30,7 @@ const GOAL_TYPE_COLORS: Record<string, string> = {
   education: '#F59E0B',
   emergency_fund: '#10B981',
   investment: '#8B5CF6',
+  auto_purchase: '#F97316',
   other: '#6B7280',
 };
 
@@ -216,6 +217,9 @@ export default function AIHomeScreen() {
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
               Strategic Recommendation
             </span>
+            <span className="ml-auto text-[#374151] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#1F2937] rounded px-1.5 py-px flex-shrink-0">
+              Illustrative
+            </span>
           </div>
           <div className="flex flex-col gap-2">
             <h2 className="text-white font-bold text-[28px] leading-[35px]">
@@ -245,6 +249,9 @@ export default function AIHomeScreen() {
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
               Financial Forecast
             </span>
+            <span className="ml-auto text-[#374151] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#1F2937] rounded px-1.5 py-px flex-shrink-0">
+              Illustrative
+            </span>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-[#CBD5E1] font-semibold text-sm leading-[21px]">
@@ -265,6 +272,9 @@ export default function AIHomeScreen() {
             </div>
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
               Scenario Simulator
+            </span>
+            <span className="ml-auto text-[#374151] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#1F2937] rounded px-1.5 py-px flex-shrink-0">
+              Illustrative
             </span>
           </div>
           <div className="bg-[#1F2937] border border-white/5 rounded-xl p-5 flex flex-col gap-4">

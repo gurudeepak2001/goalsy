@@ -65,8 +65,13 @@ type MissionRow = { status: string };
 
 function computeScore(fp: FP, userGoals: GoalRow[], missions: MissionRow[]) {
   // Savings rate (0–250)
-  const savingsRate = fp?.savingsRate ?? 0;
-  const savingsPts = Math.min(250, Math.round((savingsRate / 40) * 250));
+  // savingsRate column now stores a monthly dollar amount; derive a % for scoring.
+  const monthlySavingsAmt = fp?.savingsRate ?? 0;
+  const monthlyIncomeForRate = fp?.annualIncome ? fp.annualIncome / 12 : 0;
+  const derivedSavingsRate = monthlyIncomeForRate > 0
+    ? Math.min(100, (monthlySavingsAmt / monthlyIncomeForRate) * 100)
+    : Math.min(40, monthlySavingsAmt / 100); // fallback when no income: $4,000/mo ≈ 40%
+  const savingsPts = Math.min(250, Math.round((derivedSavingsRate / 40) * 250));
 
   // Goal momentum (0–250)
   const activeGoals = userGoals.filter((g) => g.status === "active");
@@ -97,7 +102,7 @@ function computeScore(fp: FP, userGoals: GoalRow[], missions: MissionRow[]) {
   const score = savingsPts + goalPts + expensePts + nwPts + missionPts;
 
   const drivers = [
-    { label: "Savings Rate", value: savingsPts, maxValue: 250, trend: savingsRate >= 20 ? "up" : savingsRate >= 10 ? "neutral" : "down" },
+    { label: "Savings Rate", value: savingsPts, maxValue: 250, trend: derivedSavingsRate >= 20 ? "up" : derivedSavingsRate >= 10 ? "neutral" : "down" },
     { label: "Goal Momentum", value: goalPts, maxValue: 250, trend: goalPts >= 200 ? "up" : goalPts >= 100 ? "neutral" : "down" },
     { label: "Expense Ratio", value: expensePts, maxValue: 200, trend: expensePts >= 150 ? "up" : expensePts >= 80 ? "neutral" : "down" },
     { label: "Net Worth", value: nwPts, maxValue: 150, trend: netWorth > 0 ? "up" : "down" },

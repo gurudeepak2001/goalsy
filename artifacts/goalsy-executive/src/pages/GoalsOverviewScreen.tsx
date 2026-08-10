@@ -24,8 +24,11 @@ function calcCompletionDateStr(current: number, target: number, contrib: number)
   const remaining = target - current;
   if (remaining <= 0) return new Date().toISOString().split('T')[0];
   if (contrib <= 0) return null;
-  const d = new Date(Date.now() + (remaining / contrib) * MS_PER_MONTH);
-  return d.toISOString().split('T')[0];
+  const ms = (remaining / contrib) * MS_PER_MONTH;
+  // Don't auto-fill a date more than 30 years out — it's not useful and
+  // the iOS date picker will show an absurdly distant year.
+  if (ms > 30 * 365.25 * 24 * 60 * 60 * 1000) return null;
+  return new Date(Date.now() + ms).toISOString().split('T')[0];
 }
 
 function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
@@ -82,6 +85,7 @@ const TYPE_COLORS: Record<string, string> = {
   education: '#F59E0B',
   emergency_fund: '#10B981',
   investment: '#8B5CF6',
+  auto_purchase: '#F97316',
   other: '#6B7280',
 };
 
@@ -91,6 +95,7 @@ const TYPE_LABELS: Record<string, string> = {
   education: 'Education',
   emergency_fund: 'Emergency Fund',
   investment: 'Investment Portfolio',
+  auto_purchase: 'Auto Purchase',
   other: 'Other',
 };
 
@@ -100,6 +105,7 @@ const GOAL_TYPE_OPTIONS = [
   { value: 'education', label: 'Education' },
   { value: 'emergency_fund', label: 'Emergency Fund' },
   { value: 'investment', label: 'Investment Portfolio' },
+  { value: 'auto_purchase', label: 'Auto Purchase' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -484,6 +490,7 @@ export default function GoalsOverviewScreen() {
                 type="date"
                 value={newGoalTargetDate}
                 min={new Date().toISOString().split('T')[0]}
+                max={new Date(Date.now() + 30 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                 className={`${selectCls}${dateAutoFilled ? ' italic opacity-75' : ''}`}
                 style={{ colorScheme: 'dark' }}
                 onChange={(e) => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import {
   Activity, Shield, Lock, Layers, PieChart, Loader2, CheckCircle2,
-  DollarSign, TrendingUp, Target, ChevronRight,
+  DollarSign, TrendingUp, Target, ChevronRight, AlertTriangle, Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
@@ -34,6 +34,7 @@ const GOAL_TYPE_OPTIONS = [
   { value: 'education', label: 'Education' },
   { value: 'emergency_fund', label: 'Emergency Fund' },
   { value: 'investment', label: 'Investment Portfolio' },
+  { value: 'auto_purchase', label: 'Auto Purchase' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -50,6 +51,7 @@ export default function FinancialConnectionScreen() {
   // Step: 'profile' first, then 'connection'
   const [step, setStep] = useState<'profile' | 'connection'>('profile');
   const [connectStatus, setConnectStatus] = useState<'idle' | 'connecting' | 'connected'>('idle');
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [annualIncome, setAnnualIncome] = useState('');
@@ -77,20 +79,26 @@ export default function FinancialConnectionScreen() {
   const { mutateAsync: saveProfile, isPending: saving } = useUpdateFinancialProfile();
 
   const handleProfileContinue = async () => {
+    setProfileSaveError(null);
     try {
       await saveProfile({
         data: {
           annualIncome: parseDollar(annualIncome),
           monthlyExpenses: parseDollar(monthlyExpenses),
           netWorth: parseDollar(netWorth),
-          savingsRate: savingsRate ? parseFloat(savingsRate) : null,
+          savingsRate: parseDollar(savingsRate),
           riskTolerance: riskTolerance || null,
           primaryGoalType: primaryGoalType || null,
         },
       });
       setStep('connection');
-    } catch {
-      toast({ title: 'Could not save profile', description: 'Please try again.', variant: 'destructive' });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message
+        : typeof err === 'string' ? err
+        : 'Server error — please try again.';
+      console.error('[FinancialProfile save]', err);
+      setProfileSaveError(detail);
+      toast({ title: 'Could not save profile', description: detail, variant: 'destructive' });
     }
   };
 
@@ -195,14 +203,20 @@ export default function FinancialConnectionScreen() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <label className={labelCls}>Savings Rate %</label>
+                    <label className={labelCls}>
+                      <span className="flex items-center gap-1">
+                        Monthly Savings
+                        <span title="How much you save per month on average (e.g. $1,500). Used to calculate your Savings Rate score driver.">
+                          <Info size={10} className="text-[#4B5563]" />
+                        </span>
+                      </span>
+                    </label>
                     <div className="relative">
-                      <TrendingUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
+                      <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
                         type="number"
                         min="0"
-                        max="100"
-                        placeholder="20"
+                        placeholder="1500"
                         value={savingsRate}
                         onChange={(e) => setSavingsRate(e.target.value)}
                         className={`${inputCls} pl-8`}
@@ -269,6 +283,21 @@ export default function FinancialConnectionScreen() {
                 disabled={saving}
                 onClick={() => setStep('connection')}
               />
+              {profileSaveError && (
+                <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">
+                  <AlertTriangle size={15} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#EF4444] font-semibold text-sm leading-5">{profileSaveError}</p>
+                    <button
+                      type="button"
+                      className="text-[#EF4444] text-xs font-bold underline mt-1"
+                      onClick={() => handleProfileContinue()}
+                    >
+                      Tap to retry
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
