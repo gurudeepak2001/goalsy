@@ -83,7 +83,7 @@ describe('ConfirmForm – keyboard visibility', () => {
     setMobileViewport();
     // jsdom does not implement scrollIntoView; provide a spy so we can assert it
     scrollIntoViewMock = vi.fn();
-    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
     vi.useFakeTimers();
   });
 
@@ -145,7 +145,7 @@ describe('WeeklyMilestoneRow – post-save state transition', () => {
 
   beforeEach(() => {
     // ConfirmForm calls scrollIntoView on mount; provide a no-op so jsdom doesn't error
-    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = vi.fn() as unknown as typeof HTMLElement.prototype.scrollIntoView;
     vi.useFakeTimers();
   });
 

@@ -342,6 +342,7 @@ export function WeeklyMilestoneRow({
   onSave,
   onCancelConfirm,
   isSaving,
+  saveError,
 }: {
   milestone: WeekMilestone;
   color: string;
@@ -354,6 +355,7 @@ export function WeeklyMilestoneRow({
   onSave: () => void;
   onCancelConfirm: () => void;
   isSaving: boolean;
+  saveError?: string;
 }) {
   const { dateLabel, expectedAmount, status, isPast } = milestone;
 
@@ -435,6 +437,7 @@ export function WeeklyMilestoneRow({
           onSave={onSave}
           onCancelConfirm={onCancelConfirm}
           isSaving={isSaving}
+          saveError={saveError}
         />
       )}
     </div>
@@ -448,6 +451,7 @@ export function ConfirmForm({
   onSave,
   onCancelConfirm,
   isSaving,
+  saveError,
 }: {
   expectedAmount: number;
   confirmValue: string;
@@ -455,6 +459,7 @@ export function ConfirmForm({
   onSave: () => void;
   onCancelConfirm: () => void;
   isSaving: boolean;
+  saveError?: string;
 }) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -486,7 +491,7 @@ export function ConfirmForm({
             <button
               type="button"
               onClick={onCancelConfirm}
-              className="text-[#808BA4] text-xs font-semibold px-3 py-2"
+              className="text-[#808BA4] text-xs font-semibold px-3 py-2 min-h-[44px]"
             >
               Cancel
             </button>
@@ -498,6 +503,12 @@ export function ConfirmForm({
               className="!py-2 !text-xs"
             />
           </div>
+          {saveError && (
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle size={11} className="text-[#EF4444] flex-shrink-0" />
+              <p className="text-[#EF4444] text-[11px] font-semibold leading-4">{saveError}</p>
+            </div>
+          )}
         </div>
   );
 }
@@ -637,6 +648,7 @@ export default function GoalDetailScreen() {
   // Weekly milestone confirm
   const [confirmingWeekIdx, setConfirmingWeekIdx] = useState<number | null>(null);
   const [confirmAmount, setConfirmAmount] = useState('');
+  const [confirmError, setConfirmError] = useState<string | undefined>(undefined);
   const [milestoneExpanded, setMilestoneExpanded] = useState(false);
 
   if (isLoading || !goal) {
@@ -748,6 +760,7 @@ export default function GoalDetailScreen() {
       toast({ title: 'Enter your saved amount', variant: 'destructive' });
       return;
     }
+    setConfirmError(undefined);
     try {
       await logProgress({ id: goal.id, data: { weekIndex: confirmingWeekIdx, confirmedAmount: amount } });
       // Patch caches immediately so Goals Overview total contributions updates without waiting for refetch
@@ -766,6 +779,8 @@ export default function GoalDetailScreen() {
       setConfirmingWeekIdx(null);
       setConfirmAmount('');
     } catch {
+      // Keep the form open so the user can retry — show error inline + toast
+      setConfirmError('Could not save — check your connection and try again.');
       toast({ title: 'Failed to log progress', variant: 'destructive' });
     }
   };
@@ -1084,14 +1099,23 @@ export default function GoalDetailScreen() {
                     historyAmount={histAmt}
                     isConfirming={confirmingWeekIdx === m.weekIndex}
                     confirmValue={confirmAmount}
-                    onConfirmChange={setConfirmAmount}
+                    onConfirmChange={(v) => { setConfirmAmount(v); setConfirmError(undefined); }}
                     onTap={() => {
                       setConfirmingWeekIdx(m.weekIndex);
-                      setConfirmAmount(histAmt !== undefined ? String(histAmt) : String(goal.currentAmount));
+                      // Only pre-fill from confirmed history. If no history, open blank
+                      // so cancel always returns to a clean state — not to goal.currentAmount
+                      // which the user might mistake for their previously-typed value.
+                      setConfirmAmount(histAmt !== undefined ? String(histAmt) : '');
+                      setConfirmError(undefined);
                     }}
                     onSave={handleConfirmMilestone}
-                    onCancelConfirm={() => { setConfirmingWeekIdx(null); setConfirmAmount(''); }}
+                    onCancelConfirm={() => {
+                      setConfirmingWeekIdx(null);
+                      setConfirmAmount(''); // explicit clean slate
+                      setConfirmError(undefined);
+                    }}
                     isSaving={loggingProgress}
+                    saveError={confirmingWeekIdx === m.weekIndex ? confirmError : undefined}
                   />
                 );
               })}
