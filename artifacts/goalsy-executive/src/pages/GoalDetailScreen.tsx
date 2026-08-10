@@ -57,6 +57,7 @@ const TYPE_COLORS: Record<string, string> = {
 // ── Auto-fill helpers ─────────────────────────────────────────────────────────
 
 const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
+const WEEKS_PER_MONTH = 52 / 12; // ~4.333 — used for contribution-rate milestone pacing
 
 function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
   const remaining = target - current;
@@ -207,12 +208,13 @@ export interface WeekMilestone {
   isPast: boolean;
 }
 
-function computeWeeklyMilestones(goal: Goal): WeekMilestone[] {
+function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
   if (goal.targetAmount <= 0) return [];
   const now = new Date();
   const createdAt = new Date(goal.createdAt);
   const msPerWeek = 7 * 24 * 60 * 60 * 1000;
 
+  // ── Determine the end date (controls how many weeks to generate) ──────────
   let endDate: Date | null = null;
   if (goal.targetDate) {
     endDate = new Date(goal.targetDate);
@@ -229,11 +231,28 @@ function computeWeeklyMilestones(goal: Goal): WeekMilestone[] {
   const milestones: WeekMilestone[] = [];
   for (let i = 1; i <= totalWeeks; i++) {
     const weekDate = new Date(createdAt.getTime() + i * msPerWeek);
-    const expectedAmount = Math.round(goal.targetAmount * (i / totalWeeks));
     const isPast = weekDate <= now;
+
+    // ── Root Cause 1 fix: contribution-rate-based expected amounts ────────
+    // expectedAmount = cumulative savings at the stated monthly pace by week i,
+    // capped at the target. When monthlyContribution changes, ALL expected
+    // amounts recalculate immediately — even when a targetDate is also set.
+    // Falls back to linear interpolation only when monthlyContribution is zero.
+    const expectedAmount = goal.monthlyContribution > 0
+      ? Math.round(Math.min(goal.targetAmount, i * goal.monthlyContribution / WEEKS_PER_MONTH))
+      : Math.round(goal.targetAmount * (i / totalWeeks)); // fallback: targetDate + no contribution
+
+    // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
+    // For past weeks with a logged confirmation, compare that actual figure
+    // against the expected — not the goal's running currentAmount total.
+    // Weeks without a confirmed entry fall back to currentAmount as a proxy.
+    const referenceAmount = isPast
+      ? (confirmedMap.get(i) ?? goal.currentAmount)
+      : 0;
     const status: WeekMilestone['status'] = isPast
-      ? goal.currentAmount >= expectedAmount ? 'reached' : 'behind'
+      ? referenceAmount >= expectedAmount ? 'reached' : 'behind'
       : 'upcoming';
+
     milestones.push({
       weekIndex: i,
       weekDate,
@@ -588,7 +607,7 @@ export default function GoalDetailScreen() {
   // Chart data — past milestones with expected vs confirmed amounts
   // (computed here so it's available when JSX renders; only used when ≥2 confirmed)
   const buildChartPoints = () => {
-    const past = computeWeeklyMilestones(goal!).filter((m) => m.isPast);
+    const past = computeWeeklyMilestones(goal!, confirmedMap).filter((m) => m.isPast);
     return past.map((m) => ({
       label: m.dateLabel,
       expected: m.expectedAmount,
@@ -718,7 +737,7 @@ export default function GoalDetailScreen() {
     goal.targetAmount > 0 ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) : 0;
   const progressTicks = [25, 50, 75].map((pct) => ({ pct, reached: progress >= pct }));
 
-  const allMilestones = computeWeeklyMilestones(goal);
+  const allMilestones = computeWeeklyMilestones(goal, confirmedMap);
   const pastMilestones = allMilestones.filter((m) => m.isPast);
   const futureMilestones = allMilestones.filter((m) => !m.isPast);
   const targetDatePassed = !!goal.targetDate && new Date(goal.targetDate) < new Date();
