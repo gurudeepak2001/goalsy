@@ -252,14 +252,27 @@ export default function AppHeader({
   return (
     <header className={`flex items-center justify-between py-2 w-full ${className}`}>
       <div className="flex items-center gap-3">
-        {showLogo && <GoalsyLogo size="md" />}
-        {title ? (
-          <span className="text-white font-bold text-xl tracking-[-0.5px]">{title}</span>
-        ) : showLogo ? (
-          <span className={`text-white font-bold ${showSecureMode ? 'text-lg tracking-[-0.45px]' : 'text-xl tracking-[-0.5px]'}`}>
-            GoalsyExecutive
-          </span>
-        ) : null}
+        {backTo ? (
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => navigate(backTo)}
+            className="w-10 h-10 -ml-2 p-0 rounded-xl flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+          >
+            <ChevronLeft size={22} strokeWidth={2.5} />
+          </button>
+        ) : (
+          <>
+            {showLogo && <GoalsyLogo size="md" />}
+            {title ? (
+              <span className="text-white font-bold text-xl tracking-[-0.5px]">{title}</span>
+            ) : showLogo ? (
+              <span className={`text-white font-bold ${showSecureMode ? 'text-lg tracking-[-0.45px]' : 'text-xl tracking-[-0.5px]'}`}>
+                GoalsyExecutive
+              </span>
+            ) : null}
+          </>
+        )}
       </div>
       {showSecureMode && (
         <div className="bg-[#111827] border border-white/10 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[1px] text-[#CBD5E1] flex items-center gap-2">
