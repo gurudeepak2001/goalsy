@@ -21,6 +21,10 @@ import React from 'react';
 // both the web (false) and Capacitor (true) test scenarios.
 const nativePlatformFlag = vi.hoisted(() => ({ value: false }));
 
+// `getPlatformValue` controls which platform string is returned by getPlatform().
+// Defaults to 'android'; set to 'ios' in suites that exercise the iOS branch.
+const getPlatformValue = vi.hoisted(() => ({ value: 'android' }));
+
 // A shared store that the @capacitor/keyboard mock writes into so individual
 // tests can retrieve and invoke the registered listener.
 const keyboardListenerStore = vi.hoisted(() => ({
@@ -37,9 +41,10 @@ const keyboardShouldFail = vi.hoisted(() => ({ value: false }));
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => nativePlatformFlag.value,
-    // Default to 'android' so the component uses 'keyboardDidShow'.
-    // Tests that need iOS behaviour can override this via nativePlatformFlag.
-    getPlatform: () => 'android',
+    // Returns the platform string set by each test suite; defaults to 'android'
+    // so existing suites continue to exercise the keyboardDidShow path without
+    // any changes. iOS suites set getPlatformValue.value = 'ios' in beforeEach.
+    getPlatform: () => getPlatformValue.value,
   },
 }));
 
@@ -257,6 +262,115 @@ describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
       expect(scrollIntoViewMock).not.toHaveBeenCalled();
 
       // Advance past the 150 ms timer — the fallback must now fire.
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+    } finally {
+      Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalVV });
+    }
+  });
+});
+
+// ── Tests: native Capacitor iOS keyboardWillShow path ─────────────────────────
+//
+// On iOS the component branches on `Capacitor.getPlatform() === 'ios'` and
+// registers `keyboardWillShow` instead of `keyboardDidShow`. Without this suite
+// a regression on the iOS path (e.g. accidentally swapping the event names)
+// would go completely undetected because the existing native suite uses the
+// Android default.
+
+describe('ConfirmForm – keyboard visibility (Capacitor iOS keyboardWillShow path)', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    nativePlatformFlag.value = true;
+    getPlatformValue.value = 'ios';
+    keyboardListenerStore.listeners.clear();
+    setMobileViewport();
+    scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    nativePlatformFlag.value = false;
+    getPlatformValue.value = 'android';
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('registers keyboardWillShow (not keyboardDidShow) on iOS', async () => {
+    render(<ConfirmForm {...defaultProps} />);
+
+    // Flush the dynamic import and both .then() promise chains.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // iOS must register keyboardWillShow, not keyboardDidShow.
+    expect(keyboardListenerStore.listeners.has('keyboardWillShow')).toBe(true);
+    expect(keyboardListenerStore.listeners.has('keyboardDidShow')).toBe(false);
+  });
+
+  it('calls scrollIntoView when keyboardWillShow fires on iOS', async () => {
+    render(<ConfirmForm {...defaultProps} />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Simulate the iOS keyboard-will-show event.
+    await act(async () => {
+      keyboardListenerStore.listeners.get('keyboardWillShow')!();
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  it('scrollIntoView is NOT called before keyboardWillShow fires on iOS', async () => {
+    render(<ConfirmForm {...defaultProps} />);
+
+    // Flush dynamic import — listener registered, but event has not fired yet.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Timer has not advanced and the event has not fired — must be silent.
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  it('timer fallback calls scrollIntoView on iOS when keyboardWillShow never arrives', async () => {
+    // Regression guard: if the Capacitor keyboard event is never delivered
+    // (e.g. plugin timing, OS quirk), the 150 ms unconditional timer must
+    // still scroll the form into view so it is never left hidden on iOS.
+
+    // Suppress visualViewport so only the timer fallback can satisfy the assertion.
+    const originalVV = window.visualViewport;
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: null });
+
+    try {
+      render(<ConfirmForm {...defaultProps} />);
+
+      // Flush dynamic import microtasks — listener registered but never invoked.
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // Listener registered — scrollIntoView must still be silent.
+      expect(keyboardListenerStore.listeners.has('keyboardWillShow')).toBe(true);
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+      // Advance past the 150 ms fallback — the timer must fire.
       await act(async () => {
         vi.advanceTimersByTime(200);
       });
