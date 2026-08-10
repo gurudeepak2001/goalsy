@@ -491,8 +491,24 @@ export function ConfirmForm({
     // is near the bottom of a long milestone list.  `block:'center'` scrolls
     // more aggressively so the form lands in the middle of the remaining
     // viewport, guaranteeing full visibility regardless of list length.
+    //
+    // However, on large iPhones (Pro Max, Plus — 430 × 932 layout viewport the
+    // iOS WKWebView reports before the keyboard appears) the visible area above
+    // the keyboard is generous enough that the ConfirmForm is already fully in
+    // view.  `block:'center'` does NOT no-op when the element is already
+    // visible; it re-centers unconditionally, causing an unnecessary scroll
+    // jump.  `block:'nearest'` IS a no-op when the element fits in the visible
+    // area, so we use 'nearest' on tall screens.
+    //
+    // Threshold: 700 px layout height separates small iPhones (≤ 667 px — SE,
+    // 13 mini) from large ones (≥ 844 px — iPhone 12 Pro and above).  Any
+    // device whose innerHeight is below 700 px gets the aggressive center
+    // scroll; taller devices fall back to nearest, which is a safe no-op when
+    // the form is already in view.
     const isIos = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: isIos ? 'center' : 'nearest' });
+    const isSmallScreen = window.innerHeight < 700;
+    const block = (isIos && isSmallScreen) ? 'center' : 'nearest';
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block });
   }, []);
 
   useEffect(() => {

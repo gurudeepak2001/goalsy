@@ -578,6 +578,90 @@ describe('ConfirmForm – iOS small-viewport scroll block (375×667, iPhone SE)'
   });
 });
 
+// ── Tests: iOS large viewport — block:'nearest' at 430×932 (Pro Max) ─────────
+//
+// On large iPhones (Pro Max, Plus — innerHeight ≥ 844 px) the visible area
+// above the soft keyboard is generous.  `block:'center'` does NOT no-op when
+// the element is already in view; it re-centers unconditionally, causing an
+// unwanted scroll jump.  `block:'nearest'` IS a no-op when the element fits,
+// so the component uses 'nearest' whenever innerHeight ≥ 700 px.
+//
+// This suite pins innerHeight to 932 px (iPhone 15 Pro Max layout viewport)
+// and asserts that scrollIntoView is called with block:'nearest' so the
+// already-visible form is not jarred upward by an unnecessary re-center.
+
+describe('ConfirmForm – iOS large-viewport scroll block (430×932, iPhone Pro Max)', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    nativePlatformFlag.value = true;
+    platformFlag.value = 'ios';
+    keyboardListenerStore.listeners.clear();
+    // Large iPhone Pro Max layout viewport (innerHeight ≥ 700 threshold → nearest).
+    Object.defineProperty(window, 'innerWidth',  { writable: true, configurable: true, value: 430 });
+    Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 932 });
+    scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('uses block:"nearest" (not "center") on iOS at 430×932 so an already-visible form is not re-centered', async () => {
+    // block:'nearest' is a no-op when the element is already fully in view,
+    // preventing the unnecessary scroll jump that block:'center' would cause
+    // on large iPhones with generous above-keyboard space.
+    render(<ConfirmForm {...defaultProps} />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(keyboardListenerStore.listeners.has('keyboardWillShow')).toBe(true);
+
+    await act(async () => {
+      keyboardListenerStore.listeners.get('keyboardWillShow')!();
+    });
+
+    // Must be 'nearest', not 'center', at this viewport height.
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  it('timer fallback also uses block:"nearest" on iOS at 430×932', async () => {
+    // Suppress visualViewport so only the timer fallback can fire the scroll.
+    const originalVV = window.visualViewport;
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: null });
+
+    try {
+      render(<ConfirmForm {...defaultProps} />);
+
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+
+      // Even the fallback timer must respect the height-gated rule.
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+    } finally {
+      Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalVV });
+    }
+  });
+});
+
 // ── WeeklyMilestoneRow – post-save state transition ───────────────────────────
 
 describe('WeeklyMilestoneRow – post-save state transition', () => {
