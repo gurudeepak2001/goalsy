@@ -84,7 +84,7 @@ router.get("/notifications", requireAuth, async (req, res) => {
             type: "goal",
             title: `${goal.name} is falling behind`,
             body: `You're ${fmt(shortfall)} behind the expected pace. Consider increasing contributions to get back on track.`,
-            targetScreen: "/goals",
+            targetScreen: "/goals/" + goal.id,
             targetId: goal.id,
           });
         }

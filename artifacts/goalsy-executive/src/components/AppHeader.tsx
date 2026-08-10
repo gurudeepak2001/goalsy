@@ -129,7 +129,14 @@ export default function AppHeader({
     }
     setNotifOpen(false);
     if (notif.targetScreen) {
-      navigate(notif.targetScreen);
+      // Construct the deep-link path: if targetId is set and not already
+      // embedded in targetScreen, append it (handles legacy notifications
+      // where targetScreen was just "/goals" without the id).
+      const path =
+        notif.targetId && !notif.targetScreen.endsWith(notif.targetId)
+          ? `${notif.targetScreen.replace(/\/$/, '')}/${notif.targetId}`
+          : notif.targetScreen;
+      navigate(path);
     }
   };
 
