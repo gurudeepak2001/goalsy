@@ -484,7 +484,15 @@ export function ConfirmForm({
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollFormIntoView = useCallback(() => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // On iOS the visible space above the keyboard is tighter than on Android,
+    // especially on small screens (iPhone SE / 13 mini — 375 × 667 viewport).
+    // `block:'nearest'` only scrolls far enough to bring the element edge into
+    // view, which can leave the form partially clipped when the confirming row
+    // is near the bottom of a long milestone list.  `block:'center'` scrolls
+    // more aggressively so the form lands in the middle of the remaining
+    // viewport, guaranteeing full visibility regardless of list length.
+    const isIos = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: isIos ? 'center' : 'nearest' });
   }, []);
 
   useEffect(() => {

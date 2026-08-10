@@ -21,9 +21,10 @@ import React from 'react';
 // both the web (false) and Capacitor (true) test scenarios.
 const nativePlatformFlag = vi.hoisted(() => ({ value: false }));
 
-// `getPlatformValue` controls which platform string is returned by getPlatform().
-// Defaults to 'android'; set to 'ios' in suites that exercise the iOS branch.
-const getPlatformValue = vi.hoisted(() => ({ value: 'android' }));
+// `platformFlag` controls the string returned by Capacitor.getPlatform().
+// Each suite sets it in beforeEach ('ios' | 'android' | 'web') and resets
+// it in afterEach. Defaults to 'web' so non-native suites are unaffected.
+const platformFlag = vi.hoisted(() => ({ value: 'web' as string }));
 
 // A shared store that the @capacitor/keyboard mock writes into so individual
 // tests can retrieve and invoke the registered listener.
@@ -41,10 +42,9 @@ const keyboardShouldFail = vi.hoisted(() => ({ value: false }));
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => nativePlatformFlag.value,
-    // Returns the platform string set by each test suite; defaults to 'android'
-    // so existing suites continue to exercise the keyboardDidShow path without
-    // any changes. iOS suites set getPlatformValue.value = 'ios' in beforeEach.
-    getPlatform: () => getPlatformValue.value,
+    // Reads platformFlag so individual suites can override the platform.
+    // Defaults to 'web'; native suites set it to 'ios' or 'android' in beforeEach.
+    getPlatform: () => platformFlag.value,
   },
 }));
 
@@ -142,6 +142,7 @@ describe('ConfirmForm – keyboard visibility (timer fallback, web path)', () =>
 
   beforeEach(() => {
     nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
     setMobileViewport();
     scrollIntoViewMock = vi.fn();
     window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
@@ -176,12 +177,13 @@ describe('ConfirmForm – keyboard visibility (timer fallback, web path)', () =>
 
 // ── Tests: native Capacitor keyboardDidShow path ───────────────────────────────
 
-describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
+describe('ConfirmForm – keyboard visibility (Capacitor native path, Android)', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    // Enable native platform so the component registers a keyboardDidShow listener.
+    // Enable native platform (Android) so the component registers a keyboardDidShow listener.
     nativePlatformFlag.value = true;
+    platformFlag.value = 'android';
     keyboardListenerStore.listeners.clear();
     setMobileViewport();
     scrollIntoViewMock = vi.fn();
@@ -193,6 +195,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
 
   afterEach(() => {
     nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -203,8 +206,6 @@ describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
     // Flush the dynamic import promise and the addListener promise so the
     // listener is registered before we try to invoke it.
     await act(async () => {
-      // Two rounds of microtask flushing: one for `import('@capacitor/keyboard')`
-      // and one for the `.then(({ Keyboard }) => Keyboard.addListener(...).then(...))`.
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
@@ -237,8 +238,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
   });
 
   it('timer fallback calls scrollIntoView on native when keyboardDidShow never arrives', async () => {
-    // This is the key regression guard for task #24:
-    // on native, if the Capacitor keyboard event never fires (e.g. plugin bug,
+    // On native, if the Capacitor keyboard event never fires (e.g. plugin bug,
     // timing issue, or unsupported OS version), the 150 ms unconditional timer
     // must still scroll the form into view so it is never left hidden.
 
@@ -250,8 +250,6 @@ describe('ConfirmForm – keyboard visibility (Capacitor native path)', () => {
     try {
       render(<ConfirmForm {...defaultProps} />);
 
-      // Flush the dynamic import microtasks so the listener registration
-      // completes, but do NOT invoke the keyboardDidShow listener.
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -286,7 +284,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor iOS keyboardWillShow pa
 
   beforeEach(() => {
     nativePlatformFlag.value = true;
-    getPlatformValue.value = 'ios';
+    platformFlag.value = 'ios';
     keyboardListenerStore.listeners.clear();
     setMobileViewport();
     scrollIntoViewMock = vi.fn();
@@ -296,7 +294,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor iOS keyboardWillShow pa
 
   afterEach(() => {
     nativePlatformFlag.value = false;
-    getPlatformValue.value = 'android';
+    platformFlag.value = 'android';
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -330,7 +328,8 @@ describe('ConfirmForm – keyboard visibility (Capacitor iOS keyboardWillShow pa
       keyboardListenerStore.listeners.get('keyboardWillShow')!();
     });
 
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+    // On iOS the scroll block is 'center' (task #26: avoids clipping on small screens).
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
   });
 
   it('scrollIntoView is NOT called before keyboardWillShow fires on iOS', async () => {
@@ -375,7 +374,8 @@ describe('ConfirmForm – keyboard visibility (Capacitor iOS keyboardWillShow pa
         vi.advanceTimersByTime(200);
       });
 
-      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+      // On iOS the scroll block is 'center' (task #26: avoids clipping on small screens).
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
     } finally {
       Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalVV });
     }
@@ -390,6 +390,7 @@ describe('ConfirmForm – keyboard visibility (visualViewport resize path)', () 
 
   beforeEach(() => {
     nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
     setMobileViewport();
     scrollIntoViewMock = vi.fn();
     window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
@@ -446,6 +447,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor plugin unavailable / of
   beforeEach(() => {
     // Enable native platform so the component attempts the Capacitor path.
     nativePlatformFlag.value = true;
+    platformFlag.value = 'android';
     // Tell the mock to throw from addListener, exercising the .catch() branch.
     keyboardShouldFail.value = true;
     keyboardListenerStore.listeners.clear();
@@ -457,6 +459,7 @@ describe('ConfirmForm – keyboard visibility (Capacitor plugin unavailable / of
 
   afterEach(() => {
     nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
     keyboardShouldFail.value = false;
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -488,6 +491,90 @@ describe('ConfirmForm – keyboard visibility (Capacitor plugin unavailable / of
 
     expect(scrollIntoViewMock).toHaveBeenCalledOnce();
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+});
+
+// ── Tests: iOS small viewport — block:'center' at 375×667 ────────────────────
+//
+// On iPhone SE and 13 mini (375 × 667 px), the space above the soft keyboard
+// is tighter than on larger iPhones. `block:'nearest'` only scrolls far enough
+// to bring the edge into view and can leave the ConfirmForm partially clipped
+// when the confirming row is near the bottom of a long milestone list.
+// For iOS native builds the scroll strategy is therefore `block:'center'`,
+// which places the form in the middle of the remaining visible area regardless
+// of list length.
+
+describe('ConfirmForm – iOS small-viewport scroll block (375×667, iPhone SE)', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    nativePlatformFlag.value = true;
+    platformFlag.value = 'ios';
+    keyboardListenerStore.listeners.clear();
+    // Simulate the smallest common iOS viewport (iPhone SE / 13 mini).
+    Object.defineProperty(window, 'innerWidth',  { writable: true, configurable: true, value: 375 });
+    Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 667 });
+    scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    nativePlatformFlag.value = false;
+    platformFlag.value = 'web';
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('uses block:"center" (not "nearest") on iOS at 375×667 to avoid clipping below the keyboard', async () => {
+    render(<ConfirmForm {...defaultProps} />);
+
+    // Flush the dynamic import and addListener promise chains so the
+    // keyboardWillShow listener is registered before we fire it.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(keyboardListenerStore.listeners.has('keyboardWillShow')).toBe(true);
+
+    // Fire the iOS keyboard event – this is what triggers scrollIntoView.
+    await act(async () => {
+      keyboardListenerStore.listeners.get('keyboardWillShow')!();
+    });
+
+    // On iOS the scroll block must be 'center' so the form lands in the
+    // middle of the compressed viewport above the keyboard.
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+  });
+
+  it('timer fallback also uses block:"center" on iOS when keyboardWillShow never fires', async () => {
+    // Suppress visualViewport so only the timer path can fire the scroll.
+    const originalVV = window.visualViewport;
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: null });
+
+    try {
+      render(<ConfirmForm {...defaultProps} />);
+
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // Timer not yet advanced — silent.
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+
+      // Even the fallback timer must honour the iOS block:'center' rule.
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+    } finally {
+      Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalVV });
+    }
   });
 });
 
