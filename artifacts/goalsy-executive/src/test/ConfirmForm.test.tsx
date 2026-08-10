@@ -62,7 +62,9 @@ vi.mock('recharts', () => ({
 // ── Import the component under test ──────────────────────────────────────────
 
 // Import after all mocks are set up
-import { ConfirmForm } from '../pages/GoalDetailScreen';
+import { ConfirmForm, WeeklyMilestoneRow } from '../pages/GoalDetailScreen';
+import type { WeekMilestone } from '../pages/GoalDetailScreen';
+import { fireEvent } from '@testing-library/react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -126,5 +128,81 @@ describe('ConfirmForm – keyboard visibility', () => {
 
     // Timer has not fired yet – scrollIntoView must not have been called
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── WeeklyMilestoneRow – post-save state transition ───────────────────────────
+
+describe('WeeklyMilestoneRow – post-save state transition', () => {
+  const milestone: WeekMilestone = {
+    weekIndex: 1,
+    weekDate: new Date('2026-01-07'),
+    dateLabel: 'Jan 7, 26',
+    expectedAmount: 5000,
+    status: 'behind',
+    isPast: true,
+  };
+
+  beforeEach(() => {
+    // ConfirmForm calls scrollIntoView on mount; provide a no-op so jsdom doesn't error
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('shows the confirm form when isConfirming=true and hides it after save with confirmed state', async () => {
+    const onSave = vi.fn();
+    const onConfirmChange = vi.fn();
+
+    const { rerender, getByText, queryByText } = render(
+      <WeeklyMilestoneRow
+        milestone={milestone}
+        color="#22C55E"
+        isHistoryConfirmed={false}
+        isConfirming={true}
+        confirmValue="4800"
+        onConfirmChange={onConfirmChange}
+        onTap={vi.fn()}
+        onSave={onSave}
+        onCancelConfirm={vi.fn()}
+        isSaving={false}
+      />,
+    );
+
+    // Form should be visible: the question prompt is present
+    expect(getByText(/how much have you actually saved/i)).toBeInTheDocument();
+
+    // Clicking Save triggers onSave
+    fireEvent.click(getByText('Save'));
+    expect(onSave).toHaveBeenCalledOnce();
+
+    // Simulate parent updating state after a successful save:
+    // form closes and the row switches to confirmed mode
+    rerender(
+      <WeeklyMilestoneRow
+        milestone={milestone}
+        color="#22C55E"
+        isHistoryConfirmed={true}
+        historyAmount={4800}
+        isConfirming={false}
+        confirmValue=""
+        onConfirmChange={onConfirmChange}
+        onTap={vi.fn()}
+        onSave={onSave}
+        onCancelConfirm={vi.fn()}
+        isSaving={false}
+      />,
+    );
+
+    // Form is gone – no Save button and no prompt text
+    expect(queryByText('Save')).not.toBeInTheDocument();
+    expect(queryByText(/how much have you actually saved/i)).not.toBeInTheDocument();
+
+    // The row is in confirmed state – the date label is still rendered
+    expect(getByText('Jan 7, 26')).toBeInTheDocument();
   });
 });

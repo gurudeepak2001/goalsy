@@ -197,7 +197,7 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
 
 // ── Weekly milestones computation ─────────────────────────────────────────────
 
-interface WeekMilestone {
+export interface WeekMilestone {
   weekIndex: number;
   weekDate: Date;
   dateLabel: string;
@@ -330,7 +330,7 @@ function PlanStepRow({ step, color }: { step: PlanStep; color: string }) {
 
 // ── Weekly milestone row ──────────────────────────────────────────────────────
 
-function WeeklyMilestoneRow({
+export function WeeklyMilestoneRow({
   milestone,
   color,
   isHistoryConfirmed,
