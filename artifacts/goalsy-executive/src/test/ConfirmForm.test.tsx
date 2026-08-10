@@ -12,6 +12,13 @@ import React from 'react';
 
 // ── Mock heavy dependencies pulled in by GoalDetailScreen ─────────────────────
 
+// Capacitor is not available in the jsdom test environment; stub it so that
+// ConfirmForm skips the native Keyboard-plugin path and uses only the
+// visualViewport / timer strategies.
+vi.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: () => false },
+}));
+
 vi.mock('wouter', () => ({
   useParams: () => ({ id: '1' }),
   useLocation: () => ['/', vi.fn()],

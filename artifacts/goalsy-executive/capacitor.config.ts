@@ -47,6 +47,16 @@ const config: CapacitorConfig = {
       androidSplashResourceName: 'splash',
       iosSplashResourceName: 'Splash',
     },
+
+    // Keyboard — resize the <body> (not just pan/scroll the WebView) when
+    // the soft keyboard appears on Android. This means our CSS layout
+    // reflows to the reduced viewport height, and scrollIntoView / visualViewport
+    // resize listeners work predictably in both web and Capacitor shells.
+    Keyboard: {
+      resize: 'body',
+      style: 'dark',
+      resizeOnFullScreen: true,
+    },
   },
 };
 

@@ -89,6 +89,7 @@
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/ios": "^8.4.2",
+    "@capacitor/keyboard": "^8.0.5",
     "@clerk/react": "^6.12.2",
     "@clerk/themes": "^2.4.57"
   }

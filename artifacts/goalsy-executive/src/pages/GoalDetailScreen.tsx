@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   ResponsiveContainer, LineChart, Line,
   XAxis, YAxis, Tooltip,
@@ -463,13 +464,47 @@ export function ConfirmForm({
 }) {
   const formRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Give the keyboard a moment to appear before scrolling
-    const timer = setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 150);
-    return () => clearTimeout(timer);
+  const scrollFormIntoView = useCallback(() => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, []);
+
+  useEffect(() => {
+    // ── Strategy 1: Capacitor Keyboard plugin (Android / iOS native shell) ──
+    // `keyboardDidShow` fires after the keyboard has fully appeared and the
+    // body has been resized (because we set resize:'body' in capacitor.config.ts).
+    // This is more reliable than a fixed timeout on Android Capacitor builds.
+    let cleanupNative: (() => void) | undefined;
+
+    if (Capacitor.isNativePlatform()) {
+      // Dynamically import so the web bundle never tries to resolve the plugin
+      // on platforms where it isn't registered.
+      import('@capacitor/keyboard').then(({ Keyboard }) => {
+        Keyboard.addListener('keyboardDidShow', scrollFormIntoView).then((handle) => {
+          cleanupNative = () => handle.remove();
+        });
+      }).catch(() => {
+        // Plugin unavailable — fall through to the timeout strategy below.
+      });
+    }
+
+    // ── Strategy 2: visualViewport resize (web browsers + Capacitor fallback) ──
+    // When the soft keyboard opens the visible viewport shrinks; scrolling
+    // after the resize fires is more reliable than a fixed 150 ms timeout.
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', scrollFormIntoView);
+    }
+
+    // ── Strategy 3: fixed-delay fallback ──
+    // Covers very old WebViews that don't expose visualViewport.
+    const timer = setTimeout(scrollFormIntoView, 150);
+
+    return () => {
+      cleanupNative?.();
+      vv?.removeEventListener('resize', scrollFormIntoView);
+      clearTimeout(timer);
+    };
+  }, [scrollFormIntoView]);
 
   return (
         <div ref={formRef} className="pb-3 pl-8 flex flex-col gap-2">
