@@ -27,16 +27,32 @@ const keyboardListenerStore = vi.hoisted(() => ({
   listeners: new Map<string, () => void>(),
 }));
 
+// When set to true the @capacitor/keyboard mock throws from addListener,
+// which propagates through the .then() chain and triggers the .catch() block
+// inside the ConfirmForm useEffect — simulating an unavailable Capacitor plugin.
+const keyboardShouldFail = vi.hoisted(() => ({ value: false }));
+
 // ── Mock heavy dependencies pulled in by GoalDetailScreen ─────────────────────
 
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: () => nativePlatformFlag.value },
+  Capacitor: {
+    isNativePlatform: () => nativePlatformFlag.value,
+    // Default to 'android' so the component uses 'keyboardDidShow'.
+    // Tests that need iOS behaviour can override this via nativePlatformFlag.
+    getPlatform: () => 'android',
+  },
 }));
 
 // Capacitor Keyboard plugin – capture the listener so tests can fire it.
+// When keyboardShouldFail.value is true, addListener throws synchronously,
+// propagating through the .then() chain and triggering the .catch() block in
+// the ConfirmForm useEffect (simulating an unavailable / unregistered plugin).
 vi.mock('@capacitor/keyboard', () => ({
   Keyboard: {
     addListener: (event: string, cb: () => void) => {
+      if (keyboardShouldFail.value) {
+        throw new Error('@capacitor/keyboard plugin not registered');
+      }
       keyboardListenerStore.listeners.set(event, cb);
       return Promise.resolve({ remove: vi.fn() });
     },
@@ -297,6 +313,66 @@ describe('ConfirmForm – keyboard visibility (visualViewport resize path)', () 
 
     // The visualViewport path should have fired scrollIntoView already,
     // before any timer advance.
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+});
+
+// ── Tests: Capacitor keyboard plugin unavailable (error-branch / offline) ─────
+//
+// When the @capacitor/keyboard plugin is not registered (e.g. partially-bundled
+// build, older Capacitor runtime, or the device is fully offline and the plugin
+// DLL fails to load), addListener throws synchronously inside the .then() handler
+// of the dynamic import, which propagates to the .catch() block and silently
+// falls through. The 150 ms unconditional timer must still fire so the form is
+// never left hidden behind the keyboard.
+
+describe('ConfirmForm – keyboard visibility (Capacitor plugin unavailable / offline)', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // Enable native platform so the component attempts the Capacitor path.
+    nativePlatformFlag.value = true;
+    // Tell the mock to throw from addListener, exercising the .catch() branch.
+    keyboardShouldFail.value = true;
+    keyboardListenerStore.listeners.clear();
+    setMobileViewport();
+    scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock as unknown as typeof HTMLElement.prototype.scrollIntoView;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    nativePlatformFlag.value = false;
+    keyboardShouldFail.value = false;
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('timer fallback calls scrollIntoView within 150 ms when the Capacitor keyboard plugin throws (error branch exercised)', async () => {
+    render(<ConfirmForm {...defaultProps} />);
+
+    // Flush microtasks so the dynamic import .then() executes, addListener
+    // throws, and the .catch() block silently swallows the error.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // The error branch swallowed the exception — no listener was registered.
+    expect(keyboardListenerStore.listeners.has('keyboardDidShow')).toBe(false);
+    expect(keyboardListenerStore.listeners.has('keyboardWillShow')).toBe(false);
+
+    // scrollIntoView must not yet have been called (timer hasn't fired).
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+    // Advance past the 150 ms fallback timer — it must fire regardless of the
+    // plugin failure, ensuring the form is never left hidden behind the keyboard.
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalledOnce();
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
   });
 });
