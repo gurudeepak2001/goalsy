@@ -32,8 +32,15 @@ import type { Goal, FinancialProfile } from '@workspace/api-client-react';
 
 function formatDollars(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
   return `$${n.toLocaleString()}`;
+}
+
+// Compact formatter for chart Y-axis tick labels only — the axis column is
+// 42 px wide at 9 pt, so full comma-separated amounts won't fit.
+function formatDollarsAxis(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+  return `$${n}`;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -1081,7 +1088,7 @@ export default function GoalDetailScreen() {
                     axisLine={false}
                     tickLine={false}
                     width={42}
-                    tickFormatter={(v: number) => formatDollars(v)}
+                    tickFormatter={(v: number) => formatDollarsAxis(v)}
                   />
                   <Tooltip
                     contentStyle={{
