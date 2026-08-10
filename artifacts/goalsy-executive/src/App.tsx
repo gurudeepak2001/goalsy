@@ -131,6 +131,18 @@ function ApiClientBootstrap() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [getToken]);
 
+  // Keepalive: proactively refresh every 10 minutes while the app is in the
+  // foreground. This resets Clerk's inactivity clock so normal usage patterns
+  // (opening the app at least once every 7 days) never hit the session timeout.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!document.hidden) {
+        try { await getToken({ skipCache: true }); } catch { /* ignore — expired sessions are handled by auth guard */ }
+      }
+    }, 10 * 60 * 1000); // every 10 minutes
+    return () => clearInterval(interval);
+  }, [getToken]);
+
   return null;
 }
 
