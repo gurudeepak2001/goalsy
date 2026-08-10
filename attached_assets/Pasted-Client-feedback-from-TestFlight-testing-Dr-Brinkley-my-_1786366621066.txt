@@ -1,0 +1,75 @@
+Client feedback from TestFlight testing (Dr. Brinkley, my manager) — 
+please address each point below. Investigate root cause before fixing, 
+same as usual.
+
+1. SIGN IN SCREEN — Add a back button
+   Location: Sign In screen
+   Feedback: "Needs a back button so that if someone says they have an 
+   account but don't, that they can go back."
+   Fix: Add a way to navigate back from Sign In to the previous screen 
+   (Welcome), for users who land on Sign In but don't actually have an 
+   account yet.
+
+2. FINANCIAL PROFILE — Savings Rate field should be a dollar amount, not 
+   a percentage
+   Location: Financial Profile (Step 02) form
+   Feedback: "Savings rate should not be a percentage but instead be a 
+   fixed number. There should also be a tool tip that explains this."
+   Fix: Change the Savings Rate input from a percentage field to a fixed 
+   dollar amount field. Add a tooltip/info icon next to it explaining 
+   what this field means and how it's used.
+
+3. FINANCIAL PROFILE — "Could not save profile" error
+   Location: Financial Profile form, tapping Continue
+   Feedback: Client got a "Could not save profile. Please try again." 
+   error after entering valid info.
+   Fix: Confirm whether this is the same bug already being investigated/
+   fixed (server-side error logging was added). If still occurring, dig 
+   into the actual logged error and resolve it. Confirm with a real test 
+   before considering this closed.
+
+4. SIGN IN — App signs the user out after a period of inactivity
+   Location: Session handling, app-wide
+   Feedback: "App signs out for some reason after some time of no usage. 
+   It shouldn't log the user out."
+   Fix: Investigate the session/token expiry behavior (Clerk session 
+   handling) and confirm sessions persist appropriately without 
+   unexpectedly logging the user out after inactivity, matching the 
+   original "sessions persist across launches" requirement.
+
+5. AI HOME — Clarify what data is real vs. sample
+   Location: AI Home (Strategic Intelligence) screen
+   Feedback: "Is any of this real data? I'm unsure where this data is 
+   coming from."
+   Fix: This is a communication/labeling issue, not necessarily a code 
+   bug — but consider adding a subtle "Sample Data" or "Illustrative" 
+   label somewhere on AI Home (and any other screens showing mock 
+   financial data) so testers/users understand what's real vs. 
+   placeholder. Show me your suggested approach before implementing, 
+   since this affects visual design slightly.
+
+6. CREATE GOAL — Missing goal type option
+   Location: Create Goal modal, Goal Type dropdown
+   Feedback: "Auto purchase or should be a type as well" — current goal 
+   types are Home Purchase, Retirement, Education, Emergency Fund, 
+   Investment Portfolio, Other. Client wants "Auto Purchase" (or a 
+   general Vehicle/Auto type) added as its own option instead of falling 
+   under "Other."
+   Fix: Add "Auto Purchase" (or "Vehicle") as a goal type option in the 
+   dropdown.
+
+7. CREATE GOAL — Target Completion Date pre-populates with a wrong/random 
+   date
+   Location: Create Goal modal, date picker
+   Feedback: "Where is this target date coming from? The user should be 
+   able to set this before it pre-populates." Screenshot shows the date 
+   picker pre-populated to "June 4068" — clearly an incorrect default.
+   Fix: This is a real bug — investigate why the date picker is 
+   pre-populating with an invalid/nonsensical date instead of being 
+   empty by default. The field should start blank and only populate when 
+   the user actively selects a date (or via the bidirectional auto-fill 
+   logic already built, if contribution amount is entered first).
+
+Please go through these one at a time, show me the root cause for each 
+before fixing (especially #3, #4, and #7, which are real bugs not just 
+UX preferences), and confirm each fix before moving to the next.
