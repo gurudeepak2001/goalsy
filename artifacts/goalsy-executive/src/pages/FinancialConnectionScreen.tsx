@@ -308,7 +308,7 @@ export default function FinancialConnectionScreen() {
                 <Shield size={16} className="text-[#444444]" strokeWidth={2} />
               </div>
               <span className="text-[#444444] text-[10px] font-bold uppercase text-center" style={{ letterSpacing: '2px', lineHeight: '15px' }}>
-                Goalsy Executive © 2024 · All Systems Secure
+                Goalsy © 2024 · All Systems Secure
               </span>
             </div>
           </main>
@@ -388,7 +388,7 @@ export default function FinancialConnectionScreen() {
                 <Shield size={16} className="text-[#444444]" strokeWidth={2} />
               </div>
               <span className="text-[#444444] text-[10px] font-bold uppercase text-center" style={{ letterSpacing: '2px', lineHeight: '15px' }}>
-                Goalsy Executive © 2024 · All Systems Secure
+                Goalsy © 2024 · All Systems Secure
               </span>
             </div>
           </main>

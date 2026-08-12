@@ -34,7 +34,7 @@ export default function SplashScreen() {
 
         {/* Text section — column, items center */}
         <div className="flex flex-col items-center" style={{ width: 215 }}>
-          {/* GoalsyExecutive — Inter 700, 28px, −1px tracking */}
+          {/* Goalsy — Inter 700, 28px, −1px tracking */}
           <span
             style={{
               fontFamily: 'Inter, sans-serif',
@@ -47,7 +47,7 @@ export default function SplashScreen() {
               width: 215,
             }}
           >
-            GoalsyExecutive
+            Goalsy
           </span>
 
           {/* Divider — 48×2px, #2563EB, 16px top margin */}

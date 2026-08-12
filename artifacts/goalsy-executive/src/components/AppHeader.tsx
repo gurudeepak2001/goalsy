@@ -268,7 +268,7 @@ export default function AppHeader({
               <span className="text-white font-bold text-xl tracking-[-0.5px]">{title}</span>
             ) : showLogo ? (
               <span className={`text-white font-bold ${showSecureMode ? 'text-lg tracking-[-0.45px]' : 'text-xl tracking-[-0.5px]'}`}>
-                GoalsyExecutive
+                Goalsy
               </span>
             ) : null}
           </>
