@@ -48,34 +48,61 @@ const PREF_PREFIX = 'cm_'; // namespace prefix to avoid collisions
 async function saveClerkToPreferences(): Promise<void> {
   if (!isCapacitor) return;
   try {
+    // Dump all localStorage keys so Safari Web Inspector shows us what Clerk
+    // actually stores — key names confirmed here, not assumed.
+    const allKeys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key?.startsWith('__clerk')) continue;
+      const k = localStorage.key(i);
+      if (k) allKeys.push(k);
+    }
+    console.log('[Goalsy:save] localStorage keys at save time:', allKeys);
+
+    const clerkKeys = allKeys.filter(k => k.startsWith('__clerk'));
+    console.log('[Goalsy:save] __clerk* keys found:', clerkKeys);
+
+    for (const key of clerkKeys) {
       const value = localStorage.getItem(key);
       if (value != null) {
         await Preferences.set({ key: `${PREF_PREFIX}${key}`, value });
+        console.log('[Goalsy:save] saved to Preferences:', key, '(length:', value.length, ')');
       }
     }
-  } catch {
-    // Non-fatal — next save attempt will retry
+    console.log('[Goalsy:save] done, saved', clerkKeys.length, 'keys');
+  } catch (err) {
+    console.error('[Goalsy:save] Preferences.set FAILED — native bridge not wired?', err);
   }
 }
 
 async function restoreClerkFromPreferences(): Promise<void> {
   if (!isCapacitor) return;
   try {
-    const { keys } = await Preferences.keys();
-    for (const prefKey of keys) {
-      if (!prefKey.startsWith(PREF_PREFIX)) continue;
+    // Log everything currently in localStorage before we touch it — this tells
+    // us whether anything survived the app kill without our help.
+    const lsSnapshot: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) lsSnapshot.push(k);
+    }
+    console.log('[Goalsy:restore] localStorage on cold start (before restore):', lsSnapshot);
+
+    const { keys: prefKeys } = await Preferences.keys();
+    console.log('[Goalsy:restore] Preferences keys found:', prefKeys);
+
+    const clerkPrefKeys = prefKeys.filter(k => k.startsWith(PREF_PREFIX));
+    console.log('[Goalsy:restore] clerk mirror keys in Preferences:', clerkPrefKeys);
+
+    for (const prefKey of clerkPrefKeys) {
       const lsKey = prefKey.slice(PREF_PREFIX.length);
-      if (!lsKey.startsWith('__clerk')) continue;
       const { value } = await Preferences.get({ key: prefKey });
       if (value != null) {
         localStorage.setItem(lsKey, value);
+        console.log('[Goalsy:restore] restored to localStorage:', lsKey);
       }
     }
-  } catch {
-    // Non-fatal — ClerkProvider will still mount and attempt its own restore
+    console.log('[Goalsy:restore] done, restored', clerkPrefKeys.length, 'keys');
+  } catch (err) {
+    console.error('[Goalsy:restore] Preferences FAILED — native bridge not wired?', err);
+    // Non-fatal — ClerkProvider still mounts and attempts its own restore
   }
 }
 
@@ -201,9 +228,18 @@ function ApiClientBootstrap() {
     return () => clearInterval(interval);
   }, [getToken]);
 
-  // Initial save — runs once when the user is confirmed signed-in so the very
-  // first cold-start after install has something to restore.
+  // Initial save + localStorage dump — runs once when the user is confirmed
+  // signed-in. Logs every localStorage key so Safari Web Inspector shows us
+  // exactly what Clerk stored, then mirrors __clerk* keys to Preferences.
   useEffect(() => {
+    const allKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) allKeys.push(k);
+    }
+    console.log('[Goalsy:clerk-loaded] all localStorage keys after Clerk init:', allKeys);
+    console.log('[Goalsy:clerk-loaded] __clerk* subset:',
+      allKeys.filter(k => k.startsWith('__clerk')));
     saveClerkToPreferences();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
