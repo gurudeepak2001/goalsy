@@ -1,6 +1,7 @@
-import { useEffect, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
+import { Preferences } from '@capacitor/preferences';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { initApiClient } from '@/lib/apiClient';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -26,6 +27,57 @@ import ScoreScreen from '@/pages/ScoreScreen';
 const queryClient = new QueryClient();
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// ── Capacitor Preferences mirror for Clerk localStorage ──────────────────────
+//
+// WKWebView localStorage is purgeable OS data — iOS can silently wipe it under
+// memory pressure, clearing Clerk's __clerk_db_jwt device token and forcing a
+// full sign-out on next cold start. Capacitor Preferences is backed by iOS
+// UserDefaults (never purged by the OS), so we mirror all __clerk_* keys there.
+//
+// saveClerkToPreferences() is called:
+//   (a) when the app goes to the background (visibilitychange hidden=true)
+//   (b) every 10 minutes via the keepalive interval
+//
+// restoreClerkFromPreferences() runs once on cold start, BEFORE ClerkProvider
+// mounts, so Clerk finds the device token already in localStorage and can call
+// FAPI to restore the session without requiring re-authentication.
+
+const PREF_PREFIX = 'cm_'; // namespace prefix to avoid collisions
+
+async function saveClerkToPreferences(): Promise<void> {
+  if (!isCapacitor) return;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('__clerk')) continue;
+      const value = localStorage.getItem(key);
+      if (value != null) {
+        await Preferences.set({ key: `${PREF_PREFIX}${key}`, value });
+      }
+    }
+  } catch {
+    // Non-fatal — next save attempt will retry
+  }
+}
+
+async function restoreClerkFromPreferences(): Promise<void> {
+  if (!isCapacitor) return;
+  try {
+    const { keys } = await Preferences.keys();
+    for (const prefKey of keys) {
+      if (!prefKey.startsWith(PREF_PREFIX)) continue;
+      const lsKey = prefKey.slice(PREF_PREFIX.length);
+      if (!lsKey.startsWith('__clerk')) continue;
+      const { value } = await Preferences.get({ key: prefKey });
+      if (value != null) {
+        localStorage.setItem(lsKey, value);
+      }
+    }
+  } catch {
+    // Non-fatal — ClerkProvider will still mount and attempt its own restore
+  }
+}
 
 // Resolve the Clerk publishable key.
 // In a normal browser the hostname matches the Clerk domain and publishableKeyFromHost
@@ -117,31 +169,43 @@ function ApiClientBootstrap() {
   const { getToken } = useAuth();
   useEffect(() => { initApiClient(getToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refresh the Clerk token whenever the app returns to the foreground.
-  // On mobile (Capacitor WebView), the JS runtime is suspended during sleep, so
-  // Clerk's background auto-refresh never runs. This listener fires on resume and
-  // silently fetches a fresh token so the next API call doesn't 401.
+  // Handle foreground/background transitions:
+  //   • Going to background (hidden=true)  → save Clerk localStorage to Preferences
+  //     so it survives if iOS kills the process while backgrounded.
+  //   • Coming to foreground (hidden=false) → force-refresh the token so the next
+  //     API call doesn't 401 after the JS runtime was suspended during sleep.
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        try { await getToken({ skipCache: true }); } catch { /* session expired — Clerk auth guard redirects */ }
+      if (document.hidden) {
+        // App is going to background — snapshot now before iOS can kill the process
+        await saveClerkToPreferences();
+      } else {
+        // App is returning to foreground — refresh the token in case it lapsed
+        try { await getToken({ skipCache: true }); } catch { /* expired — auth guard handles */ }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [getToken]);
 
-  // Keepalive: proactively refresh every 10 minutes while the app is in the
-  // foreground. This resets Clerk's inactivity clock so normal usage patterns
-  // (opening the app at least once every 7 days) never hit the session timeout.
+  // Keepalive: every 10 minutes while in the foreground — refreshes the token
+  // (resets Clerk's inactivity clock) and re-saves to Preferences so the mirror
+  // stays current even when the user stays in the app without backgrounding it.
   useEffect(() => {
     const interval = setInterval(async () => {
       if (!document.hidden) {
-        try { await getToken({ skipCache: true }); } catch { /* ignore — expired sessions are handled by auth guard */ }
+        try { await getToken({ skipCache: true }); } catch { /* ignore */ }
+        await saveClerkToPreferences();
       }
-    }, 10 * 60 * 1000); // every 10 minutes
+    }, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, [getToken]);
+
+  // Initial save — runs once when the user is confirmed signed-in so the very
+  // first cold-start after install has something to restore.
+  useEffect(() => {
+    saveClerkToPreferences();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }
@@ -171,9 +235,21 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
+  // On Capacitor, restore Clerk's __clerk_* keys from UserDefaults-backed
+  // Preferences into localStorage BEFORE ClerkProvider mounts. This ensures
+  // Clerk finds its device token on cold start even if iOS purged WKWebView
+  // storage. On web (non-Capacitor) skip immediately — no gate needed.
+  const [storageReady, setStorageReady] = useState(!isCapacitor);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
+    if (!isCapacitor) return;
+    restoreClerkFromPreferences().finally(() => setStorageReady(true));
   }, []);
+
+  // Show the splash screen for the < 50 ms it takes to read from Preferences.
+  // This is indistinguishable from the normal Clerk loading splash.
+  if (!storageReady) return <SplashScreen />;
 
   return (
     <ErrorBoundary>
