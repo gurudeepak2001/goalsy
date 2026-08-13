@@ -49,30 +49,30 @@ export default function WelcomeScreen() {
           </p>
         </div>
 
-        <div className="relative w-[311px] h-[320px] mt-16 flex flex-col items-center justify-center">
+        <div className="relative w-[311px] h-[180px] mt-8 flex flex-col items-center justify-center">
           <div
             className="absolute rounded-full"
             style={{
-              width: '300px',
-              height: '300px',
-              left: '5.5px',
-              top: '10px',
+              width: '240px',
+              height: '240px',
+              left: '35px',
+              top: '-30px',
               background: '#2563EB',
               opacity: 0.1,
               filter: 'blur(40px)',
             }}
           />
           <div className="relative z-10 w-[299.39px] text-center">
-            <div className="relative h-[120px] opacity-90">
+            <div className="relative h-[80px] opacity-90">
               <span
-                className="absolute left-0 top-[-0.5px] text-white font-bold text-[120px] leading-[120px]"
-                style={{ letterSpacing: '-6px' }}
+                className="absolute left-0 top-[-0.5px] text-white font-bold text-[80px] leading-[80px]"
+                style={{ letterSpacing: '-4px' }}
               >
                 98.4
               </span>
               <span
-                className="absolute text-[#2563EB] font-bold text-[40px] leading-[40px]"
-                style={{ left: '258.76px', top: '68.5px' }}
+                className="absolute text-[#2563EB] font-bold text-[28px] leading-[28px]"
+                style={{ left: '174px', top: '46px' }}
               >
                 %
               </span>
