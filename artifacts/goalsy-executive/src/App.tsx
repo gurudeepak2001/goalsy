@@ -341,7 +341,9 @@ function Router() {
 function ApiClientBootstrap() {
   const { getToken } = useAuth();
 
-  useEffect(() => { initApiClient(getToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Re-init whenever getToken's identity changes (sign-in / sign-out) — the
+  // api client must never hold a stale pre-sign-in getToken that returns null.
+  useEffect(() => { initApiClient(getToken); }, [getToken]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
   useEffect(() => {
