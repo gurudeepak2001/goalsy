@@ -15,3 +15,9 @@ Cold-start logs are uncatchable (WebView process replaced on relaunch; Inspector
 
 ## Length-guard both directions
 A bogus ~31-char value can appear as a `__clerk_db_jwt` URL param and get persisted (source: request-url), clobbering the good saved token → user signed out next launch. Guard BOTH preload and persist with a minimum length (real Clerk device JWTs are 300+ chars; guard uses 100).
+
+## Stale getToken capture
+Never let the api client capture Clerk's `getToken` once behind an `initialised` guard — the first mount happens pre-sign-in and that closure returns null forever (all requests 401 despite valid session). Route through a module-level indirection updated on every `[getToken]` identity change.
+
+## `sessions: 0` in FAPI logs is misleading
+Only `/v1/client` responses carry a `sessions` array; `/touch` returns a session object and `/tokens` a token object, so the interceptor log prints 0 for those regardless of real state.
