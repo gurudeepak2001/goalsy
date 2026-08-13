@@ -166,7 +166,9 @@ if (isCapacitor && FAPI_ORIGIN) {
               return injectedResponse.clone();
             } catch (injectErr) {
               // Fall through to the unmodified _fetch below.
-              console.error('[Goalsy:jwt] injection failed, falling back:', String(injectErr));
+              const e = injectErr as any;
+              console.error('[Goalsy:jwt] injection failed, falling back —',
+                'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(injectErr));
             }
           }
         }
@@ -198,7 +200,9 @@ if (isCapacitor && FAPI_ORIGIN) {
 
     } catch (interceptorErr) {
       // Interceptor itself threw — fall back to the real fetch unconditionally.
-      console.error('[Goalsy:fapi] interceptor error, falling back:', interceptorErr);
+      const e = interceptorErr as any;
+      console.error('[Goalsy:fapi] interceptor error, falling back —',
+        'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(interceptorErr));
       return _fetch(input as RequestInfo, init);
     }
   };
