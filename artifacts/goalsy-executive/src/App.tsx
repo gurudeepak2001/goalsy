@@ -51,11 +51,26 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const isCapacitor = !!(window as any).Capacitor;
 
 // ── Clerk publishable key & proxy URL ────────────────────────────────────────
+// Native builds (cap:build) bake in VITE_API_BASE_URL — the deployed server.
+// The deployed server validates sessions against the PRODUCTION Clerk instance
+// (live keys are swapped in at publish time), so the native app must
+// authenticate against that same instance, through the server's Clerk proxy
+// (/api/__clerk) — exactly like the published web app does. Using the dev
+// (pk_test) instance here produces tokens the deployed API always rejects (401).
+const nativeApiBase = isCapacitor ? (import.meta.env.VITE_API_BASE_URL ?? '') : '';
+const nativeApiHost = (() => {
+  try { return nativeApiBase ? new URL(nativeApiBase).hostname : ''; } catch { return ''; }
+})();
+
 const clerkPubKey = isCapacitor
-  ? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  ? (nativeApiHost
+      ? publishableKeyFromHost(nativeApiHost, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+      : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
-const clerkProxyUrl = isCapacitor ? undefined : import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkProxyUrl = isCapacitor
+  ? (nativeApiHost ? `https://${nativeApiHost}/api/__clerk` : undefined)
+  : import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
