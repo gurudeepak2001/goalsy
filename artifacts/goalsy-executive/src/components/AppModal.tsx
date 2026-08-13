@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
@@ -24,6 +25,10 @@ export default function AppModal({ open, onOpenChange, title, children }: AppMod
       contentRef.current.style.maxHeight = '';
     }
     keyboardHeightRef.current = 0;
+
+    // Keyboard plugin is only available inside the Capacitor native shell.
+    // Skip entirely on web — the browser handles keyboard avoidance natively.
+    if (!Capacitor.isNativePlatform()) return;
 
     let willShowHandle: { remove: () => void } | null = null;
     let willHideHandle: { remove: () => void } | null = null;
