@@ -30,50 +30,59 @@ export default function AppModal({ open, onOpenChange, title, children }: AppMod
     // Skip entirely on web — the browser handles keyboard avoidance natively.
     if (!Capacitor.isNativePlatform()) return;
 
-    let willShowHandle: { remove: () => void } | null = null;
-    let willHideHandle: { remove: () => void } | null = null;
+    // disposed flag: if the modal closes/unmounts before the async import or
+    // addListener promises resolve, late-resolving handles are removed
+    // immediately instead of leaking.
+    let disposed = false;
+    const handles: Array<{ remove: () => void }> = [];
+    const keepOrRemove = (h: { remove: () => void }) => {
+      if (disposed) h.remove();
+      else handles.push(h);
+    };
+
+    const onShow = (info: { keyboardHeight: number }) => {
+      keyboardHeightRef.current = info.keyboardHeight;
+      if (contentRef.current) {
+        contentRef.current.style.bottom = `${info.keyboardHeight}px`;
+        // Shrink max-height so the sheet doesn't overflow the visible area.
+        contentRef.current.style.maxHeight = `calc(85dvh - ${info.keyboardHeight}px)`;
+      }
+      // Scroll the focused input into view inside the modal.
+      requestAnimationFrame(() => {
+        const focused = document.activeElement as HTMLElement | null;
+        focused?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      });
+    };
+    const onHide = () => {
+      keyboardHeightRef.current = 0;
+      if (contentRef.current) {
+        contentRef.current.style.bottom = '0px';
+        contentRef.current.style.maxHeight = '';
+      }
+    };
 
     import('@capacitor/keyboard').then(({ Keyboard }) => {
+      if (disposed) return;
       // iOS: keyboardWillShow fires *before* the slide-up animation so the
       // sheet moves in sync with the keyboard. Android uses keyboardDidShow
       // (after resize:'body' has settled) — but the transition still looks
       // smooth because the body resize already happened.
-      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-      Keyboard.addListener(
-        isIos ? 'keyboardWillShow' : 'keyboardDidShow',
-        (info: { keyboardHeight: number }) => {
-          keyboardHeightRef.current = info.keyboardHeight;
-          if (contentRef.current) {
-            contentRef.current.style.bottom = `${info.keyboardHeight}px`;
-            // Shrink max-height so the sheet doesn't overflow the visible area.
-            contentRef.current.style.maxHeight = `calc(85dvh - ${info.keyboardHeight}px)`;
-          }
-          // Scroll the focused input into view inside the modal.
-          requestAnimationFrame(() => {
-            const focused = document.activeElement as HTMLElement | null;
-            focused?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-          });
-        },
-      ).then((h) => { willShowHandle = h; });
-
-      Keyboard.addListener(
-        isIos ? 'keyboardWillHide' : 'keyboardDidHide',
-        () => {
-          keyboardHeightRef.current = 0;
-          if (contentRef.current) {
-            contentRef.current.style.bottom = '0px';
-            contentRef.current.style.maxHeight = '';
-          }
-        },
-      ).then((h) => { willHideHandle = h; });
+      // Explicit branches keep the typed addListener overloads happy.
+      if (Capacitor.getPlatform() === 'ios') {
+        Keyboard.addListener('keyboardWillShow', onShow).then(keepOrRemove);
+        Keyboard.addListener('keyboardWillHide', onHide).then(keepOrRemove);
+      } else {
+        Keyboard.addListener('keyboardDidShow', onShow).then(keepOrRemove);
+        Keyboard.addListener('keyboardDidHide', onHide).then(keepOrRemove);
+      }
     }).catch(() => {
       // Not running inside Capacitor (e.g. web browser) — no-op.
     });
 
     return () => {
-      willShowHandle?.remove();
-      willHideHandle?.remove();
+      disposed = true;
+      handles.forEach((h) => h.remove());
+      handles.length = 0;
       // Reset when modal closes.
       if (contentRef.current) {
         contentRef.current.style.bottom = '0px';
