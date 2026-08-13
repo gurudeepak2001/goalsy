@@ -101,15 +101,26 @@ function debugRecord(entry: Record<string, unknown>): void {
   } catch { /* never crash */ }
 }
 
+// Clerk device JWTs are always 300+ characters (they are signed JWTs).
+// Anything shorter is a corrupted/truncated value — treat it as absent and
+// delete it so we don't silently auth every request as 401.
+const MIN_JWT_LENGTH = 100;
+
 async function preloadDbJwt(): Promise<void> {
   if (!isCapacitor) return;
   try {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
-    if (value) {
+    if (value && value.length >= MIN_JWT_LENGTH) {
       cachedDbJwt = value;
       hadSavedToken = true;
       console.log('[Goalsy:jwt] preloaded __clerk_db_jwt (len:', value.length, ')');
       debugRecord({ step: 'preload', found: true, tokenLen: value.length });
+    } else if (value) {
+      // Value exists but is too short to be a real JWT — discard it so Clerk
+      // falls through to its own sign-in flow instead of silently failing.
+      console.log('[Goalsy:jwt] stored token too short (len:', value.length, ') — discarding');
+      debugRecord({ step: 'preload', found: false, discarded: true, tokenLen: value.length });
+      Preferences.remove({ key: DB_JWT_PREF_KEY }).catch(() => {});
     } else {
       console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
       debugRecord({ step: 'preload', found: false });
