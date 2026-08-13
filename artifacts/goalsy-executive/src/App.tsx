@@ -30,7 +30,26 @@ import ScoreScreen from '@/pages/ScoreScreen';
 
 console.log('[Goalsy] imports done');
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Never retry 401/403 — the user isn't authenticated; retrying won't help
+      // and floods the server. Retry once on genuine server errors (5xx).
+      retry: (failureCount, error: unknown) => {
+        const status = (error as { status?: number })?.status;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 1;
+      },
+      // Treat data as fresh for 60 seconds — avoids re-fetching on every
+      // navigation or tab-focus when the data hasn't changed.
+      staleTime: 60_000,
+      // Don't refetch just because the user switched tabs. The keepalive
+      // in ApiClientBootstrap refreshes the token; queries refresh on
+      // mutation invalidation and explicit user action.
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // ── Runtime detection ─────────────────────────────────────────────────────────
