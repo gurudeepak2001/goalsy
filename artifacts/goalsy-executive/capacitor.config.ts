@@ -32,17 +32,13 @@ const config: CapacitorConfig = {
   },
 
   ios: {
-    // Matches the UIViewControllerBasedStatusBarAppearance key in Info.plist.
-    // Keeps the status bar light (white text) to match the dark theme.
-    //
-    // Note: `contentInset: 'always'` only controls the WKWebView's top/bottom
-    // content inset relative to safe-area edges (notch / home indicator).
-    // It does NOT interact with keyboard resize behaviour — the two settings
-    // are orthogonal. When the keyboard appears, `resize: 'body'` below
-    // shrinks the <body> to the visible space; the top contentInset is
-    // unaffected and the bottom safe-area inset correctly becomes 0 because
-    // the keyboard now occupies that region.
-    contentInset: 'always',
+    // Edge-to-edge WebView: the CSS handles safe areas itself via
+    // viewport-fit=cover + env(safe-area-inset-*) (pt-safe / pb-safe /
+    // --safe-top / --safe-bottom). `contentInset: 'always'` would ALSO
+    // inset the WebView natively, applying the notch / home-indicator
+    // spacing twice — which pushed the bottom tab bar up off the screen
+    // edge and left a dead band beneath it.
+    contentInset: 'never',
   },
 
   plugins: {
