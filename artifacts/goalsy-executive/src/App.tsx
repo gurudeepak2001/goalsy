@@ -130,40 +130,44 @@ if (isCapacitor && FAPI_ORIGIN) {
           // Token present in outgoing request — update our persisted copy.
           persistDbJwt(jwtInRequest);
         } else if (cachedDbJwt) {
-          // Cold-start: Clerk doesn't have a token yet but we have a saved one.
-          // Attempt to inject it.  The entire path is in its own try/catch so
-          // any failure (bad URL, network error, opaque response) falls through
-          // to the normal unmodified _fetch below rather than returning a broken
-          // Response that makes Clerk's .json() call throw.
-          try {
-            urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
-            const modifiedUrl = urlObj.toString();
-            // Log first 100 chars of URL so we can spot any corruption.
-            console.log('[Goalsy:jwt] injecting __clerk_db_jwt, url:', modifiedUrl.slice(0, 100));
+          // Only inject into /v1/client — the endpoint that actually resolves a
+          // device token back to an authenticated session.  Other FAPI endpoints
+          // (e.g. /v1/dev_browser, /v1/environment) don't use __clerk_db_jwt the
+          // same way and injecting into them causes json() parse failures in Clerk.
+          const pathname = urlObj.pathname;
+          const isClientEndpoint = pathname === '/v1/client' || pathname.startsWith('/v1/client/');
 
-            // Always pass the original `init` — avoids reconstructing a RequestInit
-            // from a Request object (body stream edge-cases) and works for both
-            // fetch(urlString, init) and fetch(Request) call shapes.
-            const injectedResponse = await _fetch(modifiedUrl, init);
-
-            // A type:'error' Response has no readable body — treat as failure and
-            // fall back so Clerk doesn't receive an un-json()-able Response.
-            if (injectedResponse.type === 'error') {
-              throw new Error('network error on injected request');
-            }
-
-            // Try to capture the device token from the response header.
+          if (isClientEndpoint) {
+            // Cold-start: Clerk doesn't have a token yet but we have a saved one.
+            // Entire inject path is in its own try/catch — any failure falls through
+            // to the unmodified _fetch below.
             try {
-              const h = injectedResponse.headers.get('Clerk-Db-Jwt')
-                     ?? injectedResponse.headers.get('clerk-db-jwt');
-              if (h) persistDbJwt(h);
-            } catch { /* non-fatal */ }
+              urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
+              const modifiedUrl = urlObj.toString();
+              console.log('[Goalsy:jwt] injecting __clerk_db_jwt into', pathname,
+                '— url:', modifiedUrl.slice(0, 100));
 
-            console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
-            return injectedResponse;
-          } catch (injectErr) {
-            // Injection path failed — fall through to the unmodified _fetch below.
-            console.error('[Goalsy:jwt] injection failed, falling back:', String(injectErr));
+              const injectedResponse = await _fetch(modifiedUrl, init);
+
+              if (injectedResponse.type === 'error') {
+                throw new Error('network error on injected request');
+              }
+
+              // Try to capture the device token from the response header.
+              try {
+                const h = injectedResponse.headers.get('Clerk-Db-Jwt')
+                       ?? injectedResponse.headers.get('clerk-db-jwt');
+                if (h) persistDbJwt(h);
+              } catch { /* non-fatal */ }
+
+              console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
+              // Return a clone so Clerk gets a fresh unread body stream even if any
+              // header inspection above somehow touched the original.
+              return injectedResponse.clone();
+            } catch (injectErr) {
+              // Fall through to the unmodified _fetch below.
+              console.error('[Goalsy:jwt] injection failed, falling back:', String(injectErr));
+            }
           }
         }
       }
