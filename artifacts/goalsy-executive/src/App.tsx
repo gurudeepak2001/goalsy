@@ -131,41 +131,40 @@ if (isCapacitor && FAPI_ORIGIN) {
           persistDbJwt(jwtInRequest);
         } else if (cachedDbJwt) {
           // Cold-start: Clerk doesn't have a token yet but we have a saved one.
-          // Inject it into the URL.  We pass the modified URL string + original
-          // init rather than constructing a new Request object, to avoid any
-          // edge cases with body streams or Request construction on cold start.
-          urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
-          const modifiedUrl = urlObj.toString();
-          console.log('[Goalsy:jwt] injected __clerk_db_jwt into FAPI request');
-
-          const response = await _fetch(
-            modifiedUrl,
-            input instanceof Request
-              ? { method: input.method, headers: input.headers, body: input.body,
-                  mode: input.mode, credentials: input.credentials,
-                  cache: input.cache, redirect: input.redirect }
-              : init,
-          );
-
-          // Also check response header.
+          // Attempt to inject it.  The entire path is in its own try/catch so
+          // any failure (bad URL, network error, opaque response) falls through
+          // to the normal unmodified _fetch below rather than returning a broken
+          // Response that makes Clerk's .json() call throw.
           try {
-            const h = response.headers.get('Clerk-Db-Jwt') ?? response.headers.get('clerk-db-jwt');
-            if (h) persistDbJwt(h);
-          } catch { /* non-fatal */ }
+            urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
+            const modifiedUrl = urlObj.toString();
+            // Log first 100 chars of URL so we can spot any corruption.
+            console.log('[Goalsy:jwt] injecting __clerk_db_jwt, url:', modifiedUrl.slice(0, 100));
 
-          // Diagnostic log.
-          try {
-            const data = await response.clone().json().catch(() => null);
-            if (data) {
-              const path = modifiedUrl.replace(FAPI_ORIGIN, '').split('?')[0];
-              console.log(`[Goalsy:fapi] ${path}`,
-                '→ client_id:', data?.response?.id ?? 'N/A',
-                '| sessions:', (data?.response?.sessions ?? []).length,
-                '| last_active:', data?.response?.last_active_session_id ?? 'none');
+            // Always pass the original `init` — avoids reconstructing a RequestInit
+            // from a Request object (body stream edge-cases) and works for both
+            // fetch(urlString, init) and fetch(Request) call shapes.
+            const injectedResponse = await _fetch(modifiedUrl, init);
+
+            // A type:'error' Response has no readable body — treat as failure and
+            // fall back so Clerk doesn't receive an un-json()-able Response.
+            if (injectedResponse.type === 'error') {
+              throw new Error('network error on injected request');
             }
-          } catch { /* non-fatal */ }
 
-          return response;
+            // Try to capture the device token from the response header.
+            try {
+              const h = injectedResponse.headers.get('Clerk-Db-Jwt')
+                     ?? injectedResponse.headers.get('clerk-db-jwt');
+              if (h) persistDbJwt(h);
+            } catch { /* non-fatal */ }
+
+            console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
+            return injectedResponse;
+          } catch (injectErr) {
+            // Injection path failed — fall through to the unmodified _fetch below.
+            console.error('[Goalsy:jwt] injection failed, falling back:', String(injectErr));
+          }
         }
       }
 
