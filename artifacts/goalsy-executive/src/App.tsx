@@ -132,13 +132,25 @@ async function restoreClerkFromPreferences(): Promise<void> {
     const { value: savedCookies } = await Preferences.get({ key: `${LS_PREFIX}__cookies__` });
     console.log('[Goalsy:restore] cookies from last session:', savedCookies || '(none saved)');
 
+    // ── Inject __client_uat cookie ──────────────────────────────────────────
+    // This is the key session-restoration step. Clerk reads document.cookie
+    // for __client_uat and passes it as ?__clerk_uat= to FAPI, which then
+    // finds and returns the existing session — even in a cross-origin context.
+    const { value: savedUat } = await Preferences.get({ key: 'cm_clerk_uat' }).catch(() => ({ value: null }));
+    if (savedUat) {
+      document.cookie = `__client_uat=${savedUat}; path=/; max-age=2592000`;
+      console.log('[Goalsy:restore] injected __client_uat into document.cookie:', savedUat);
+    } else {
+      console.log('[Goalsy:restore] no __client_uat in Preferences yet (first launch after install)');
+    }
+
     const lsAfter = lsKeys();
     await Preferences.set({
       key: `${DBG_PREFIX}restore_result`,
-      value: JSON.stringify({ time: new Date().toISOString(), restored: mirrorKeys.length, lsAfter }),
+      value: JSON.stringify({ time: new Date().toISOString(), restored: mirrorKeys.length, lsAfter, uatInjected: !!savedUat }),
     });
 
-    console.log('[Goalsy:restore] done, restored', mirrorKeys.length, 'keys');
+    console.log('[Goalsy:restore] done, restored', mirrorKeys.length, 'ls keys, __client_uat injected:', !!savedUat);
   } catch (err) {
     console.error('[Goalsy:restore] Preferences FAILED:', err);
     await Preferences.set({ key: `${DBG_PREFIX}restore_error`, value: String(err) }).catch(() => {});
@@ -154,6 +166,29 @@ async function dumpAndSave(label: string): Promise<void> {
   console.log(`[Goalsy:${label}] ALL localStorage keys (${keys.length}):`, keys);
   console.log(`[Goalsy:${label}] document.cookie:`, document.cookie || '(empty)');
 
+  // window.Clerk.client shows exactly what Clerk has in memory —
+  // updatedAt here equals the __client_uat value we need to persist.
+  const clerkClient = (window as any).Clerk?.client as {
+    id?: string; updatedAt?: number; lastActiveSessionId?: string | null;
+    sessions?: Array<{ id: string; status: string }>;
+  } | undefined;
+  if (clerkClient) {
+    console.log(`[Goalsy:${label}] window.Clerk.client:`, JSON.stringify({
+      id: clerkClient.id,
+      updatedAt: clerkClient.updatedAt,
+      lastActiveSessionId: clerkClient.lastActiveSessionId,
+      sessions: clerkClient.sessions?.map(s => ({ id: s.id, status: s.status })),
+    }));
+    // Save updatedAt directly as a belt-and-suspenders backup for the interceptor.
+    if (typeof clerkClient.updatedAt === 'number' && clerkClient.updatedAt > 0) {
+      document.cookie = `__client_uat=${clerkClient.updatedAt}; path=/; max-age=2592000`;
+      await Preferences.set({ key: 'cm_clerk_uat', value: String(clerkClient.updatedAt) }).catch(() => {});
+      console.log(`[Goalsy:${label}] saved window.Clerk.client.updatedAt as __client_uat:`, clerkClient.updatedAt);
+    }
+  } else {
+    console.log(`[Goalsy:${label}] window.Clerk.client: not available yet`);
+  }
+
   if (isCapacitor) {
     try {
       const { keys: prefKeys } = await Preferences.keys();
@@ -162,7 +197,7 @@ async function dumpAndSave(label: string): Promise<void> {
       // Read the persistent diagnostic records written during the last cold start
       // and last save — these tell us what happened even if Web Inspector wasn't
       // connected at the time.
-      for (const dbgKey of [`${DBG_PREFIX}cold_start`, `${DBG_PREFIX}restore_result`, `${DBG_PREFIX}restore_error`, `${DBG_PREFIX}last_save`]) {
+      for (const dbgKey of [`${DBG_PREFIX}cold_start`, `${DBG_PREFIX}restore_result`, `${DBG_PREFIX}restore_error`, `${DBG_PREFIX}last_save`, 'cm_clerk_uat']) {
         if (prefKeys.includes(dbgKey)) {
           const { value } = await Preferences.get({ key: dbgKey });
           console.log(`[Goalsy:${label}] [PERSISTENT] ${dbgKey}:`, value);
@@ -203,6 +238,85 @@ const clerkProxyUrl = isCapacitor ? undefined : import.meta.env.VITE_CLERK_PROXY
 
 if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+}
+
+// ── FAPI fetch interceptor ────────────────────────────────────────────────────
+//
+// Root cause of session sign-out after force-kill:
+//   Clerk normally persists the session via a __client_uat cookie set by FAPI.
+//   In this Capacitor/WKWebView context the app runs on `localhost` while FAPI
+//   is cross-origin. WKWebView enforces SameSite restrictions, so the cookie is
+//   never sent back to FAPI on cold start — Clerk sees no existing session.
+//
+// Fix:
+//   1. Wrap window.fetch BEFORE Clerk loads its CDN script (ClerkProvider is
+//      what triggers the dynamic script load, so this module-level interceptor
+//      is always installed first).
+//   2. Intercept every FAPI JSON response to extract the `client_uat` timestamp
+//      and the full client/session data for diagnostics.
+//   3. Persist `client_uat` to Capacitor Preferences (backed by UserDefaults —
+//      never purged by iOS).
+//   4. On cold start restoreClerkFromPreferences() injects it back as
+//      document.cookie on localhost. Clerk reads document.cookie for
+//      __client_uat and passes it as ?__clerk_uat=VALUE to FAPI, which then
+//      restores the session without re-authentication.
+
+/** Derives the FAPI base URL (e.g. https://happy-app-0.clerk.accounts.dev)
+ *  from the publishable key (pk_live_BASE64$ or pk_test_BASE64$). */
+function computeFapiUrl(): string {
+  try {
+    const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';
+    const b64 = key.replace(/^pk_(live|test)_/, '');
+    const decoded = atob(b64).replace(/\$$/, ''); // strip trailing $
+    return `https://${decoded}`;
+  } catch {
+    return '';
+  }
+}
+const FAPI_ORIGIN = computeFapiUrl();
+
+if (isCapacitor && FAPI_ORIGIN) {
+  const _fetch = window.fetch.bind(window);
+  (window as any).fetch = async function clerkFapiInterceptor(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) {
+    const url = input instanceof Request ? input.url : String(input);
+    const response = await _fetch(input as RequestInfo, init);
+
+    // Only intercept actual FAPI API calls, not the clerk-js CDN bundle.
+    const isFapiCall = url.startsWith(FAPI_ORIGIN) && !url.includes('/npm/@clerk');
+    if (isFapiCall) {
+      try {
+        const clone = response.clone();
+        const data = await clone.json().catch(() => null);
+        if (data) {
+          const path = url.replace(FAPI_ORIGIN, '').split('?')[0];
+          // client_uat can be at the top level or derived from client.updatedAt
+          const clientUat: number | undefined =
+            data?.client_uat ?? data?.response?.updated_at;
+          const sessions: unknown[] = data?.response?.sessions ?? [];
+          console.log(
+            `[Goalsy:fapi] ${path}`,
+            '→ client_uat:', clientUat ?? 'N/A',
+            '| sessions:', sessions.length,
+            '| last_active:', data?.response?.last_active_session_id ?? 'none',
+          );
+
+          if (typeof clientUat === 'number' && clientUat > 0) {
+            // Inject immediately so Clerk can read it for this session too
+            document.cookie = `__client_uat=${clientUat}; path=/; max-age=2592000`;
+            // Persist so restoreClerkFromPreferences() can inject it on next cold start
+            Preferences.set({ key: 'cm_clerk_uat', value: String(clientUat) }).catch(() => {});
+            console.log('[Goalsy:fapi] persisted __client_uat:', clientUat);
+          }
+        }
+      } catch { /* non-fatal — never break the original fetch */ }
+    }
+
+    return response;
+  };
+  console.log('[Goalsy:fapi] fetch interceptor installed, FAPI_ORIGIN:', FAPI_ORIGIN);
 }
 
 // Screens that require a signed-in user. Signed-out visitors are redirected to /welcome.
