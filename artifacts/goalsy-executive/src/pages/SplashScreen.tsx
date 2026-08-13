@@ -45,6 +45,7 @@ export default function SplashScreen() {
               color: '#FFFFFF',
               display: 'block',
               width: 215,
+              textAlign: 'center',
             }}
           >
             Goalsy
@@ -58,7 +59,7 @@ export default function SplashScreen() {
               backgroundColor: '#2563EB',
               borderRadius: 9999,
               marginTop: 16,
-              alignSelf: 'flex-start',
+              alignSelf: 'center',
             }}
           />
         </div>
