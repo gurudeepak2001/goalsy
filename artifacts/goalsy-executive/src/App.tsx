@@ -43,98 +43,139 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 // mounts, so Clerk finds the device token already in localStorage and can call
 // FAPI to restore the session without requiring re-authentication.
 
-const PREF_PREFIX = 'cm_'; // namespace prefix to avoid collisions
+// Prefix scheme:
+//   cm_ls_  — mirrors a localStorage key into Preferences (restored on cold start)
+//   cm_dbg_ — diagnostic metadata written by save/restore (never written back to localStorage)
+const LS_PREFIX  = 'cm_ls_';
+const DBG_PREFIX = 'cm_dbg_';
+
+/** Snapshot of all localStorage keys, so we can see what Clerk actually stores. */
+function lsKeys(): string[] {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) keys.push(k);
+  }
+  return keys;
+}
 
 async function saveClerkToPreferences(): Promise<void> {
   if (!isCapacitor) return;
   try {
-    // Dump all localStorage keys so Safari Web Inspector shows us what Clerk
-    // actually stores — key names confirmed here, not assumed.
-    const allKeys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k) allKeys.push(k);
-    }
-    console.log('[Goalsy:save] localStorage keys at save time:', allKeys);
+    const keys = lsKeys();
+    const cookies = document.cookie;
+    console.log('[Goalsy:save] ALL localStorage keys:', keys);
+    console.log('[Goalsy:save] document.cookie:', cookies || '(empty)');
 
-    const clerkKeys = allKeys.filter(k => k.startsWith('__clerk'));
-    console.log('[Goalsy:save] __clerk* keys found:', clerkKeys);
-
-    for (const key of clerkKeys) {
+    // Mirror every localStorage key — we don't filter by prefix here because
+    // we don't yet know which key holds the session token.
+    for (const key of keys) {
       const value = localStorage.getItem(key);
       if (value != null) {
-        await Preferences.set({ key: `${PREF_PREFIX}${key}`, value });
-        console.log('[Goalsy:save] saved to Preferences:', key, '(length:', value.length, ')');
+        await Preferences.set({ key: `${LS_PREFIX}${key}`, value });
+        console.log('[Goalsy:save] saved:', key, '(', value.length, 'chars)');
       }
     }
-    console.log('[Goalsy:save] done, saved', clerkKeys.length, 'keys');
+
+    // Also save cookies — Clerk may store the session token as a cookie
+    // rather than in localStorage.
+    await Preferences.set({ key: `${LS_PREFIX}__cookies__`, value: cookies });
+
+    // Write a diagnostic record so dumpAndSave can report it on the NEXT launch.
+    await Preferences.set({
+      key: `${DBG_PREFIX}last_save`,
+      value: JSON.stringify({ time: new Date().toISOString(), lsKeys: keys, cookies: cookies.slice(0, 300) }),
+    });
+
+    console.log('[Goalsy:save] done —', keys.length, 'ls keys + cookies saved');
   } catch (err) {
-    console.error('[Goalsy:save] Preferences.set FAILED — native bridge not wired?', err);
+    console.error('[Goalsy:save] Preferences.set FAILED:', err);
   }
 }
 
 async function restoreClerkFromPreferences(): Promise<void> {
-  // Log before the early return so we always see whether this function ran,
-  // regardless of whether the native bridge is wired.
   console.log('[Goalsy:restore] called. isCapacitor:', isCapacitor);
   if (!isCapacitor) return;
-  try {
-    // Log everything currently in localStorage before we touch it — this tells
-    // us whether anything survived the app kill without our help.
-    const lsSnapshot: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k) lsSnapshot.push(k);
-    }
-    console.log('[Goalsy:restore] localStorage on cold start (before restore):', lsSnapshot);
 
+  const lsBefore = lsKeys();
+  const cookiesBefore = document.cookie;
+
+  // Write a cold-start diagnostic record IMMEDIATELY to Preferences so that
+  // even if Clerk hangs and ApiClientBootstrap never mounts, dumpAndSave will
+  // find this record and report what happened during this cold start.
+  try {
+    await Preferences.set({
+      key: `${DBG_PREFIX}cold_start`,
+      value: JSON.stringify({ time: new Date().toISOString(), lsBefore, cookiesBefore: cookiesBefore.slice(0, 300) }),
+    });
+  } catch { /* if even this fails, the bridge is fully broken */ }
+
+  try {
     const { keys: prefKeys } = await Preferences.keys();
     console.log('[Goalsy:restore] Preferences keys found:', prefKeys);
 
-    const clerkPrefKeys = prefKeys.filter(k => k.startsWith(PREF_PREFIX));
-    console.log('[Goalsy:restore] clerk mirror keys in Preferences:', clerkPrefKeys);
-
-    for (const prefKey of clerkPrefKeys) {
-      const lsKey = prefKey.slice(PREF_PREFIX.length);
-      const { value } = await Preferences.get({ key: prefKey });
+    // Restore every ls-mirror key back to localStorage.
+    const mirrorKeys = prefKeys.filter(k => k.startsWith(LS_PREFIX) && k !== `${LS_PREFIX}__cookies__`);
+    console.log('[Goalsy:restore] localStorage mirrors to restore:', mirrorKeys.length);
+    for (const pk of mirrorKeys) {
+      const lsKey = pk.slice(LS_PREFIX.length);
+      const { value } = await Preferences.get({ key: pk });
       if (value != null) {
         localStorage.setItem(lsKey, value);
         console.log('[Goalsy:restore] restored to localStorage:', lsKey);
       }
     }
-    console.log('[Goalsy:restore] done, restored', clerkPrefKeys.length, 'keys');
+
+    // Note: cookies saved from the previous session are logged here for
+    // inspection — we can't write them back via document.cookie in WKWebView
+    // reliably, but seeing them tells us whether the session token IS a cookie.
+    const { value: savedCookies } = await Preferences.get({ key: `${LS_PREFIX}__cookies__` });
+    console.log('[Goalsy:restore] cookies from last session:', savedCookies || '(none saved)');
+
+    const lsAfter = lsKeys();
+    await Preferences.set({
+      key: `${DBG_PREFIX}restore_result`,
+      value: JSON.stringify({ time: new Date().toISOString(), restored: mirrorKeys.length, lsAfter }),
+    });
+
+    console.log('[Goalsy:restore] done, restored', mirrorKeys.length, 'keys');
   } catch (err) {
-    console.error('[Goalsy:restore] Preferences FAILED — native bridge not wired?', err);
-    // Non-fatal — ClerkProvider still mounts and attempts its own restore
+    console.error('[Goalsy:restore] Preferences FAILED:', err);
+    await Preferences.set({ key: `${DBG_PREFIX}restore_error`, value: String(err) }).catch(() => {});
   }
 }
 
-/** Dumps all localStorage keys AND all Preferences keys to the console, then
- *  mirrors __clerk* to Preferences. label identifies the call-site in the log. */
+/** Dumps localStorage, cookies, and all Preferences state to the console.
+ *  Reads persistent diagnostic records from previous cold start so this
+ *  information is available even when Web Inspector wasn't connected at boot. */
 async function dumpAndSave(label: string): Promise<void> {
-  // --- localStorage snapshot ---
-  const allKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k) allKeys.push(k);
-  }
+  const keys = lsKeys();
   console.log(`[Goalsy:${label}] isCapacitor:`, isCapacitor);
-  console.log(`[Goalsy:${label}] all localStorage keys (${allKeys.length}):`, allKeys);
-  console.log(`[Goalsy:${label}] __clerk* subset:`, allKeys.filter(k => k.startsWith('__clerk')));
+  console.log(`[Goalsy:${label}] ALL localStorage keys (${keys.length}):`, keys);
+  console.log(`[Goalsy:${label}] document.cookie:`, document.cookie || '(empty)');
 
-  // --- Preferences snapshot (tells us whether the native bridge is wired and
-  //     whether a previous save actually persisted anything) ---
   if (isCapacitor) {
     try {
       const { keys: prefKeys } = await Preferences.keys();
       console.log(`[Goalsy:${label}] Preferences keys (${prefKeys.length}):`, prefKeys);
-      for (const k of prefKeys) {
+
+      // Read the persistent diagnostic records written during the last cold start
+      // and last save — these tell us what happened even if Web Inspector wasn't
+      // connected at the time.
+      for (const dbgKey of [`${DBG_PREFIX}cold_start`, `${DBG_PREFIX}restore_result`, `${DBG_PREFIX}restore_error`, `${DBG_PREFIX}last_save`]) {
+        if (prefKeys.includes(dbgKey)) {
+          const { value } = await Preferences.get({ key: dbgKey });
+          console.log(`[Goalsy:${label}] [PERSISTENT] ${dbgKey}:`, value);
+        }
+      }
+
+      // Also log all current ls-mirror values (first 80 chars each).
+      for (const k of prefKeys.filter(k => k.startsWith(LS_PREFIX))) {
         const { value } = await Preferences.get({ key: k });
-        // Log first 80 chars so tokens are recognisable without filling the console.
-        console.log(`[Goalsy:${label}] Preferences["${k}"] =`, value?.substring(0, 80) ?? 'null');
+        console.log(`[Goalsy:${label}] Pref["${k}"] =`, value?.substring(0, 80) ?? 'null');
       }
     } catch (err) {
-      console.error(`[Goalsy:${label}] Preferences READ failed — native bridge missing?`, err);
+      console.error(`[Goalsy:${label}] Preferences READ failed:`, err);
     }
   }
 
