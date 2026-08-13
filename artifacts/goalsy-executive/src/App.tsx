@@ -163,6 +163,13 @@ function restoreDbJwtIntoUrl(): void {
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
+    // Never persist a value too short to be a real JWT — a truncated or
+    // bogus URL param would overwrite the good saved token and sign the
+    // user out on next launch.
+    if (token.length < MIN_JWT_LENGTH) {
+      debugRecord({ step: 'persist-refused', source, reason: 'token too short', tokenLen: token.length });
+      return;
+    }
     // Clobber guard: until the preload+restore sequence has settled we cannot
     // know whether a saved token exists — refuse ALL writes so a freshly minted
     // (session-less) token can never overwrite an unread saved one.
