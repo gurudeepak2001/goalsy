@@ -138,37 +138,48 @@ if (isCapacitor && FAPI_ORIGIN) {
           const isClientEndpoint = pathname === '/v1/client' || pathname.startsWith('/v1/client/');
 
           if (isClientEndpoint) {
-            // Cold-start: Clerk doesn't have a token yet but we have a saved one.
-            // Entire inject path is in its own try/catch — any failure falls through
-            // to the unmodified _fetch below.
-            try {
-              urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
-              const modifiedUrl = urlObj.toString();
-              console.log('[Goalsy:jwt] injecting __clerk_db_jwt into', pathname,
-                '— url:', modifiedUrl.slice(0, 100));
-
-              const injectedResponse = await _fetch(modifiedUrl, init);
-
-              if (injectedResponse.type === 'error') {
-                throw new Error('network error on injected request');
-              }
-
-              // Try to capture the device token from the response header.
+            // Skip injection if Clerk's AbortSignal is already fired — retrying
+            // with a dead signal just causes a second AbortError in the fallback.
+            if (init?.signal?.aborted) {
+              console.log('[Goalsy:jwt] signal already aborted, skipping injection for', pathname);
+            } else {
+              // Cold-start: Clerk doesn't have a token yet but we have a saved one.
+              // Entire inject path is in its own try/catch.
               try {
-                const h = injectedResponse.headers.get('Clerk-Db-Jwt')
-                       ?? injectedResponse.headers.get('clerk-db-jwt');
-                if (h) persistDbJwt(h);
-              } catch { /* non-fatal */ }
+                urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
+                const modifiedUrl = urlObj.toString();
+                console.log('[Goalsy:jwt] injecting __clerk_db_jwt into', pathname,
+                  '— url:', modifiedUrl.slice(0, 100));
 
-              console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
-              // Return a clone so Clerk gets a fresh unread body stream even if any
-              // header inspection above somehow touched the original.
-              return injectedResponse.clone();
-            } catch (injectErr) {
-              // Fall through to the unmodified _fetch below.
-              const e = injectErr as any;
-              console.error('[Goalsy:jwt] injection failed, falling back —',
-                'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(injectErr));
+                const injectedResponse = await _fetch(modifiedUrl, init);
+
+                if (injectedResponse.type === 'error') {
+                  throw new Error('network error on injected request');
+                }
+
+                // Try to capture the device token from the response header.
+                try {
+                  const h = injectedResponse.headers.get('Clerk-Db-Jwt')
+                         ?? injectedResponse.headers.get('clerk-db-jwt');
+                  if (h) persistDbJwt(h);
+                } catch { /* non-fatal */ }
+
+                console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
+                // Return a clone so Clerk gets a fresh unread body stream.
+                return injectedResponse.clone();
+              } catch (injectErr) {
+                const e = injectErr as any;
+                // AbortError = Clerk intentionally cancelled this request.
+                // Re-throw immediately — the fallback _fetch uses the SAME signal
+                // and would also abort, producing a duplicate error and confusing Clerk.
+                if (e?.name === 'AbortError') {
+                  console.log('[Goalsy:jwt] injection aborted by Clerk (signal fired), re-throwing');
+                  throw injectErr;
+                }
+                // Any other error: fall through to the unmodified _fetch below.
+                console.error('[Goalsy:jwt] injection failed, falling back —',
+                  'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(injectErr));
+              }
             }
           }
         }
@@ -199,8 +210,14 @@ if (isCapacitor && FAPI_ORIGIN) {
       return response;
 
     } catch (interceptorErr) {
-      // Interceptor itself threw — fall back to the real fetch unconditionally.
       const e = interceptorErr as any;
+      // AbortError = Clerk cancelled this request intentionally via its own signal.
+      // Re-throw it — the signal is already dead, so retrying _fetch(input, init)
+      // would immediately throw a second AbortError and confuse Clerk's error handling.
+      if (e?.name === 'AbortError') {
+        throw interceptorErr;
+      }
+      // Any other error: fall back to the real fetch unconditionally.
       console.error('[Goalsy:fapi] interceptor error, falling back —',
         'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(interceptorErr));
       return _fetch(input as RequestInfo, init);
