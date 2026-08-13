@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useLocation } from 'wouter';
 import { ArrowUpRight } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
@@ -6,9 +7,29 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 export default function WelcomeScreen() {
   const [, setLocation] = useLocation();
 
+  // TEMP DEBUG: tap the header 5 times to dump the persisted session-restore
+  // diagnostics (survives force-kill; no Web Inspector needed).
+  const tapCount = useRef(0);
+  const handleDebugTap = async () => {
+    tapCount.current += 1;
+    if (tapCount.current < 5) return;
+    tapCount.current = 0;
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      const dbg = await Preferences.get({ key: 'cm_debug_restore' });
+      const tok = await Preferences.get({ key: 'cm_clerk_db_jwt' });
+      alert(
+        `saved token: ${tok.value ? `yes (len ${tok.value.length})` : 'NONE'}\n\n` +
+        `diagnostics:\n${dbg.value ?? '(no entries)'}`
+      );
+    } catch (e) {
+      alert('debug read failed: ' + String(e));
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col justify-between bg-[#05070A] px-8" style={{ paddingTop: 'calc(3rem + var(--safe-top))', paddingBottom: 'calc(2rem + var(--safe-bottom))' }}>
-      <header className="w-[311px] mx-auto">
+      <header className="w-[311px] mx-auto" onClick={handleDebugTap}>
         <AppHeader />
       </header>
 

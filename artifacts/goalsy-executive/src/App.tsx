@@ -65,7 +65,22 @@ if (!clerkPubKey) {
 //     request URL, and also reads it from the Clerk-Db-Jwt response header.
 
 const DB_JWT_PREF_KEY = 'cm_clerk_db_jwt';
+const DEBUG_PREF_KEY = 'cm_debug_restore';
 let cachedDbJwt: string | null = null;
+let hadSavedToken = false;   // a token existed in Preferences at launch
+let restoreDone = false;     // restoreDbJwtIntoUrl() has run
+
+// ── Persistent, console-free diagnostics ─────────────────────────────────────
+// Every entry is written to Preferences immediately, so it survives force-kill
+// and can be read later without Web Inspector (5-tap the Welcome header).
+let debugEntries: Array<Record<string, unknown>> = [];
+function debugRecord(entry: Record<string, unknown>): void {
+  try {
+    debugEntries.push({ t: new Date().toISOString(), ...entry });
+    if (debugEntries.length > 25) debugEntries = debugEntries.slice(-25);
+    Preferences.set({ key: DEBUG_PREF_KEY, value: JSON.stringify(debugEntries, null, 1) }).catch(() => {});
+  } catch { /* never crash */ }
+}
 
 async function preloadDbJwt(): Promise<void> {
   if (!isCapacitor) return;
@@ -73,30 +88,69 @@ async function preloadDbJwt(): Promise<void> {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
     if (value) {
       cachedDbJwt = value;
+      hadSavedToken = true;
       console.log('[Goalsy:jwt] preloaded __clerk_db_jwt (len:', value.length, ')');
+      debugRecord({ step: 'preload', found: true, tokenLen: value.length });
     } else {
       console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
+      debugRecord({ step: 'preload', found: false });
     }
   } catch (err) {
-    // Bridge not ready or plugin missing — proceed without; interceptor will
-    // capture and save the token once Clerk makes its first request.
     console.log('[Goalsy:jwt] preload skipped:', err);
+    debugRecord({ step: 'preload', error: String(err) });
   }
 }
 
-function persistDbJwt(token: string): void {
+// ── The actual restore: hand the token to Clerk through its own front door ───
+// clerk-js's devBrowser.setup() looks for __clerk_db_jwt in the page URL's
+// search params FIRST (extractDevBrowserFromURL), before checking its own
+// storage or minting a new token via POST /v1/dev_browser.  If we put the
+// saved token in the URL before Clerk initializes, Clerk adopts it natively,
+// decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
+// No fetch-level injection needed — that approach fought Clerk's own layer.
+function restoreDbJwtIntoUrl(): void {
+  if (!isCapacitor) return;
+  try {
+    if (!cachedDbJwt) {
+      restoreDone = true;
+      debugRecord({ step: 'restore', skipped: 'no saved token' });
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (!url.searchParams.get('__clerk_db_jwt')) {
+      url.searchParams.set('__clerk_db_jwt', cachedDbJwt);
+      window.history.replaceState(null, '', url.toString());
+    }
+    restoreDone = true;
+    console.log('[Goalsy:jwt] restored __clerk_db_jwt into URL for Clerk pickup');
+    debugRecord({ step: 'restore', ok: true, tokenLen: cachedDbJwt.length });
+  } catch (err) {
+    restoreDone = true;
+    debugRecord({ step: 'restore', error: String(err) });
+  }
+}
+
+function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
+    // Guard against clobbering: if a saved token existed at launch but the URL
+    // restore hasn't run yet, a different token here means Clerk minted a fresh
+    // (session-less) one before we could restore — do NOT overwrite the good one.
+    if (hadSavedToken && !restoreDone) {
+      debugRecord({ step: 'persist-refused', source, reason: 'restore not done — would clobber saved token' });
+      return;
+    }
     cachedDbJwt = token;
     Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
-    console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ')');
+    console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
+    debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
 }
 
-// Fire the preload immediately at module evaluation — this gives it the maximum
-// head-start before Clerk's CDN bundle finishes loading and makes its first
-// FAPI call (typically 200–500 ms later).
-const _preloadPromise: Promise<void> = preloadDbJwt();
+// Preload then restore, at module evaluation — Preferences.get is a fast native
+// bridge call (~ms) while Clerk's CDN bundle takes hundreds of ms to load, so
+// the URL is decorated well before clerk-js reads window.location.
+const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
 
 // ── FAPI base URL ─────────────────────────────────────────────────────────────
 function computeFapiUrl(): string {
@@ -123,75 +177,22 @@ if (isCapacitor && FAPI_ORIGIN) {
       const isFapiCall = originalUrl.startsWith(FAPI_ORIGIN) && !originalUrl.includes('/npm/@clerk');
 
       if (isFapiCall) {
+        // Passive observation only — NO request modification.  Clerk decorates
+        // its own requests with __clerk_db_jwt (devBrowser onBeforeRequest); we
+        // just persist whatever token it is using so the next cold start can
+        // restore it via the URL (restoreDbJwtIntoUrl above).
         const urlObj = new URL(originalUrl);
         const jwtInRequest = urlObj.searchParams.get('__clerk_db_jwt');
-
-        if (jwtInRequest) {
-          // Token present in outgoing request — update our persisted copy.
-          persistDbJwt(jwtInRequest);
-        } else if (cachedDbJwt) {
-          // Only inject into /v1/client — the endpoint that actually resolves a
-          // device token back to an authenticated session.  Other FAPI endpoints
-          // (e.g. /v1/dev_browser, /v1/environment) don't use __clerk_db_jwt the
-          // same way and injecting into them causes json() parse failures in Clerk.
-          const pathname = urlObj.pathname;
-          const isClientEndpoint = pathname === '/v1/client' || pathname.startsWith('/v1/client/');
-
-          if (isClientEndpoint) {
-            // Skip injection if Clerk's AbortSignal is already fired — retrying
-            // with a dead signal just causes a second AbortError in the fallback.
-            if (init?.signal?.aborted) {
-              console.log('[Goalsy:jwt] signal already aborted, skipping injection for', pathname);
-            } else {
-              // Cold-start: Clerk doesn't have a token yet but we have a saved one.
-              // Entire inject path is in its own try/catch.
-              try {
-                urlObj.searchParams.set('__clerk_db_jwt', cachedDbJwt);
-                const modifiedUrl = urlObj.toString();
-                console.log('[Goalsy:jwt] injecting __clerk_db_jwt into', pathname,
-                  '— url:', modifiedUrl.slice(0, 100));
-
-                const injectedResponse = await _fetch(modifiedUrl, init);
-
-                if (injectedResponse.type === 'error') {
-                  throw new Error('network error on injected request');
-                }
-
-                // Try to capture the device token from the response header.
-                try {
-                  const h = injectedResponse.headers.get('Clerk-Db-Jwt')
-                         ?? injectedResponse.headers.get('clerk-db-jwt');
-                  if (h) persistDbJwt(h);
-                } catch { /* non-fatal */ }
-
-                console.log('[Goalsy:jwt] injection succeeded, status:', injectedResponse.status);
-                // Return a clone so Clerk gets a fresh unread body stream.
-                return injectedResponse.clone();
-              } catch (injectErr) {
-                const e = injectErr as any;
-                // AbortError = Clerk intentionally cancelled this request.
-                // Re-throw immediately — the fallback _fetch uses the SAME signal
-                // and would also abort, producing a duplicate error and confusing Clerk.
-                if (e?.name === 'AbortError') {
-                  console.log('[Goalsy:jwt] injection aborted by Clerk (signal fired), re-throwing');
-                  throw injectErr;
-                }
-                // Any other error: fall through to the unmodified _fetch below.
-                console.error('[Goalsy:jwt] injection failed, falling back —',
-                  'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(injectErr));
-              }
-            }
-          }
-        }
+        if (jwtInRequest) persistDbJwt(jwtInRequest, 'request-url');
       }
 
-      // Default path: pass through unchanged.
+      // Pass through unchanged.
       const response = await _fetch(input as RequestInfo, init);
 
       if (isFapiCall) {
         try {
           const h = response.headers.get('Clerk-Db-Jwt') ?? response.headers.get('clerk-db-jwt');
-          if (h) persistDbJwt(h);
+          if (h) persistDbJwt(h, 'response-header');
         } catch { /* non-fatal */ }
 
         try {
@@ -199,10 +200,19 @@ if (isCapacitor && FAPI_ORIGIN) {
           if (data) {
             const path = (input instanceof Request ? input.url : String(input))
               .replace(FAPI_ORIGIN, '').split('?')[0];
+            const clientId = data?.response?.id ?? 'N/A';
+            const sessions = (data?.response?.sessions ?? []).length;
             console.log(`[Goalsy:fapi] ${path}`,
-              '→ client_id:', data?.response?.id ?? 'N/A',
-              '| sessions:', (data?.response?.sessions ?? []).length,
+              '→ client_id:', clientId,
+              '| sessions:', sessions,
               '| last_active:', data?.response?.last_active_session_id ?? 'none');
+            // Persist the first few /v1/client observations — this is the
+            // ground truth for whether the restored token resolved a session.
+            if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
+              debugRecord({ step: 'fapi', path, status: response.status,
+                clientId, sessions,
+                hadJwtInUrl: originalUrl.includes('__clerk_db_jwt') });
+            }
           }
         } catch { /* non-fatal */ }
       }
