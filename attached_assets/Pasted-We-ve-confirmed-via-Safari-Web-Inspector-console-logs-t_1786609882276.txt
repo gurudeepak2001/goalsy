@@ -1,0 +1,19 @@
+We've confirmed via Safari Web Inspector console logs that the current session-persistence approach cannot work. Evidence: document.cookie returns "(empty)" and localStorage only contains __clerk_environment and clerk_telemetry_throttler — neither is the actual session credential. Clerk's real session cookie (__client, __client_uat) is httpOnly and set on Clerk's own cross-origin domain, which makes it permanently invisible to JavaScript by browser design. No JS-level fix (localStorage, document.cookie, Preferences plugin reading JS-visible data) can ever see or persist this cookie.
+
+Please stop attempting JS-level session persistence and implement this instead, entirely at the native Swift/Capacitor level:
+
+On app background (applicationDidEnterBackground in AppDelegate.swift):
+Access the WebView's native cookie store via WKWebView.configuration.websiteDataStore.httpCookieStore
+Call getAllCookies() (async) to read the actual cookie jar — this DOES have access to httpOnly, cross-origin cookies, unlike JS
+Filter for cookies belonging to the Clerk domain (*.clerk.accounts.dev or our specific Clerk instance domain)
+Persist each cookie's full data (name, value, domain, path, expiresDate) to UserDefaults or Keychain
+On app launch, before the WebView loads (in application(_:didFinishLaunchingWithOptions:), before the WKWebView makes its first request):
+Read back the saved cookie data
+Reconstruct HTTPCookie objects and inject them via websiteDataStore.httpCookieStore.setCookie()
+This must complete before the WebView's initial page load, so Clerk's first FAPI call already has the session cookie available
+Logging requirements (log to Xcode console, not Safari Web Inspector — native code doesn't reach the JS console):
+On save: log how many Clerk cookies were found and saved, with cookie names (not values)
+On restore: log how many cookies were restored and injected, with names, before the WebView load call
+Do not re-attempt reading the session from document.cookie, localStorage, or any JS-accessible API — we have console-log proof this is empty/unavailable.
+
+After implementing, tell us exactly which file(s) you changed and paste the relevant new Swift code so we can verify it's using WKHTTPCookieStore, not the JS-side Preferences plugin, before we test.
