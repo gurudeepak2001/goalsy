@@ -12,17 +12,3 @@ On a Clerk **development instance** in a Capacitor WKWebView, the session creden
 
 ## Debugging without Web Inspector
 Cold-start logs are uncatchable (WebView process replaced on relaunch; Inspector can't reattach in time). Write diagnostics to Preferences (`cm_debug_restore`) at every step; TEMP 5-tap on Welcome header dumps it via alert. Remove the debug tap + `[Goalsy:*]` logs once the fix is confirmed. Native `AppDelegate.swift` cookie save/restore found 0 Clerk cookies — confirmed dead code, removable after confirmation.
-
-## Length-guard both directions
-A bogus ~31-char value can appear as a `__clerk_db_jwt` URL param and get persisted (source: request-url), clobbering the good saved token → user signed out next launch. Guard BOTH preload and persist with a minimum length (real Clerk device JWTs are 300+ chars; guard uses 100).
-
-## Stale getToken capture
-Never let the api client capture Clerk's `getToken` once behind an `initialised` guard — the first mount happens pre-sign-in and that closure returns null forever (all requests 401 despite valid session). Route through a module-level indirection updated on every `[getToken]` identity change.
-
-## Native builds must target the PRODUCTION Clerk instance
-Replit-managed Clerk swaps to live keys at publish time — the deployed API validates tokens against the **production** instance only. A native build using the dev (`pk_test`) instance produces tokens the deployed API rejects with 401 forever, no matter how correct the app code is (verified empirically: valid 1068-char dev token → prod API 401).
-
-**How to apply:** when the native build bakes in the deployed API base URL, derive the publishable key with `publishableKeyFromHost(deployedHost)` — with NO fallback arg, because the helper short-circuits to any `pk_test` fallback — and set `proxyUrl` to `https://<deployedHost>/api/__clerk`. Gate all `__clerk_db_jwt` dev-browser machinery off for this path (it's dev-instance-only). Production is a separate user store: dev accounts don't exist there; users must sign up fresh on device.
-
-## `sessions: 0` in FAPI logs is misleading
-Only `/v1/client` responses carry a `sessions` array; `/touch` returns a session object and `/tokens` a token object, so the interceptor log prints 0 for those regardless of real state.

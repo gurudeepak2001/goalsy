@@ -62,6 +62,12 @@ export default function SignInScreen() {
     try {
       const result = await signIn!.create({ identifier: email.trim(), password });
 
+      // Diagnostic — visible in Logcat / browser console so we can see the
+      // exact Clerk response without needing additional tooling.
+      console.log('[Goalsy SignIn] status:', result.status);
+      console.log('[Goalsy SignIn] firstFactors:', JSON.stringify((result as any).supportedFirstFactors ?? []));
+      console.log('[Goalsy SignIn] secondFactors:', JSON.stringify((result as any).supportedSecondFactors ?? []));
+
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
@@ -114,6 +120,7 @@ export default function SignInScreen() {
         // factors so it's visible in the UI for diagnosis.
         const f1 = firstFactors.map(f => f.strategy).join(', ') || 'none';
         const f2 = secondFactors.map(f => f.strategy).join(', ') || 'none';
+        console.log('[Goalsy SignIn] unhandled result:', JSON.stringify(result));
         setErrorMessage(
           `Verification required (status: ${result.status ?? 'unknown'}, ` +
           `1st: ${f1}, 2nd: ${f2}). Please contact support.`
@@ -121,6 +128,7 @@ export default function SignInScreen() {
       }
 
     } catch (err) {
+      console.log('[Goalsy SignIn] caught error:', JSON.stringify(err));
       setErrorMessage(getClerkErrorMessage(err, 'Invalid email or password. Please try again.'));
     } finally {
       setSubmitting(false);

@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useLocation } from 'wouter';
 import { ArrowUpRight } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
@@ -6,9 +7,29 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 export default function WelcomeScreen() {
   const [, setLocation] = useLocation();
 
+  // TEMP DEBUG: tap the header 5 times to dump the persisted session-restore
+  // diagnostics (survives force-kill; no Web Inspector needed).
+  const tapCount = useRef(0);
+  const handleDebugTap = async () => {
+    tapCount.current += 1;
+    if (tapCount.current < 5) return;
+    tapCount.current = 0;
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      const dbg = await Preferences.get({ key: 'cm_debug_restore' });
+      const tok = await Preferences.get({ key: 'cm_clerk_db_jwt' });
+      alert(
+        `saved token: ${tok.value ? `yes (len ${tok.value.length})` : 'NONE'}\n\n` +
+        `diagnostics:\n${dbg.value ?? '(no entries)'}`
+      );
+    } catch (e) {
+      alert('debug read failed: ' + String(e));
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] w-full max-w-md mx-auto flex flex-col justify-between bg-[#05070A] px-8" style={{ paddingTop: 'calc(3rem + var(--safe-top))', paddingBottom: 'calc(2rem + var(--safe-bottom))' }}>
-      <header className="w-[311px] mx-auto">
+      <header className="w-[311px] mx-auto" onClick={handleDebugTap}>
         <AppHeader />
       </header>
 
@@ -28,30 +49,30 @@ export default function WelcomeScreen() {
           </p>
         </div>
 
-        <div className="relative w-[311px] h-[180px] mt-8 flex flex-col items-center justify-center">
+        <div className="relative w-[311px] h-[320px] mt-16 flex flex-col items-center justify-center">
           <div
             className="absolute rounded-full"
             style={{
-              width: '240px',
-              height: '240px',
-              left: '35px',
-              top: '-30px',
+              width: '300px',
+              height: '300px',
+              left: '5.5px',
+              top: '10px',
               background: '#2563EB',
               opacity: 0.1,
               filter: 'blur(40px)',
             }}
           />
           <div className="relative z-10 w-[299.39px] text-center">
-            <div className="relative h-[80px] opacity-90">
+            <div className="relative h-[120px] opacity-90">
               <span
-                className="absolute left-0 top-[-0.5px] text-white font-bold text-[80px] leading-[80px]"
-                style={{ letterSpacing: '-4px' }}
+                className="absolute left-0 top-[-0.5px] text-white font-bold text-[120px] leading-[120px]"
+                style={{ letterSpacing: '-6px' }}
               >
                 98.4
               </span>
               <span
-                className="absolute text-[#2563EB] font-bold text-[28px] leading-[28px]"
-                style={{ left: '174px', top: '46px' }}
+                className="absolute text-[#2563EB] font-bold text-[40px] leading-[40px]"
+                style={{ left: '258.76px', top: '68.5px' }}
               >
                 %
               </span>

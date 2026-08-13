@@ -1,4 +1,7 @@
 // ── Goalsy App entry point ────────────────────────────────────────────────────
+// FIRST executable line — confirms JS execution reached this module.
+console.log('[Goalsy] App.tsx module loading');
+
 import { useEffect, useState, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
@@ -25,56 +28,21 @@ import GoalDetailScreen from '@/pages/GoalDetailScreen';
 import ProfileScreen from '@/pages/ProfileScreen';
 import ScoreScreen from '@/pages/ScoreScreen';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Never retry 401/403 — the user isn't authenticated; retrying won't help
-      // and floods the server. Retry once on genuine server errors (5xx).
-      retry: (failureCount, error: unknown) => {
-        const status = (error as { status?: number })?.status;
-        if (status === 401 || status === 403) return false;
-        return failureCount < 1;
-      },
-      // Treat data as fresh for 60 seconds — avoids re-fetching on every
-      // navigation or tab-focus when the data hasn't changed.
-      staleTime: 60_000,
-      // Don't refetch just because the user switched tabs. The keepalive
-      // in ApiClientBootstrap refreshes the token; queries refresh on
-      // mutation invalidation and explicit user action.
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+console.log('[Goalsy] imports done');
+
+const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // ── Runtime detection ─────────────────────────────────────────────────────────
 const isCapacitor = !!(window as any).Capacitor;
+console.log('[Goalsy] isCapacitor:', isCapacitor);
 
 // ── Clerk publishable key & proxy URL ────────────────────────────────────────
-// Native builds (cap:build) bake in VITE_API_BASE_URL — the deployed server.
-// The deployed server validates sessions against the PRODUCTION Clerk instance
-// (live keys are swapped in at publish time), so the native app must
-// authenticate against that same instance, through the server's Clerk proxy
-// (/api/__clerk) — exactly like the published web app does. Using the dev
-// (pk_test) instance here produces tokens the deployed API always rejects (401).
-const nativeApiBase = isCapacitor ? (import.meta.env.VITE_API_BASE_URL ?? '') : '';
-const nativeApiHost = (() => {
-  try { return nativeApiBase ? new URL(nativeApiBase).hostname : ''; } catch { return ''; }
-})();
-
 const clerkPubKey = isCapacitor
-  ? (nativeApiHost
-      // No fallback here on purpose: publishableKeyFromHost short-circuits to
-      // the fallback whenever it is a dev (pk_test) key, which would silently
-      // keep the native app on the dev Clerk instance — the exact bug this
-      // block exists to fix. The derived key MUST come from the deployed host.
-      ? publishableKeyFromHost(nativeApiHost)
-      : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+  ? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
   : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
-const clerkProxyUrl = isCapacitor
-  ? (nativeApiHost ? `https://${nativeApiHost}/api/__clerk` : undefined)
-  : import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkProxyUrl = isCapacitor ? undefined : import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
@@ -97,29 +65,40 @@ if (!clerkPubKey) {
 //     request URL, and also reads it from the Clerk-Db-Jwt response header.
 
 const DB_JWT_PREF_KEY = 'cm_clerk_db_jwt';
+const DEBUG_PREF_KEY = 'cm_debug_restore';
 let cachedDbJwt: string | null = null;
+let hadSavedToken = false;   // a token existed in Preferences at launch
 let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 
-// Clerk device JWTs are always 300+ characters (they are signed JWTs).
-// Anything shorter is a corrupted/truncated value — treat it as absent and
-// delete it so we don't silently auth every request as 401.
-const MIN_JWT_LENGTH = 100;
+// ── Persistent, console-free diagnostics ─────────────────────────────────────
+// Every entry is written to Preferences immediately, so it survives force-kill
+// and can be read later without Web Inspector (5-tap the Welcome header).
+let debugEntries: Array<Record<string, unknown>> = [];
+function debugRecord(entry: Record<string, unknown>): void {
+  try {
+    debugEntries.push({ t: new Date().toISOString(), ...entry });
+    if (debugEntries.length > 25) debugEntries = debugEntries.slice(-25);
+    Preferences.set({ key: DEBUG_PREF_KEY, value: JSON.stringify(debugEntries, null, 1) }).catch(() => {});
+  } catch { /* never crash */ }
+}
 
 async function preloadDbJwt(): Promise<void> {
-  // Dev-instance-only machinery: __clerk_db_jwt is Clerk's development-browser
-  // token. Production-proxy native builds (nativeApiHost set) use the live
-  // instance, which has a different session contract — skip entirely.
-  if (!isCapacitor || nativeApiHost) return;
+  if (!isCapacitor) return;
   try {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
-    if (value && value.length >= MIN_JWT_LENGTH) {
+    if (value) {
       cachedDbJwt = value;
-    } else if (value) {
-      // Value exists but is too short to be a real JWT — discard it so Clerk
-      // falls through to its own sign-in flow instead of silently failing.
-      Preferences.remove({ key: DB_JWT_PREF_KEY }).catch(() => {});
+      hadSavedToken = true;
+      console.log('[Goalsy:jwt] preloaded __clerk_db_jwt (len:', value.length, ')');
+      debugRecord({ step: 'preload', found: true, tokenLen: value.length });
+    } else {
+      console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
+      debugRecord({ step: 'preload', found: false });
     }
-  } catch { /* fall through to normal sign-in */ }
+  } catch (err) {
+    console.log('[Goalsy:jwt] preload skipped:', err);
+    debugRecord({ step: 'preload', error: String(err) });
+  }
 }
 
 // ── The actual restore: hand the token to Clerk through its own front door ───
@@ -130,10 +109,11 @@ async function preloadDbJwt(): Promise<void> {
 // decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
 // No fetch-level injection needed — that approach fought Clerk's own layer.
 function restoreDbJwtIntoUrl(): void {
-  if (!isCapacitor || nativeApiHost) return;
+  if (!isCapacitor) return;
   try {
     if (!cachedDbJwt) {
       restoreDone = true;
+      debugRecord({ step: 'restore', skipped: 'no saved token' });
       return;
     }
     const url = new URL(window.location.href);
@@ -142,24 +122,28 @@ function restoreDbJwtIntoUrl(): void {
       window.history.replaceState(null, '', url.toString());
     }
     restoreDone = true;
-  } catch {
+    console.log('[Goalsy:jwt] restored __clerk_db_jwt into URL for Clerk pickup');
+    debugRecord({ step: 'restore', ok: true, tokenLen: cachedDbJwt.length });
+  } catch (err) {
     restoreDone = true;
+    debugRecord({ step: 'restore', error: String(err) });
   }
 }
 
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
-    // Never persist a value too short to be a real JWT — a truncated or
-    // bogus URL param would overwrite the good saved token and sign the
-    // user out on next launch.
-    if (token.length < MIN_JWT_LENGTH) return;
     // Clobber guard: until the preload+restore sequence has settled we cannot
     // know whether a saved token exists — refuse ALL writes so a freshly minted
     // (session-less) token can never overwrite an unread saved one.
-    if (!restoreDone) return;
+    if (!restoreDone) {
+      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled — refusing write' });
+      return;
+    }
     cachedDbJwt = token;
     Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
+    console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
+    debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
 }
 
@@ -173,7 +157,10 @@ const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
 // indefinite blank-screen hang when rendering was gated without a timeout).
 const bootReady: Promise<void> = Promise.race([
   _preloadPromise,
-  new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+  new Promise<void>((resolve) => setTimeout(() => {
+    if (!restoreDone) debugRecord({ step: 'boot-gate', timedOut: true });
+    resolve();
+  }, 1500)),
 ]).catch(() => {});
 
 // ── FAPI base URL ─────────────────────────────────────────────────────────────
@@ -185,11 +172,12 @@ function computeFapiUrl(): string {
   } catch { return ''; }
 }
 const FAPI_ORIGIN = computeFapiUrl();
+console.log('[Goalsy] FAPI_ORIGIN:', FAPI_ORIGIN);
 
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
 // Wrapped entirely in try/catch — any failure falls through to the real fetch.
-if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
+if (isCapacitor && FAPI_ORIGIN) {
   const _fetch = window.fetch.bind(window);
   (window as any).fetch = async function clerkFapiInterceptor(
     input: RequestInfo | URL,
@@ -217,6 +205,27 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
           const h = response.headers.get('Clerk-Db-Jwt') ?? response.headers.get('clerk-db-jwt');
           if (h) persistDbJwt(h, 'response-header');
         } catch { /* non-fatal */ }
+
+        try {
+          const data = await response.clone().json().catch(() => null);
+          if (data) {
+            const path = (input instanceof Request ? input.url : String(input))
+              .replace(FAPI_ORIGIN, '').split('?')[0];
+            const clientId = data?.response?.id ?? 'N/A';
+            const sessions = (data?.response?.sessions ?? []).length;
+            console.log(`[Goalsy:fapi] ${path}`,
+              '→ client_id:', clientId,
+              '| sessions:', sessions,
+              '| last_active:', data?.response?.last_active_session_id ?? 'none');
+            // Persist the first few /v1/client observations — this is the
+            // ground truth for whether the restored token resolved a session.
+            if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
+              debugRecord({ step: 'fapi', path, status: response.status,
+                clientId, sessions,
+                hadJwtInUrl: originalUrl.includes('__clerk_db_jwt') });
+            }
+          }
+        } catch { /* non-fatal */ }
       }
 
       return response;
@@ -230,10 +239,15 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
         throw interceptorErr;
       }
       // Any other error: fall back to the real fetch unconditionally.
+      console.error('[Goalsy:fapi] interceptor error, falling back —',
+        'name:', e?.name, '| message:', e?.message, '| stack:', e?.stack ?? String(interceptorErr));
       return _fetch(input as RequestInfo, init);
     }
   };
+  console.log('[Goalsy:jwt] fetch interceptor installed');
 }
+
+console.log('[Goalsy] module setup complete');
 
 // ── Route guards ──────────────────────────────────────────────────────────────
 
@@ -290,9 +304,7 @@ function Router() {
 function ApiClientBootstrap() {
   const { getToken } = useAuth();
 
-  // Re-init whenever getToken's identity changes (sign-in / sign-out) — the
-  // api client must never hold a stale pre-sign-in getToken that returns null.
-  useEffect(() => { initApiClient(getToken); }, [getToken]);
+  useEffect(() => { initApiClient(getToken); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
   useEffect(() => {

@@ -2,5 +2,3 @@
 - [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
-- [React Query QueryClient config](react-query-config.md) — bare QueryClient() causes retry storms; always set retry/staleTime/refetchOnWindowFocus defaults.
-- [Native API URL for cap:build](native-api-url.md) — VITE_API_BASE_URL must be the deployed URL (goalsy-finance-ui.replit.app), never the .replit.dev dev domain.
