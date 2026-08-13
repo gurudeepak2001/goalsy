@@ -64,7 +64,11 @@ const nativeApiHost = (() => {
 
 const clerkPubKey = isCapacitor
   ? (nativeApiHost
-      ? publishableKeyFromHost(nativeApiHost, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+      // No fallback here on purpose: publishableKeyFromHost short-circuits to
+      // the fallback whenever it is a dev (pk_test) key, which would silently
+      // keep the native app on the dev Clerk instance — the exact bug this
+      // block exists to fix. The derived key MUST come from the deployed host.
+      ? publishableKeyFromHost(nativeApiHost)
       : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
@@ -102,7 +106,10 @@ let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 const MIN_JWT_LENGTH = 100;
 
 async function preloadDbJwt(): Promise<void> {
-  if (!isCapacitor) return;
+  // Dev-instance-only machinery: __clerk_db_jwt is Clerk's development-browser
+  // token. Production-proxy native builds (nativeApiHost set) use the live
+  // instance, which has a different session contract — skip entirely.
+  if (!isCapacitor || nativeApiHost) return;
   try {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
     if (value && value.length >= MIN_JWT_LENGTH) {
@@ -123,7 +130,7 @@ async function preloadDbJwt(): Promise<void> {
 // decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
 // No fetch-level injection needed — that approach fought Clerk's own layer.
 function restoreDbJwtIntoUrl(): void {
-  if (!isCapacitor) return;
+  if (!isCapacitor || nativeApiHost) return;
   try {
     if (!cachedDbJwt) {
       restoreDone = true;
@@ -182,7 +189,7 @@ const FAPI_ORIGIN = computeFapiUrl();
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
 // Wrapped entirely in try/catch — any failure falls through to the real fetch.
-if (isCapacitor && FAPI_ORIGIN) {
+if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
   const _fetch = window.fetch.bind(window);
   (window as any).fetch = async function clerkFapiInterceptor(
     input: RequestInfo | URL,
