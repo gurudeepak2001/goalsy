@@ -441,8 +441,8 @@ export default function AIHomeScreen() {
               <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
                 Financial Forecast
               </span>
-              <span className="ml-auto text-[#374151] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#1F2937] rounded px-1.5 py-px flex-shrink-0">
-                Projected
+              <span className="ml-auto text-[#6B7280] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#374151] rounded px-1.5 py-px flex-shrink-0">
+                Estimate
               </span>
             </div>
             {forecast.hasData ? (
@@ -464,7 +464,7 @@ export default function AIHomeScreen() {
                   )}
                 </div>
                 <span className="text-[#4B5563] font-semibold text-xs mt-1">
-                  Based on current net worth + contributions + monthly savings
+                  Estimated · based on your profile data
                 </span>
               </div>
             ) : (
@@ -495,8 +495,8 @@ export default function AIHomeScreen() {
                 Scenario Simulator
               </span>
               {scenario.hasData && (
-                <span className="ml-auto text-[#374151] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#1F2937] rounded px-1.5 py-px flex-shrink-0">
-                  Estimated
+                <span className="ml-auto text-[#6B7280] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#374151] rounded px-1.5 py-px flex-shrink-0">
+                  Estimate
                 </span>
               )}
             </div>
@@ -539,6 +539,9 @@ export default function AIHomeScreen() {
             </div>
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
               Daily Analysis
+            </span>
+            <span className="ml-auto text-[#6B7280] font-bold text-[9px] uppercase tracking-[0.8px] border border-[#374151] rounded px-1.5 py-px flex-shrink-0">
+              Estimate
             </span>
           </div>
 
