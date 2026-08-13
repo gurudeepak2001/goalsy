@@ -106,6 +106,19 @@ async function restoreClerkFromPreferences(): Promise<void> {
   }
 }
 
+/** Dumps all localStorage keys to the console and mirrors __clerk* to Preferences.
+ *  label identifies the call-site in the log (e.g. 'startup', 'foreground'). */
+async function dumpAndSave(label: string): Promise<void> {
+  const allKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) allKeys.push(k);
+  }
+  console.log(`[Goalsy:${label}] all localStorage keys:`, allKeys);
+  console.log(`[Goalsy:${label}] __clerk* subset:`, allKeys.filter(k => k.startsWith('__clerk')));
+  await saveClerkToPreferences();
+}
+
 // Resolve the Clerk publishable key.
 // In a normal browser the hostname matches the Clerk domain and publishableKeyFromHost
 // derives the key automatically. Inside a Capacitor WebView the hostname is always
@@ -207,8 +220,11 @@ function ApiClientBootstrap() {
         // App is going to background — snapshot now before iOS can kill the process
         await saveClerkToPreferences();
       } else {
-        // App is returning to foreground — refresh the token in case it lapsed
+        // App is returning to foreground — refresh the token in case it lapsed,
+        // then re-dump localStorage so Web Inspector shows current state on demand
+        // (background + reopen = instant triggered dump without needing app restart).
         try { await getToken({ skipCache: true }); } catch { /* expired — auth guard handles */ }
+        await dumpAndSave('foreground');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -228,19 +244,12 @@ function ApiClientBootstrap() {
     return () => clearInterval(interval);
   }, [getToken]);
 
-  // Initial save + localStorage dump — runs once when the user is confirmed
-  // signed-in. Logs every localStorage key so Safari Web Inspector shows us
-  // exactly what Clerk stored, then mirrors __clerk* keys to Preferences.
+  // Initial save + localStorage dump.
+  // Delayed 3 s so there's time to open Safari → Develop → [device] → Goalsy
+  // and see the output before it fires.
   useEffect(() => {
-    const allKeys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k) allKeys.push(k);
-    }
-    console.log('[Goalsy:clerk-loaded] all localStorage keys after Clerk init:', allKeys);
-    console.log('[Goalsy:clerk-loaded] __clerk* subset:',
-      allKeys.filter(k => k.startsWith('__clerk')));
-    saveClerkToPreferences();
+    const t = setTimeout(() => { dumpAndSave('clerk-loaded/startup'); }, 3000);
+    return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
