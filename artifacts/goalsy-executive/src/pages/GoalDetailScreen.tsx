@@ -1251,9 +1251,10 @@ export default function GoalDetailScreen() {
           {isAdjusting ? (
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 block">
+                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1 block">
                   Monthly Contribution
                 </label>
+                <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Amount you'll set aside each month</p>
                 <div className="relative">
                   <ExecutiveInput
                     label=""
@@ -1277,10 +1278,11 @@ export default function GoalDetailScreen() {
               </div>
 
               <div>
-                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 flex items-center gap-1.5">
+                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1 flex items-center gap-1.5">
                   <CalendarDays size={11} />
                   Target Completion Date
                 </label>
+                <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Auto-fills from contribution if left blank</p>
                 <div className="relative">
                   <input
                     type="date"

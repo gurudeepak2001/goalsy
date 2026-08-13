@@ -3,12 +3,13 @@ import { Eye, EyeOff } from 'lucide-react';
 
 interface ExecutiveInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  hint?: string;
   leftIcon?: ReactNode;
   rightElement?: ReactNode;
 }
 
 const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
-  ({ label, leftIcon, rightElement, className = '', id: idProp, type, ...props }, ref) => {
+  ({ label, hint, leftIcon, rightElement, className = '', id: idProp, type, ...props }, ref) => {
     const generatedId = useId();
     const inputId = idProp ?? generatedId;
     const isPassword = type === 'password';
@@ -17,7 +18,7 @@ const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
     return (
       <div className={`w-full ${className}`}>
         {(label || rightElement) && (
-          <div className={`mb-2 flex items-center ${rightElement ? 'justify-between pr-1' : ''} pl-1`}>
+          <div className={`mb-1 flex items-center ${rightElement ? 'justify-between pr-1' : ''} pl-1`}>
             <label
               htmlFor={inputId}
               className="text-xs font-bold uppercase tracking-[1px] text-[#808BA4]"
@@ -26,6 +27,9 @@ const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
             </label>
             {rightElement}
           </div>
+        )}
+        {hint && (
+          <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5 pl-1">{hint}</p>
         )}
         <div className="bg-[#111827] border border-white/10 rounded-xl px-5 h-16 flex items-center gap-3 focus-within:border-[#2563EB] transition-colors">
           {leftIcon && (

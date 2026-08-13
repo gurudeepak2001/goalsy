@@ -159,6 +159,7 @@ export default function FinancialConnectionScreen() {
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className={labelCls}>Annual Income</label>
+                    <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Gross yearly, before taxes</p>
                     <div className="relative">
                       <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
@@ -173,6 +174,7 @@ export default function FinancialConnectionScreen() {
                   </div>
                   <div className="flex-1">
                     <label className={labelCls}>Monthly Expenses</label>
+                    <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Rent, bills, groceries, etc.</p>
                     <div className="relative">
                       <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
@@ -191,6 +193,7 @@ export default function FinancialConnectionScreen() {
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className={labelCls}>Net Worth</label>
+                    <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Total assets minus all debts</p>
                     <div className="relative">
                       <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
@@ -222,6 +225,7 @@ export default function FinancialConnectionScreen() {
                 {/* Risk Tolerance */}
                 <div>
                   <label className={labelCls}>Risk Tolerance</label>
+                  <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">How you balance growth vs. stability</p>
                   <div className="relative">
                     <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                     <select
@@ -242,6 +246,7 @@ export default function FinancialConnectionScreen() {
                 {/* Primary Goal */}
                 <div>
                   <label className={labelCls}>Primary Goal</label>
+                  <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">What you're primarily working toward right now</p>
                   <div className="relative">
                     <Target size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                     <select

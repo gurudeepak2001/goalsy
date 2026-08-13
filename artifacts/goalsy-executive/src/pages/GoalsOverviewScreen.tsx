@@ -438,6 +438,7 @@ export default function GoalsOverviewScreen() {
 
           <ExecutiveInput
             label="Target Amount"
+            hint="Total $ needed to complete this goal"
             leftIcon={<span className="font-bold">$</span>}
             inputMode="decimal"
             placeholder="e.g. 250000"
@@ -449,6 +450,7 @@ export default function GoalsOverviewScreen() {
             <div className="flex-1">
               <ExecutiveInput
                 label="Current Amount Towards Goal"
+                hint="Already saved toward this goal"
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"
@@ -459,6 +461,7 @@ export default function GoalsOverviewScreen() {
             <div className="flex-1 relative">
               <ExecutiveInput
                 label="Monthly Contribution Towards Goal"
+                hint="Auto-fills if you set a date first"
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"
@@ -485,6 +488,7 @@ export default function GoalsOverviewScreen() {
                 Target Completion Date
               </span>
             </label>
+            <p className="text-[#4B5563] text-[9px] font-medium leading-tight mb-1.5">Auto-fills if you set a monthly contribution first</p>
             <div className="relative">
               <input
                 type="date"
