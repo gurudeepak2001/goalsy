@@ -12,3 +12,6 @@ On a Clerk **development instance** in a Capacitor WKWebView, the session creden
 
 ## Debugging without Web Inspector
 Cold-start logs are uncatchable (WebView process replaced on relaunch; Inspector can't reattach in time). Write diagnostics to Preferences (`cm_debug_restore`) at every step; TEMP 5-tap on Welcome header dumps it via alert. Remove the debug tap + `[Goalsy:*]` logs once the fix is confirmed. Native `AppDelegate.swift` cookie save/restore found 0 Clerk cookies — confirmed dead code, removable after confirmation.
+
+## Length-guard both directions
+A bogus ~31-char value can appear as a `__clerk_db_jwt` URL param and get persisted (source: request-url), clobbering the good saved token → user signed out next launch. Guard BOTH preload and persist with a minimum length (real Clerk device JWTs are 300+ chars; guard uses 100).
