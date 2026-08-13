@@ -74,6 +74,9 @@ async function saveClerkToPreferences(): Promise<void> {
 }
 
 async function restoreClerkFromPreferences(): Promise<void> {
+  // Log before the early return so we always see whether this function ran,
+  // regardless of whether the native bridge is wired.
+  console.log('[Goalsy:restore] called. isCapacitor:', isCapacitor);
   if (!isCapacitor) return;
   try {
     // Log everything currently in localStorage before we touch it — this tells
@@ -106,16 +109,35 @@ async function restoreClerkFromPreferences(): Promise<void> {
   }
 }
 
-/** Dumps all localStorage keys to the console and mirrors __clerk* to Preferences.
- *  label identifies the call-site in the log (e.g. 'startup', 'foreground'). */
+/** Dumps all localStorage keys AND all Preferences keys to the console, then
+ *  mirrors __clerk* to Preferences. label identifies the call-site in the log. */
 async function dumpAndSave(label: string): Promise<void> {
+  // --- localStorage snapshot ---
   const allKeys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k) allKeys.push(k);
   }
-  console.log(`[Goalsy:${label}] all localStorage keys:`, allKeys);
+  console.log(`[Goalsy:${label}] isCapacitor:`, isCapacitor);
+  console.log(`[Goalsy:${label}] all localStorage keys (${allKeys.length}):`, allKeys);
   console.log(`[Goalsy:${label}] __clerk* subset:`, allKeys.filter(k => k.startsWith('__clerk')));
+
+  // --- Preferences snapshot (tells us whether the native bridge is wired and
+  //     whether a previous save actually persisted anything) ---
+  if (isCapacitor) {
+    try {
+      const { keys: prefKeys } = await Preferences.keys();
+      console.log(`[Goalsy:${label}] Preferences keys (${prefKeys.length}):`, prefKeys);
+      for (const k of prefKeys) {
+        const { value } = await Preferences.get({ key: k });
+        // Log first 80 chars so tokens are recognisable without filling the console.
+        console.log(`[Goalsy:${label}] Preferences["${k}"] =`, value?.substring(0, 80) ?? 'null');
+      }
+    } catch (err) {
+      console.error(`[Goalsy:${label}] Preferences READ failed — native bridge missing?`, err);
+    }
+  }
+
   await saveClerkToPreferences();
 }
 
@@ -244,11 +266,13 @@ function ApiClientBootstrap() {
     return () => clearInterval(interval);
   }, [getToken]);
 
-  // Initial save + localStorage dump.
-  // Delayed 3 s so there's time to open Safari → Develop → [device] → Goalsy
-  // and see the output before it fires.
+  // Initial save + full diagnostic dump.
+  // Delayed 30 s — long enough for the user to see the Welcome/Goals screen,
+  // force-kill, reopen, reattach Safari Web Inspector to the new WebView, and
+  // still catch the output. The foreground trigger (visibilitychange) gives an
+  // on-demand alternative: background the app and reopen to fire it immediately.
   useEffect(() => {
-    const t = setTimeout(() => { dumpAndSave('clerk-loaded/startup'); }, 3000);
+    const t = setTimeout(() => { dumpAndSave('clerk-loaded/startup'); }, 30_000);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
