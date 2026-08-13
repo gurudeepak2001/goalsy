@@ -9,6 +9,7 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "cap:build": "VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync",
+    "cap:copy": "VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap copy ios",
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
