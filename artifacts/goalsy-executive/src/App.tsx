@@ -296,9 +296,11 @@ if (isCapacitor && FAPI_ORIGIN) {
           const clientUat: number | undefined =
             data?.client_uat ?? data?.response?.updated_at;
           const sessions: unknown[] = data?.response?.sessions ?? [];
+          const clientId: string | undefined = data?.response?.id ?? data?.client?.id;
           console.log(
             `[Goalsy:fapi] ${path}`,
-            '→ client_uat:', clientUat ?? 'N/A',
+            '→ client_id:', clientId ?? 'N/A',
+            '| client_uat:', clientUat ?? 'N/A',
             '| sessions:', sessions.length,
             '| last_active:', data?.response?.last_active_session_id ?? 'none',
           );
