@@ -2,7 +2,7 @@
 // FIRST executable line — confirms JS execution reached this module.
 console.log('[Goalsy] App.tsx module loading');
 
-import { useEffect, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
 import { Preferences } from '@capacitor/preferences';
@@ -133,11 +133,11 @@ function restoreDbJwtIntoUrl(): void {
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
-    // Guard against clobbering: if a saved token existed at launch but the URL
-    // restore hasn't run yet, a different token here means Clerk minted a fresh
-    // (session-less) one before we could restore — do NOT overwrite the good one.
-    if (hadSavedToken && !restoreDone) {
-      debugRecord({ step: 'persist-refused', source, reason: 'restore not done — would clobber saved token' });
+    // Clobber guard: until the preload+restore sequence has settled we cannot
+    // know whether a saved token exists — refuse ALL writes so a freshly minted
+    // (session-less) token can never overwrite an unread saved one.
+    if (!restoreDone) {
+      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled — refusing write' });
       return;
     }
     cachedDbJwt = token;
@@ -151,6 +151,17 @@ function persistDbJwt(token: string, source: string): void {
 // bridge call (~ms) while Clerk's CDN bundle takes hundreds of ms to load, so
 // the URL is decorated well before clerk-js reads window.location.
 const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
+
+// Boot gate: ClerkProvider must not mount until the restore has settled — but
+// never wait more than 1.5s (a stuck Capacitor bridge previously caused an
+// indefinite blank-screen hang when rendering was gated without a timeout).
+const bootReady: Promise<void> = Promise.race([
+  _preloadPromise,
+  new Promise<void>((resolve) => setTimeout(() => {
+    if (!restoreDone) debugRecord({ step: 'boot-gate', timedOut: true });
+    resolve();
+  }, 1500)),
+]).catch(() => {});
 
 // ── FAPI base URL ─────────────────────────────────────────────────────────────
 function computeFapiUrl(): string {
@@ -340,17 +351,24 @@ function ClerkProviderWithRoutes() {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-// No storageReady gate — rendering is never blocked on async Preferences work.
-// The preload started at module level; it completes well before Clerk's CDN
-// bundle finishes loading and fires its first FAPI request.
+// Boot gate: ClerkProvider mounts only after the token restore has settled
+// (or after the 1.5s timeout — never an indefinite hang). While waiting, a
+// dark placeholder matching the splash background prevents a white flash.
 
 function App() {
+  const [booted, setBooted] = useState(!isCapacitor);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
 
-  // Ensure the preload promise doesn't produce an unhandled rejection.
-  useEffect(() => { _preloadPromise.catch(() => {}); }, []);
+  useEffect(() => {
+    if (!booted) bootReady.then(() => setBooted(true));
+  }, [booted]);
+
+  if (!booted) {
+    return <div style={{ minHeight: '100dvh', backgroundColor: '#05070A' }} />;
+  }
 
   return (
     <ErrorBoundary>
