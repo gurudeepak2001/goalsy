@@ -191,8 +191,61 @@ Red flags — record and file a bug if you see any of these:
 
 ---
 
+## Automated Test Coverage
+
+The manual checklist below is now partially automated by two test targets:
+
+### AppTests (unit — always runs, no credentials needed)
+`ios/App/AppTests/ClerkCookiePersistenceTests.swift`
+
+Verifies the local save→restore round-trip (UserDefaults ↔ WKHTTPCookieStore) using
+synthetic cookies.  Catches WKWebView/WebKit API regressions and iOS SDK breakages.
+
+```
+xcodebuild test \
+  -project ios/App/App.xcodeproj \
+  -scheme AppTests \
+  -destination 'platform=iOS Simulator,name=iPhone 16'
+```
+
+### AppUITests (smoke — requires live Clerk test credentials)
+`ios/App/AppUITests/SessionRestoreSmokeTests.swift`
+
+Verifies that a real Clerk session cookie restored from UserDefaults is still
+cryptographically accepted by FAPI after a force-kill/relaunch cycle.  The test
+seeds UserDefaults with cookies from `CLERK_TEST_COOKIES`, sends SIGKILL, relaunches
+without the seed key, and asserts the authenticated dashboard appears (no sign-in
+prompt, no FAPI error).
+
+The test skips automatically when `CLERK_TEST_COOKIES` is absent.
+
+**Obtaining test cookies:**
+1. Run the app in a simulator with a Clerk **test-environment** account.
+2. Background the app — this triggers `saveClerkCookies()`.
+3. Extract from the simulator's UserDefaults:
+   ```bash
+   CONTAINER=$(xcrun simctl get_app_container booted com.goalsy.executive data)
+   plutil -convert json \
+     "$CONTAINER/Library/Preferences/com.goalsy.executive.plist" -o - \
+     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cm_clerk_cookies_v2',''))"
+   ```
+4. Pass the output as the `CLERK_TEST_COOKIES` environment variable.
+
+**Running:**
+```bash
+xcodebuild test \
+  -project ios/App/App.xcodeproj \
+  -scheme AppUITests \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -testenv CLERK_TEST_COOKIES='[{"name":"__client","value":"…",…}]'
+```
+
+---
+
 ## Relevant Source Files
 
 | File | Purpose |
 |------|---------|
-| `ios/App/App/AppDelegate.swift` | `saveClerkCookies()` backup on `applicationDidEnterBackground`; `restoreClerkCookies()` restore on `didFinishLaunchingWithOptions` |
+| `ios/App/App/AppDelegate.swift` | `saveClerkCookies()` backup on `applicationDidEnterBackground`; `restoreClerkCookies()` restore on `didFinishLaunchingWithOptions`; `GOALSY_UITEST_CLERK_COOKIES` seed path for XCUITest |
+| `ios/App/AppTests/ClerkCookiePersistenceTests.swift` | Unit tests for the local save→restore round-trip |
+| `ios/App/AppUITests/SessionRestoreSmokeTests.swift` | XCUITest smoke test: force-kill → relaunch → assert FAPI accepted the restored cookie |

@@ -36,6 +36,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // ── XCUITest cookie seeding ───────────────────────────────────────────
+        // When running under an XCUITest scheme the test harness may pass
+        // pre-serialised Clerk cookies via the GOALSY_UITEST_CLERK_COOKIES
+        // launch-environment key.  Writing them into UserDefaults here lets the
+        // normal ClerkCookiePersistence.restore() path below pick them up as if
+        // they had been saved by a prior backgrounding — so the test can verify
+        // that the restored cookies are still accepted by Clerk's FAPI server
+        // without having to go through a real sign-in flow inside the test runner.
+        //
+        // This block is unreachable in production: the key is never set by the
+        // app itself and ProcessInfo.environment is read-only at runtime.
+        if let cookiesJSON = ProcessInfo.processInfo.environment["GOALSY_UITEST_CLERK_COOKIES"],
+           let data = cookiesJSON.data(using: .utf8) {
+            UserDefaults.standard.set(data, forKey: "cm_clerk_cookies_v2")
+            UserDefaults.standard.synchronize()
+            NSLog("[Goalsy:native] XCUITest seed — wrote GOALSY_UITEST_CLERK_COOKIES to UserDefaults (%d bytes)", data.count)
+        }
+
+        // ── Normal restore ────────────────────────────────────────────────────
         // Restore Clerk session cookies into WKHTTPCookieStore BEFORE the WebView
         // makes its first network request.  Force-kill wipes WKHTTPCookieStore
         // entirely; UserDefaults survives it.  Without the __client cookie on
