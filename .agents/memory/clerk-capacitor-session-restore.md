@@ -33,3 +33,10 @@ Bare `new QueryClient()` causes infinite retry storms on 401s. Always set `retry
 
 ## `sessions: 0` in FAPI logs is misleading
 Only `/v1/client` responses carry a `sessions` array; `/touch` and `/tokens` return other shapes, so the interceptor log prints 0 for those regardless of real state.
+
+## Native iOS cookie backup (AppDelegate.swift)
+Without a proxy URL, Clerk stores session state in httpOnly cookies (not localStorage). WKHTTPCookieStore *should* auto-persist across force-kill, but iOS gives no flush guarantee on SIGKILL. The fix: in `applicationDidEnterBackground`, read all Clerk-related cookies from `WKHTTPCookieStore` using a `UIBackgroundTask` assertion (so the async read completes before the process suspends), serialize via `NSKeyedArchiver`, save to `UserDefaults` with `synchronize()`. On cold start in `didFinishLaunchingWithOptions`, deserialize and inject back via `WKHTTPCookieStore.setCookie()` before Capacitor loads the WebView. `setCookie` is idempotent — if WKHTTPCookieStore already has the cookie (happy path), it's a no-op.
+
+**Why:** iOS SIGKILL may interrupt async cookie disk-write; `UserDefaults.synchronize()` guarantees the data hits disk before the app suspends.
+
+**How to apply:** keep `isClerkCookie()` filter broad (domain contains "clerk" OR name prefixes `__client`/`__session`/`__clerk`/`__client_uat`). The localStorage JS backup (`saveClerkLocalStorage`) is a separate safety net for any non-cookie state; do not remove it.

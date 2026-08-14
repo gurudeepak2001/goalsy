@@ -426,10 +426,18 @@ function ApiClientBootstrap() {
   useEffect(() => { initApiClient(getToken); }, [getToken]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
+  // On background: snapshot Clerk localStorage to Preferences (safety net for any
+  // non-cookie state Clerk may write). The primary backup for httpOnly session cookies
+  // is the native WKHTTPCookieStore → UserDefaults mechanism in AppDelegate.swift.
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
         try { await getToken({ skipCache: true }); } catch { /* auth guard handles */ }
+      } else {
+        // App going to background — persist Clerk localStorage keys to Keychain
+        // (safety net for any non-cookie state Clerk may write; the primary
+        // backup for httpOnly session cookies is in AppDelegate.swift).
+        saveClerkLocalStorage().catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
