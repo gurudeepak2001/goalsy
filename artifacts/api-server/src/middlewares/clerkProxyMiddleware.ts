@@ -100,10 +100,30 @@ export function clerkProxyMiddleware(): RequestHandler {
   const clerkFapi = fapiUrlFromPublishableKey(publishableKey);
   console.log(`[clerk-proxy] FAPI target: ${clerkFapi}`);
 
+  // Two distinct FAPI targets:
+  //
+  //   /npm/*  — Clerk's CDN for clerk.browser.js and @clerk/ui bundles.
+  //             Lives exclusively on frontend-api.clerk.dev.  The instance-
+  //             specific FAPI domain (clerk.<your-domain>) does NOT serve these
+  //             paths; forwarding to it causes the request to hang with no
+  //             response, which is what breaks getClerkJsEntryChunk.
+  //
+  //   /v1/*   — Clerk's Frontend API (session, environment, tokens, etc.).
+  //             Must be forwarded to the instance FAPI so Clerk validates the
+  //             correct publishable key without the Clerk-Proxy-Url mechanism.
+  //
+  const CLERK_CDN = 'https://frontend-api.clerk.dev';
+
   // Build the inner proxy once.
   const proxy = createProxyMiddleware({
+    // Default target (used when router returns undefined).
     target: clerkFapi,
     changeOrigin: true,
+    // Route /npm/* to the CDN host; everything else to the instance FAPI.
+    // req.url at router time still carries the full path (/api/__clerk/npm/…)
+    // before pathRewrite runs, so test for /npm/ anywhere in the URL.
+    router: (req) =>
+      req.url?.includes('/npm/') ? CLERK_CDN : clerkFapi,
     // Take over the response so it can be re-sent with a Content-Length (see
     // proxyRes); the deployment edge rejects chunked proxied responses.
     selfHandleResponse: true,
@@ -134,7 +154,7 @@ export function clerkProxyMiddleware(): RequestHandler {
         }
 
         const origin = req.headers['origin'] ?? '(no-origin)';
-        console.log(`[clerk-proxy] → ${req.method} ${req.path} | origin: ${origin}`);
+        console.log(`[clerk-proxy] → ${req.method} ${req.url} | origin: ${origin}`);
       },
 
       // Clerk's dynamic FAPI responses (/v1/environment, /v1/client, JWKS, …)
@@ -147,7 +167,7 @@ export function clerkProxyMiddleware(): RequestHandler {
       // buffering.
       proxyRes: (proxyRes, req, res) => {
         const status = proxyRes.statusCode ?? 502;
-        console.log(`[clerk-proxy] ← ${status} ${req.method} ${req.path}`);
+        console.log(`[clerk-proxy] ← ${status} ${req.method} ${req.url}`);
 
         const headers = { ...proxyRes.headers };
         // Transfer-Encoding/Connection are hop-by-hop (RFC 7230 §6.1).
