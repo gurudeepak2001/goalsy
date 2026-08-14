@@ -1,0 +1,107 @@
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.77ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 621.79μs
+✔ copy android in 29.78ms
+✔ Updating Android plugins in 6.87ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 34.66ms
+✔ Copying web assets from public to ios/App/App/public in 5.72ms
+✔ Creating capacitor.config.json in ios/App/App in 1.01ms
+✔ copy ios in 40.18ms
+✔ Updating iOS plugins in 7.95ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 35.87ms
+✔ copy web in 19.64ms
+✔ update web in 14.29ms
+[info] Sync finished in 0.266s
+✔ Copying web assets from public to ios/App/App/public in 5.13ms
+✔ Creating capacitor.config.json in ios/App/App in 373.92μs
+✔ copy ios in 34.21ms
+✔ Updating iOS plugins in 6.55ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 27.68ms
+[info] Sync finished in 0.102s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive
+git pull && pnpm run cap:build && npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+(base) deepak@Gurus-Laptop goalsy-executive % git stash && git pull && pnpm run cap:build && npx cap open ios
+Saved working directory and index state WIP on main: 9abf9d8 fix(auth): fetch live Clerk publishable key from server at boot
+Updating 9abf9d8..89b89ab
+Fast-forward
+ .agents/memory/MEMORY.md                           |   1 +
+ .agents/memory/clerk-capacitor-session-restore.md  |   7 +
+ .agents/memory/clerk-fapi-native.md                |  39 +++
+ artifacts/api-server/package.json                  |   1 -
+ artifacts/api-server/src/app.ts                    |  20 +-
+ .../src/middlewares/clerkProxyMiddleware.ts        | 177 --------------
+ artifacts/api-server/src/routes/bills.ts           |   3 +-
+ artifacts/api-server/src/routes/goals.ts           |  21 +-
+ artifacts/api-server/src/routes/missions.ts        |   6 +-
+ .../src/routes/notificationPreferences.ts          |   2 +-
+ artifacts/api-server/src/routes/notifications.ts   |   6 +-
+ .../WEBVIEW_SESSION_REGRESSION_CHECKLIST.md        | 146 +++++++++++
+ .../java/com/goalsy/executive/MainActivity.java    |  51 +++-
+ .../ios/App/App.xcodeproj/project.pbxproj          | 124 ++++++++++
+ .../xcshareddata/xcschemes/AppTests.xcscheme       |  82 +++++++
+ .../goalsy-executive/ios/App/App/AppDelegate.swift | 152 ++----------
+ .../ios/App/App/ClerkCookiePersistence.swift       | 155 ++++++++++++
+ .../App/AppTests/ClerkCookiePersistenceTests.swift | 268 +++++++++++++++++++++
+ .../ios/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md    | 198 +++++++++++++++
+ artifacts/goalsy-executive/src/App.tsx             | 154 ++++++++++--
+ ...tor-import-WebKit-UIApplicati_1786739144120.txt | 178 ++++++++++++++
+ ...or-creating-CHHapticPattern-E_1786738310837.txt |  10 +
+ ...shot_2026-08-14_at_4.12.35_PM_1786738359697.png | Bin 0 -> 7319769 bytes
+ lib/api-zod/src/index.ts                           |   3 -
+ lib/db/tsconfig.json                               |   3 +-
+ pnpm-lock.yaml                                     |  22 --
+ 26 files changed, 1452 insertions(+), 377 deletions(-)
+ create mode 100644 .agents/memory/clerk-fapi-native.md
+ delete mode 100644 artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts
+ create mode 100644 artifacts/goalsy-executive/android/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md
+ create mode 100644 artifacts/goalsy-executive/ios/App/App.xcodeproj/xcshareddata/xcschemes/AppTests.xcscheme
+ create mode 100644 artifacts/goalsy-executive/ios/App/App/ClerkCookiePersistence.swift
+ create mode 100644 artifacts/goalsy-executive/ios/App/AppTests/ClerkCookiePersistenceTests.swift
+ create mode 100644 artifacts/goalsy-executive/ios/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md
+ create mode 100644 attached_assets/Pasted-import-UIKit-import-Capacitor-import-WebKit-UIApplicati_1786739144120.txt
+ create mode 100644 attached_assets/Pasted-kGenerator-0x105a16c40-Error-creating-CHHapticPattern-E_1786738310837.txt
+ create mode 100644 attached_assets/Screenshot_2026-08-14_at_4.12.35_PM_1786738359697.png
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+Scope: all 9 workspace projects
+✓ Lockfile passes supply-chain policies (650 entries in 1.3s)
+../..                                    |   -2 -
+../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config…
+└─ Done in 40ms
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @clerk/shared@3.47.7, @clerk/shared@4.25.2, esbuild@0.27.3
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[ERROR] Command failed with exit code 1: pnpm install
+
+pnpm: Command failed with exit code 1: pnpm install
+    at getFinalError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:88127:14)
+    at makeError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:90434:21)
+    at getSyncResult (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92278:10)
+    at spawnSubprocessSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92238:14)
+    at execaCoreSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92168:23)
+    at callBoundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94696:23)
+    at boundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94673:49)
+    at sync2 (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94828:14)
+    at runPnpmCli (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:248505:5)
+    at runDepsStatusCheck (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:250269:7)
+(base) deepak@Gurus-Laptop goalsy-executive % 
