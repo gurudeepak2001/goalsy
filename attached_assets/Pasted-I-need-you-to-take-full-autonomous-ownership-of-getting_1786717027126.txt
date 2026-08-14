@@ -1,0 +1,42 @@
+I need you to take full, autonomous ownership of getting the iOS app fully working — sign-in, session persistence, data load/save, goal creation, and keyboard behavior — and verify it end-to-end yourself, iterating until it's actually solid. Don't hand this back to me until you're confident, or until you're genuinely stuck and need something only I can provide (like a device test).
+
+Test everything, repeatedly, from a fresh state each time, covering BOTH new and old accounts:
+
+New account path: Sign up with a brand-new account, sign in, and run the full flow below.
+Old account path: Also test with an existing/old account (one created before today's live-Clerk fix) — since real testers like Dr. Brinkley and Julian have old accounts, I need their experience fixed too, not just new sign-ups. If old accounts fundamentally cannot work with the live Clerk instance (separate user stores), then the app must handle that gracefully — clearly prompting the person to create a new account with a helpful message, not a silent 401 or broken screen. Make that graceful fallback actually good, not just functional.
+For both account types, verify:
+Sign in succeeds
+Financial profile saves (200, not 401)
+Goal creation works, keyboard doesn't cover input fields
+Session persists across simulated force-kill + relaunch
+Data loads correctly matching the database
+Repeat this full cycle (both account types) at least 2-3 times from a clean state to catch anything intermittent, not just a single pass.
+
+For each issue you find:
+
+Diagnose the root cause (not just the symptom)
+Fix it
+Re-run the entire test cycle above (both new and old accounts) from scratch — don't just re-test the one thing you fixed, since fixes today have repeatedly caused regressions elsewhere
+Keep iterating until a full clean pass happens with zero errors on both account types
+
+Also verify these structural things are correct and consistent:
+
+The native build correctly derives/uses the live Clerk publishable key, never falls back to dev/test keys under any code path
+VITE_API_BASE_URL is correctly baked to the deployed production URL, not any Replit dev/preview domain
+No dev-browser JWT machinery runs in production builds
+QueryClient has sane retry/stale-time config (no retry storms)
+capacitor.config.ts allowNavigation includes the production domain
+
+If any action requires my permission or approval (e.g., touching production data, database changes, irreversible actions, account/dashboard settings) — go ahead and do everything else that doesn't need approval, note clearly what's pending and why, and I'll review and confirm those specific items at the end. Don't stop your overall progress to ask mid-way — queue it and keep going.
+
+Before finishing, write a short summary covering:
+
+Every issue found and fixed in this pass, with root cause explained plainly
+Full confirmation that a repeated clean test cycle passed for both new and old accounts
+How old accounts are handled specifically (fixed to work, or gracefully redirected to re-signup — be explicit about which)
+A clearly separated list of anything still pending my confirmation/permission
+Explicit confirmation of what I still need to do myself (rebuild on my Mac, test on physical device, any dashboard/account setup) — since you cannot run the actual iOS binary or Xcode
+
+Do not ask me for permission or clarification mid-way unless you hit something that genuinely requires my device or a decision truly only I can make. Otherwise, keep testing, fixing, and queuing approval items autonomously until done.
+
+
