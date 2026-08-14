@@ -91,17 +91,24 @@ try {
   console.error('[Goalsy] clerkPubKey error:', _clerkInitError);
 }
 
-const clerkProxyUrl = isCapacitor
-  ? (nativeApiHost ? `https://${nativeApiHost}/api/__clerk` : undefined)
-  : import.meta.env.VITE_CLERK_PROXY_URL;
+// No proxyUrl for Capacitor. We previously routed through /api/__clerk to work
+// around a presumed CORS restriction on Clerk's FAPI, but confirmed (2026-08-14)
+// that clerk.goalsy-finance-ui.replit.app already responds with:
+//   Access-Control-Allow-Origin: capacitor://localhost
+// so no CORS shim is needed. The server-side proxy was causing /v1/* requests
+// to hang because inside the Replit container that hostname resolves to Replit's
+// own internal proxy (172.24.0.5), not Clerk's infrastructure. Clerk JS now
+// calls the FAPI directly from WKWebView, which resolves the hostname correctly.
+// VITE_CLERK_PROXY_URL can still be set for local web-preview testing if needed.
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
 // ── Clerk localStorage → Preferences persistence (production native only) ──────
 //
-// When configured with proxyUrl, Clerk JS stores session state in localStorage
-// (keys like __clerk_client_jwt, __client_uat) rather than in httpOnly cookies.
-// WKWebView DOES persist localStorage to disk, but cross-origin cookies from
-// capacitor://localhost → clerk.com are blocked by ITP — so __client_uat as a
-// cookie is never stored, and Clerk skips session restoration on cold start.
+// Without proxyUrl, Clerk JS uses httpOnly cookies for session state rather than
+// localStorage. WKWebView persists these cookies across force-kills automatically
+// via its own on-disk cookie store — no manual save/restore needed for cookies.
+// The localStorage backup below is kept as a safety net; if proxyUrl is ever
+// re-enabled (e.g. for local dev via VITE_CLERK_PROXY_URL), the backup kicks in.
 //
 // Fix: back up every __clerk* key + __client_uat to Preferences (Keychain) when
 // the app backgrounds.  Restore them into localStorage before ClerkProvider
