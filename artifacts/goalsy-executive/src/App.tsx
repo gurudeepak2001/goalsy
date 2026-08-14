@@ -58,23 +58,32 @@ const nativeApiHost = (() => {
 })();
 
 // ── Clerk publishable key & proxy URL ────────────────────────────────────────
-const clerkPubKey = isCapacitor
-  ? (nativeApiHost
-      // Derive from deployed host — NO fallback arg intentionally.
-      // publishableKeyFromHost short-circuits to any pk_test fallback, which
-      // would keep the device on the dev instance and cause 401s on the
-      // production API forever.
-      ? publishableKeyFromHost(nativeApiHost)
-      : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
-  : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+// Wrapped in try/catch so a derivation failure renders a visible error screen
+// rather than crashing the module (which would bypass the ErrorBoundary and
+// leave a permanent blank white screen with no recovery path).
+let clerkPubKey = '';
+let _clerkInitError: string | null = null;
+try {
+  clerkPubKey = isCapacitor
+    ? (nativeApiHost
+        // Derive from deployed host — NO fallback arg intentionally.
+        // publishableKeyFromHost short-circuits to any pk_test fallback, which
+        // would keep the device on the dev instance and cause 401s on the
+        // production API forever.
+        ? publishableKeyFromHost(nativeApiHost)
+        : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''))
+    : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+  if (!clerkPubKey) {
+    _clerkInitError = 'Missing Clerk publishable key — set VITE_CLERK_PUBLISHABLE_KEY in your .env file.';
+  }
+} catch (e) {
+  _clerkInitError = `Clerk key derivation failed: ${e instanceof Error ? e.message : String(e)}`;
+  console.error('[Goalsy] clerkPubKey error:', _clerkInitError);
+}
 
 const clerkProxyUrl = isCapacitor
   ? (nativeApiHost ? `https://${nativeApiHost}/api/__clerk` : undefined)
   : import.meta.env.VITE_CLERK_PROXY_URL;
-
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-}
 
 // ── __clerk_db_jwt device-token persistence ───────────────────────────────────
 //
@@ -378,22 +387,80 @@ function ApiClientBootstrap() {
   return null;
 }
 
+// ── ClerkTimeoutScreen ────────────────────────────────────────────────────────
+// Shown when Clerk hasn't initialised within CLERK_INIT_TIMEOUT_MS. Prevents
+// the user being stranded on a dark screen if the proxy is unreachable.
+
+const CLERK_INIT_TIMEOUT_MS = 15_000;
+
+function ClerkTimeoutScreen() {
+  return (
+    <div
+      style={{
+        minHeight: '100dvh', backgroundColor: '#05070A',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '2rem', gap: '1.5rem', textAlign: 'center',
+      }}
+    >
+      <div style={{
+        width: 64, height: 64, backgroundColor: '#1F2937',
+        border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+      }}>⚠️</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h2 style={{ color: '#fff', fontWeight: 700, fontSize: 20, margin: 0 }}>Connection Timeout</h2>
+        <p style={{ color: '#808BA4', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+          Unable to reach the authentication server.{'\n'}
+          Check your internet connection and try again.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        style={{
+          background: '#2563EB', color: '#fff', fontWeight: 700,
+          fontSize: 14, padding: '12px 32px', borderRadius: 16, border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
 // ── ClerkProviderWithRoutes ───────────────────────────────────────────────────
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  // If Clerk hasn't fired ClerkLoaded in CLERK_INIT_TIMEOUT_MS, surface a retry
+  // screen instead of leaving the user on an infinite dark placeholder.
+  useEffect(() => {
+    const t = setTimeout(() => setClerkTimedOut(true), CLERK_INIT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
+      // Explicit post-auth redirect URLs so native navigation is independent of
+      // Clerk dashboard config.  signInFallbackRedirectUrl / signUpFallbackRedirectUrl
+      // are used only when no redirect_url param is present in the URL.
+      signInFallbackRedirectUrl="/ai-home"
+      signUpFallbackRedirectUrl="/financial-connection"
+      afterSignOutUrl="/welcome"
     >
       {/* Static dark placeholder while Clerk initialises — do NOT use
           SplashScreen here because its 2.5s redirect timer fires before
           ClerkLoaded mounts the Router, leaving /welcome unmatched → blank. */}
       <ClerkLoading>
-        <div style={{ minHeight: '100dvh', backgroundColor: '#05070A' }} />
+        {clerkTimedOut ? <ClerkTimeoutScreen /> : <div style={{ minHeight: '100dvh', backgroundColor: '#05070A' }} />}
       </ClerkLoading>
       <ClerkLoaded>
         <ApiClientBootstrap />
@@ -418,6 +485,29 @@ function App() {
   useEffect(() => {
     if (!booted) bootReady.then(() => setBooted(true));
   }, [booted]);
+
+  // Key derivation failed at module level — show a legible error instead of
+  // a blank screen (the module-level throw would bypass ErrorBoundary).
+  if (_clerkInitError) {
+    return (
+      <div style={{
+        minHeight: '100dvh', backgroundColor: '#05070A',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '2rem', gap: '1.5rem', textAlign: 'center',
+      }}>
+        <div style={{
+          width: 64, height: 64, backgroundColor: '#1F2937',
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+        }}>⚠️</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h2 style={{ color: '#fff', fontWeight: 700, fontSize: 20, margin: 0 }}>Configuration Error</h2>
+          <p style={{ color: '#808BA4', fontSize: 14, lineHeight: 1.6, margin: 0 }}>{_clerkInitError}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!booted) {
     return <div style={{ minHeight: '100dvh', backgroundColor: '#05070A' }} />;

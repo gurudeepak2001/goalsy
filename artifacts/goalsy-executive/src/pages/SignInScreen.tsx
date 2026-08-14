@@ -327,7 +327,7 @@ export default function SignInScreen() {
             {errorMessage && (
               <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">
                 <AlertCircle size={16} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
-                <span className="text-[#EF4444] font-semibold text-sm leading-5">{errorMessage}</span>
+                <span className="text-[#EF4444] font-semibold text-sm leading-5" style={{ whiteSpace: 'pre-line' }}>{errorMessage}</span>
               </div>
             )}
 
