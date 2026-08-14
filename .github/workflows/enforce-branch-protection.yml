@@ -36,7 +36,7 @@ jobs:
           BRANCH="main"
 
           # All checks that must pass before a PR can be merged into main.
-          REQUIRED_CHECKS='["clerk-cookie-round-trip","api-server-test","frontend-typecheck"]'
+          REQUIRED_CHECKS='["clerk-cookie-round-trip","api-server-test","frontend-typecheck","api-typecheck"]'
 
           echo "Fetching current branch protection for ${BRANCH}…"
 
