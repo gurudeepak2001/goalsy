@@ -23,6 +23,14 @@ public class MainActivity extends BridgeActivity {
      * until all pending cookie writes have been committed to disk, so any
      * subsequent SIGKILL cannot lose them.
      *
+     * Android System WebView ships as a separate APK and updates independently
+     * of the OS.  A silent WebView update could change the flush behaviour and
+     * break this guarantee.  Run the regression checklist after any bump to the
+     * Capacitor Android target SDK, Gradle wrapper, or when a major WebView
+     * version ships:
+     *
+     *   android/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md
+     *
      * onStop() is called:
      *   • when the app is sent to the background (home button, recents swipe)
      *   • just before the process is force-killed via the recents switcher
