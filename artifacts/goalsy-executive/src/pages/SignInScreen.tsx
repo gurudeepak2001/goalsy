@@ -128,7 +128,11 @@ export default function SignInScreen() {
       }
 
     } catch (err) {
-      console.log('[Goalsy SignIn] caught error:', JSON.stringify(err));
+      const e = err as any;
+      console.log('[Goalsy SignIn] caught error — message:', e?.message,
+        '| code:', e?.code,
+        '| clerkError:', e?.clerkError,
+        '| errors:', JSON.stringify(e?.errors));
       setErrorMessage(getClerkErrorMessage(err, 'Invalid email or password. Please try again.'));
     } finally {
       setSubmitting(false);
