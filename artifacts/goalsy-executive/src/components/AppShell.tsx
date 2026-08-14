@@ -64,7 +64,10 @@ export default function AppShell({
   return (
     // Root: fixed viewport height, clipped. The scroll lives on the inner
     // content div — not here — so the header overlay stays perfectly still.
-    <div className={`h-[100dvh] relative w-full bg-[#05070A] max-w-md mx-auto overflow-hidden ${className}`}>
+    <div
+      className={`h-[100dvh] relative w-full bg-[#05070A] max-w-md mx-auto overflow-hidden ${className}`}
+      data-testid="AuthenticatedView"
+    >
 
       {/* ── Scrollable content ──────────────────────────────────────────────
           Fills the entire root div (inset-0) and owns the overflow-y-auto.

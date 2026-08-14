@@ -200,41 +200,48 @@ final class SessionRestoreSmokeTests: XCTestCase {
     /// Waits up to `dashboardTimeout` for the authenticated home/dashboard screen
     /// to appear.  Fails if no recognisable authenticated-state element is found.
     ///
-    /// The candidate list covers common accessibility elements from navigation
-    /// bars, tab bars, and app-specific labels — any one is sufficient.
+    /// Primary signal: the `data-testid="AuthenticatedView"` attribute on
+    /// AppShell's root div, which Capacitor's WKWebView accessibility bridge
+    /// surfaces as `app.otherElements["AuthenticatedView"]`.  This identifier is
+    /// owned by the app — not by Clerk — so Clerk markup changes cannot affect it.
+    ///
+    /// Fallback signals (tab bars, nav bars) catch edge cases where the
+    /// accessibility bridge hasn't flushed the web tree yet.
     private func assertDashboardVisible(in app: XCUIApplication) {
-        // These elements must not appear on the sign-in screen and must be
-        // present on the authenticated dashboard.  Add app-specific identifiers
-        // (set via .accessibilityIdentifier in SwiftUI/UIKit or
-        // data-testid in the web layer with Capacitor's accessibility bridge)
-        // to make this list more precise as the app evolves.
-        let dashboardCandidates: [XCUIElement] = [
-            app.tabBars.firstMatch,                     // authenticated app shell
-            app.navigationBars.firstMatch,              // any nav bar past sign-in
-            app.staticTexts["Goals"],
-            app.staticTexts["Dashboard"],
-            app.staticTexts["Home"],
-            app.staticTexts["Overview"],
+        // PRIMARY: app-owned identifier set via data-testid="AuthenticatedView"
+        // on AppShell's root div.  Immune to Clerk UI changes.
+        let authenticatedView = app.otherElements["AuthenticatedView"].firstMatch
+
+        if authenticatedView.waitForExistence(timeout: dashboardTimeout) {
+            return   // ✅ fast path — stable identifier found
+        }
+
+        // FALLBACK: structural elements present on any authenticated screen.
+        // These are less precise but cover cases where the WKWebView accessibility
+        // tree has not yet been flushed by the time the primary check runs.
+        let fallbackCandidates: [XCUIElement] = [
+            app.tabBars.firstMatch,
+            app.navigationBars.firstMatch,
         ]
 
-        let deadline = Date().addingTimeInterval(dashboardTimeout)
-        var dashboardFound = false
+        let deadline = Date().addingTimeInterval(10)   // short extra window
+        var fallbackFound = false
 
-        while !dashboardFound, Date() < deadline {
-            for candidate in dashboardCandidates where candidate.exists {
-                dashboardFound = true
+        while !fallbackFound, Date() < deadline {
+            for candidate in fallbackCandidates where candidate.exists {
+                fallbackFound = true
                 break
             }
-            if !dashboardFound {
+            if !fallbackFound {
                 RunLoop.current.run(until: Date().addingTimeInterval(0.5))
             }
         }
 
         XCTAssertTrue(
-            dashboardFound,
+            fallbackFound,
             """
             The authenticated dashboard did not appear within \(Int(dashboardTimeout))s after
-            session restore.
+            session restore (neither AuthenticatedView nor any tab/nav bar was found).
 
             The app may be:
             • Stuck on a loading/splash screen (cookie inject timing issue)
