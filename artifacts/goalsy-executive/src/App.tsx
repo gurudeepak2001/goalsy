@@ -103,6 +103,25 @@ try {
 // VITE_CLERK_PROXY_URL can still be set for local web-preview testing if needed.
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
+// clerkJSUrl — explicit clerk.browser.js location for Capacitor native builds.
+//
+// Problem: @clerk/react@6.12.2 bundles Clerk at version 6.12.2 and calls
+// getClerkJsEntryChunk() at runtime, which fetches:
+//   https://<fapi>/npm/@clerk/clerk-js@6.12.2/dist/clerk.browser.js
+// The FAPI only serves the latest 6.x (currently 6.29.0+) at the versioned
+// path, so the exact-version request returns 404 → getClerkJsEntryChunk throws.
+//
+// Fix: supply an explicit URL using the @6 semver range. The FAPI redirects
+// @6 → @6.29.0 (HTTP 307), which returns 200 with access-control-allow-origin: *.
+// WKWebView follows the redirect and loads the script successfully.
+//
+// Only applied for native Capacitor builds (nativeApiHost is set). Web builds
+// are unaffected — Clerk's normal chunk detection works in a regular browser.
+const clerkJSUrl: string | undefined =
+  isCapacitor && nativeApiHost && FAPI_ORIGIN
+    ? `${FAPI_ORIGIN}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`
+    : undefined;
+
 // ── __clerk_db_jwt device-token persistence ───────────────────────────────────
 //
 // Clerk passes its device token as a __clerk_db_jwt query parameter on every
@@ -578,6 +597,7 @@ function ClerkProviderWithRoutes() {
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
+      clerkJSUrl={clerkJSUrl}
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
       // Explicit post-auth redirect URLs so native navigation is independent of
