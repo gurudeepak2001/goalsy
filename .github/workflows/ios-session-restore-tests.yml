@@ -159,13 +159,15 @@ jobs:
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
 
       - name: Run AppUITests smoke test
+        # CLERK_TEST_COOKIES is forwarded to the test runner via the scheme's
+        # TestAction EnvironmentVariables section ($(CLERK_TEST_COOKIES)
+        # expansion) — no -testenv flag needed.
         run: |
           set -o pipefail
           xcodebuild test \
             -project ios/App/App.xcodeproj \
             -scheme AppUITests \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -testenv CLERK_TEST_COOKIES="${CLERK_TEST_COOKIES}" \
             -resultBundlePath /tmp/AppUITests.xcresult \
             CODE_SIGNING_ALLOWED=NO \
           | xcpretty --color --report junit --output /tmp/smoke-junit.xml \

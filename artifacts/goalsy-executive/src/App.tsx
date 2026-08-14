@@ -429,6 +429,15 @@ function Router() {
 const CLERK_LS_PREF_KEY = 'cm_clerk_localstorage';
 
 const CLERK_LS_KEY_PREFIXES = ['__clerk', 'clerk.'];
+
+function postAuthScreenToNative(screen: 'dashboard' | 'signin'): void {
+  try {
+    const wk = (window as any).webkit;
+    if (wk?.messageHandlers?.goalsyAuthState) {
+      wk.messageHandlers.goalsyAuthState.postMessage({ screen });
+    }
+  } catch { /* never fatal — native bridge is best-effort */ }
+}
 export function ApiClientBootstrap() {
   const { getToken, isSignedIn } = useAuth();
   const { toast } = useToast();
@@ -445,6 +454,17 @@ export function ApiClientBootstrap() {
   // after sign-in, so the empty-deps version captured the pre-sign-in closure
   // (returns null forever). This keeps the API client live post-sign-in.
   useEffect(() => { initApiClient(getToken); }, [getToken]);
+
+  // Bridge resolved auth state to native UIView accessibilityIdentifier so
+  // XCUITest can assert on stable identifiers ("goalsy.screen.dashboard" /
+  // "goalsy.screen.signin") rather than fragile visible-text matches.
+  // isSignedIn is always a boolean here (ApiClientBootstrap lives inside
+  // ClerkLoaded, so Clerk has already resolved auth state).
+  useEffect(() => {
+    if (!isCapacitor) return;
+    if (isSignedIn === true)  postAuthScreenToNative('dashboard');
+    if (isSignedIn === false) postAuthScreenToNative('signin');
+  }, [isSignedIn]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
   // When getToken returns null AND the user was previously signed-in, the Clerk

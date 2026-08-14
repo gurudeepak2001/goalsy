@@ -48,8 +48,7 @@
 		AA000000000000000000AA05 /* ClerkCookiePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA04 /* ClerkCookiePersistence.swift */; };
 		AA000000000000000000AA03 /* ClerkCookiePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */; };
 		BB000000000000000000BB03 /* SessionRestoreSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */; };
-		BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB0D /* CookieRotationTest.swift */; };
-/* End PBXBuildFile section */
+		BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB0D /* CookieRotationTest.swift */; };/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -67,8 +66,7 @@
 		AA000000000000000000AA04 /* ClerkCookiePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistence.swift; sourceTree = "<group>"; };
 		BB000000000000000000BB01 /* AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreSmokeTests.swift; sourceTree = "<group>"; };
-		BB000000000000000000BB0D /* CookieRotationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookieRotationTest.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
+		BB000000000000000000BB0D /* CookieRotationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookieRotationTest.swift; sourceTree = "<group>"; };/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		504EC3011FED79650016851F /* Frameworks */ = {
@@ -145,8 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */,
-				BB000000000000000000BB0D /* CookieRotationTest.swift */,
-			);
+				BB000000000000000000BB0D /* CookieRotationTest.swift */,			);
 			path = AppUITests;
 			sourceTree = "<group>";
 		};
@@ -295,8 +292,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB000000000000000000BB03 /* SessionRestoreSmokeTests.swift in Sources */,
-				BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */,
-			);
+				BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */,			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

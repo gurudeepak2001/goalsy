@@ -25,16 +25,22 @@
 /// 4. That output is the value to set as CLERK_TEST_COOKIES.
 ///
 /// ## Running locally
+/// Export CLERK_TEST_COOKIES into your shell before invoking xcodebuild.
+/// The AppUITests scheme's TestAction expands $(CLERK_TEST_COOKIES) from the
+/// process environment, so no -testenv flag is needed:
+///
+///   export CLERK_TEST_COOKIES='[{"name":"__client","value":"…","domain":".clerk.goalsy.accounts.dev","path":"/","isSecure":true,"isHTTPOnly":false}]'
 ///   xcodebuild test \
 ///     -project ios/App/App.xcodeproj \
 ///     -scheme AppUITests \
-///     -destination 'platform=iOS Simulator,name=iPhone 16' \
-///     -testenv CLERK_TEST_COOKIES='[{"name":"__client","value":"…","domain":".clerk.goalsy.accounts.dev","path":"/","isSecure":true,"isHTTPOnly":false}]'
+///     -destination 'platform=iOS Simulator,name=iPhone 16'
 ///
 /// ## Running in CI
-/// Pass CLERK_TEST_COOKIES as a CI secret injected via the -testenv flag.
-/// The test automatically skips (XCTSkip) when the variable is absent, so
-/// builds without credentials stay green.
+/// The secret is stored as CLERK_TEST_COOKIES in the repository's Actions
+/// secrets.  The workflow job exports it as an env var and the scheme forwards
+/// it to the test runner via the TestAction EnvironmentVariables expansion.
+/// The test automatically skips (XCTSkip) when the variable is absent or
+/// empty, so builds without credentials stay green.
 
 import XCTest
 
@@ -83,8 +89,8 @@ final class SessionRestoreSmokeTests: XCTestCase {
                 CLERK_TEST_COOKIES is not set — skipping the server-validation smoke test.
 
                 To enable this test, obtain Clerk cookies from a signed-in test-environment
-                session (see the file header for instructions) and pass the JSON string as:
-                  -testenv CLERK_TEST_COOKIES='[{...}]'
+                session (see the file header for instructions) and export the JSON string:
+                  export CLERK_TEST_COOKIES='[{...}]'
 
                 The test is automatically skipped in builds where no credentials are available.
                 """
@@ -149,19 +155,31 @@ final class SessionRestoreSmokeTests: XCTestCase {
     /// Polls for `signInCheckWindow` seconds and fails immediately if any
     /// recognisable sign-in or session-error element appears.
     ///
-    /// This catches both the Clerk-rendered sign-in form (exposed through the
-    /// WKWebView's accessibility bridge) and any native error screens the app
-    /// might show on FAPI rejection.
+    /// Primary check: the stable native accessibilityIdentifier
+    /// "goalsy.screen.signin" set by GoalsyAuthStateHandler in AppDelegate when
+    /// the web layer posts authState = "signin".  This identifier is immune to
+    /// Clerk UI renames because it is set by our own code, not scraped from
+    /// Clerk's rendered text.
+    ///
+    /// Secondary checks: WKWebView accessibility-tree text labels from Clerk's
+    /// sign-in form and the app's own auth-error screens.  These remain as a
+    /// belt-and-suspenders layer in case the bridge message is delayed.
     private func assertNoSignInPrompt(in app: XCUIApplication) {
-        // XCUITest surfaces WKWebView content via the accessibility tree when
-        // the WebView has `accessibilityActivate()` or the host app enables the
-        // WKWebView accessibility bridge (Capacitor does this by default).
-        //
+        // ── Primary: stable native identifier ────────────────────────────────
+        // The identifier is set asynchronously after Clerk resolves auth state,
+        // so we poll within signInCheckWindow just like the text fallbacks.
+        // Failing on the primary identifier is the definitive signal — no need
+        // to also check text labels once this fires.
+        let signInScreen = app.otherElements["goalsy.screen.signin"]
+
+        // ── Secondary: visible-text fallbacks ─────────────────────────────────
         // Match on text/labels that Clerk's default sign-in UI renders and that
-        // the app's own auth-error states might surface.
+        // the app's own auth-error states might surface.  Kept as a belt-and-
+        // suspenders layer; do NOT remove — they catch regressions where the
+        // native bridge fires but the route guard fails to redirect.
         // Clerk-rendered labels use `ClerkSignInLocators` so any placeholder
         // rename only needs to be updated in ClerkWebViewHelpers.swift.
-        let signInIndicators: [XCUIElement] = [
+        let signInTextIndicators: [XCUIElement] = [
             app.staticTexts["Session expired"],
             app.staticTexts["You have been signed out"],
             app.staticTexts["Signed out"],
@@ -174,13 +192,34 @@ final class SessionRestoreSmokeTests: XCTestCase {
 
         let deadline = Date().addingTimeInterval(signInCheckWindow)
         while Date() < deadline {
-            for indicator in signInIndicators where indicator.exists {
+            // Primary check first — stable and fast.
+            if signInScreen.exists {
                 XCTFail(
                     """
-                    Sign-in indicator '\(indicator.label)' appeared after session restore.
+                    Native sign-in screen identifier 'goalsy.screen.signin' appeared after
+                    session restore.
 
                     This means the Clerk cookie saved to UserDefaults was rejected by FAPI —
                     it may be expired, revoked, or belong to a different Clerk instance.
+
+                    Next steps:
+                    1. Re-obtain fresh CLERK_TEST_COOKIES from a live signed-in session.
+                    2. Confirm the test account is in the *test* Clerk instance (pk_test_…),
+                       not the production instance.
+                    3. Check the WebView console via Safari → Develop → [Simulator] for
+                       Clerk FAPI error details.
+                    """
+                )
+                return
+            }
+            // Secondary text-based fallbacks.
+            for indicator in signInTextIndicators where indicator.exists {
+                XCTFail(
+                    """
+                    Sign-in text indicator '\(indicator.label)' appeared after session restore.
+
+                    The native bridge identifier 'goalsy.screen.signin' did not fire, but a
+                    Clerk sign-in UI element is visible — the Clerk cookie was likely rejected.
 
                     Next steps:
                     1. Re-obtain fresh CLERK_TEST_COOKIES from a live signed-in session.
@@ -199,53 +238,78 @@ final class SessionRestoreSmokeTests: XCTestCase {
     /// Waits up to `dashboardTimeout` for the authenticated home/dashboard screen
     /// to appear.  Fails if no recognisable authenticated-state element is found.
     ///
-    /// Primary signal: the `data-testid="AuthenticatedView"` attribute on
-    /// AppShell's root div, which Capacitor's WKWebView accessibility bridge
-    /// surfaces as `app.otherElements["AuthenticatedView"]`.  This identifier is
-    /// owned by the app — not by Clerk — so Clerk markup changes cannot affect it.
+    /// Three layers of detection in priority order:
     ///
-    /// Fallback signals (tab bars, nav bars) catch edge cases where the
-    /// accessibility bridge hasn't flushed the web tree yet.
+    /// 1. Native bridge identifier "goalsy.screen.dashboard" — set by
+    ///    GoalsyAuthStateHandler in AppDelegate when the web layer posts
+    ///    authState = "dashboard".  Immune to both Clerk and app label renames.
+    ///
+    /// 2. Web data-testid "AuthenticatedView" — set via data-testid on
+    ///    AppShell's root div, surfaced through the WKWebView accessibility
+    ///    bridge.  App-owned, so Clerk markup changes cannot affect it.
+    ///
+    /// 3. Structural / text fallbacks (tab bars, nav bars, static text labels).
+    ///    Least stable but broadest coverage for edge cases where the upper
+    ///    layers haven't fired yet.
     private func assertDashboardVisible(in app: XCUIApplication) {
-        // PRIMARY: app-owned identifier set via data-testid="AuthenticatedView"
-        // on AppShell's root div.  Immune to Clerk UI changes.
-        let authenticatedView = app.otherElements["AuthenticatedView"].firstMatch
-
-        if authenticatedView.waitForExistence(timeout: dashboardTimeout) {
-            return   // ✅ fast path — stable identifier found
+        // ── Layer 1: stable native bridge identifier ──────────────────────────
+        // waitForExistence blocks until the element appears or the full
+        // dashboardTimeout expires — no busy-wait needed.
+        let dashboardScreen = app.otherElements["goalsy.screen.dashboard"]
+        if dashboardScreen.waitForExistence(timeout: dashboardTimeout) {
+            // Sanity check: both identifiers should never co-exist.
+            XCTAssertFalse(
+                app.otherElements["goalsy.screen.signin"].exists,
+                "goalsy.screen.signin co-exists with goalsy.screen.dashboard — " +
+                "auth state bridge may have fired twice or in the wrong order."
+            )
+            return
         }
 
-        // FALLBACK: structural elements present on any authenticated screen.
-        // These are less precise but cover cases where the WKWebView accessibility
-        // tree has not yet been flushed by the time the primary check runs.
-        let fallbackCandidates: [XCUIElement] = [
-            app.tabBars.firstMatch,
-            app.navigationBars.firstMatch,
+        // ── Layer 2: app-owned web data-testid ───────────────────────────────
+        // Surfaced through Capacitor's WKWebView accessibility bridge as an
+        // otherElement.  Immune to Clerk UI changes because it is set by the
+        // app (AppShell's root div carries data-testid="AuthenticatedView").
+        let authenticatedView = app.otherElements["AuthenticatedView"].firstMatch
+        if authenticatedView.exists {
+            return   // fast path — app-owned web identifier found
+        }
+
+        // ── Layer 3: structural / text fallbacks ─────────────────────────────
+        // Reached only if neither bridge layer fired (e.g. WKScriptMessageHandler
+        // not yet registered, or accessibility tree not yet flushed).
+        let dashboardTextCandidates: [XCUIElement] = [
+            app.tabBars.firstMatch,                     // authenticated app shell
+            app.navigationBars.firstMatch,              // any nav bar past sign-in
+            app.staticTexts["Goals"],
+            app.staticTexts["Dashboard"],
+            app.staticTexts["Home"],
+            app.staticTexts["Overview"],
         ]
 
-        let deadline = Date().addingTimeInterval(10)   // short extra window
-        var fallbackFound = false
-
-        while !fallbackFound, Date() < deadline {
-            for candidate in fallbackCandidates where candidate.exists {
-                fallbackFound = true
-                break
-            }
-            if !fallbackFound {
-                RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-            }
+        var dashboardFound = false
+        for candidate in dashboardTextCandidates where candidate.exists {
+            dashboardFound = true
+            break
         }
 
         XCTAssertTrue(
-            fallbackFound,
+            dashboardFound,
             """
-            The authenticated dashboard did not appear within \(Int(dashboardTimeout))s after
-            session restore (neither AuthenticatedView nor any tab/nav bar was found).
+            Neither 'goalsy.screen.dashboard', 'AuthenticatedView', nor any
+            structural dashboard element appeared within \(Int(dashboardTimeout))s
+            after session restore.
 
             The app may be:
             • Stuck on a loading/splash screen (cookie inject timing issue)
             • Showing an error screen (FAPI rejected the session)
             • Navigating to an unexpected screen (check the accessibility tree)
+
+            If the native bridge identifier never fires, verify that AppDelegate
+            registered the 'goalsyAuthState' WKScriptMessageHandler (look for
+            "[Goalsy:native] goalsyAuthState message handler registered" in the log)
+            and that postAuthScreenToNative() is called from ApiClientBootstrap
+            when isSignedIn resolves.
 
             Attach Safari Web Inspector immediately after running this test to inspect
             the WebView console for Clerk FAPI error details:

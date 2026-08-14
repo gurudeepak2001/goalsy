@@ -2,10 +2,61 @@ import UIKit
 import Capacitor
 import WebKit
 
+// ── GoalsyAuthStateHandler ────────────────────────────────────────────────────
+// WKScriptMessageHandler that receives auth-state messages posted by the web
+// layer (App.tsx → postAuthScreenToNative) and sets a stable
+// accessibilityIdentifier on the Capacitor root view so XCUITest can assert on
+// "goalsy.screen.dashboard" / "goalsy.screen.signin" instead of fragile text.
+//
+// Registered under the handler name "goalsyAuthState".  The WKWebView holds a
+// strong reference to message handlers, so we use the weak-delegate pattern
+// (GoalsyAuthStateHandlerProxy) to avoid a retain cycle with AppDelegate.
+private final class GoalsyAuthStateHandler: NSObject, WKScriptMessageHandler {
+    // The view whose accessibilityIdentifier we update on each auth-state change.
+    // AppDelegate sets this once the Capacitor root view is available.
+    weak var targetView: UIView?
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        guard let body = message.body as? [String: Any],
+              let screen = body["screen"] as? String else {
+            NSLog("[Goalsy:native] goalsyAuthState — unexpected message body: %@", "\(message.body)")
+            return
+        }
+        let identifier = "goalsy.screen.\(screen)"
+        DispatchQueue.main.async { [weak self] in
+            self?.targetView?.accessibilityIdentifier = identifier
+            NSLog("[Goalsy:native] goalsyAuthState — set accessibilityIdentifier to '%@'", identifier)
+        }
+    }
+}
+
+/// Proxy wrapper held by WKUserContentController to break the retain cycle.
+/// WKUserContentController strongly retains its message handlers; this proxy
+/// holds only a weak reference to the real handler so the handler (and anything
+/// it holds) can be deallocated normally.
+private final class GoalsyAuthStateHandlerProxy: NSObject, WKScriptMessageHandler {
+    weak var target: GoalsyAuthStateHandler?
+    init(_ target: GoalsyAuthStateHandler) { self.target = target }
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        target?.userContentController(userContentController, didReceive: message)
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+
+    // Auth-state bridge: set up once when Capacitor's WKWebView is available.
+    private let authStateHandler = GoalsyAuthStateHandler()
+    private var authHandlerRegistered = false
 
     /// Handles the Clerk cookie backup/restore round-trip.
     /// Instantiated once; AppDelegate supplies the live Capacitor cookie store
@@ -76,8 +127,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // Register the auth-state script-message handler the first time the
+        // Capacitor WKWebView is available (i.e. after viewDidLoad has run).
+        // applicationDidBecomeActive is the earliest reliable point where
+        // CAPBridgeViewController.webView is non-nil.
+        registerAuthStateHandlerIfNeeded()
+    }
+
     func applicationWillTerminate(_ application: UIApplication) {}
+
+    // MARK: - Auth-state accessibility bridge
+
+    /// Registers the GoalsyAuthStateHandler on the Capacitor WKWebView's
+    /// userContentController exactly once.  Safe to call repeatedly — the
+    /// `authHandlerRegistered` flag prevents double-registration (which would
+    /// crash with a WKWebView "handler already registered" assertion).
+    private func registerAuthStateHandlerIfNeeded() {
+        guard !authHandlerRegistered,
+              let bridgeVC = window?.rootViewController as? CAPBridgeViewController,
+              let webView = bridgeVC.webView else { return }
+
+        // Point the handler at Capacitor's root view so the identifier is
+        // always visible at the top of the accessibility tree.
+        authStateHandler.targetView = webView.superview ?? webView
+
+        // Use the proxy to break the retain cycle: WKUserContentController
+        // holds a strong ref to its handlers; the proxy holds only a weak ref
+        // back to authStateHandler, letting both be deallocated normally.
+        let proxy = GoalsyAuthStateHandlerProxy(authStateHandler)
+        webView.configuration.userContentController.add(proxy, name: "goalsyAuthState")
+        authHandlerRegistered = true
+        NSLog("[Goalsy:native] goalsyAuthState message handler registered")
+    }
 
     func application(_ app: UIApplication, open url: URL,
                      options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
