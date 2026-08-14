@@ -184,7 +184,7 @@ final class SessionRestoreSmokeTests: XCTestCase {
         // suspenders layer; do NOT remove — they catch regressions where the
         // native bridge fires but the route guard fails to redirect.
         // Clerk-rendered labels use `ClerkSignInLocators` so any placeholder
-        // rename only needs to be updated in ClerkWebViewHelpers.swift.
+        // rename only needs to be updated in ClerkWebViewSignIn.swift.
         let signInTextIndicators: [XCUIElement] = [
             app.staticTexts["Session expired"],
             app.staticTexts["You have been signed out"],

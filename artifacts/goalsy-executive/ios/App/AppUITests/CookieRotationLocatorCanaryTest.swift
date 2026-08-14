@@ -44,11 +44,6 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
     /// How long to wait for individual elements once the WebView is visible.
     private let elementTimeout: TimeInterval = 15
 
-    /// Placeholder text used by Clerk's email field (as of initial writing).
-    /// If Clerk changes this, the test still passes via the `firstMatch` fallback
-    /// — but the placeholder constant here documents the expected value.
-    private let emailPlaceholder = "Email address"
-
     // MARK: - Test
 
     /// Verifies that the Clerk sign-in WebView loads and exposes the element
@@ -74,7 +69,7 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
         // Try the known placeholder first so the error message is specific;
         // fall back to `firstMatch` so a placeholder change doesn't mask a
         // structural breakage (e.g. Clerk removing the field entirely).
-        let emailByPlaceholder = webView.textFields[emailPlaceholder]
+        let emailByPlaceholder = webView.textFields[ClerkSignInLocators.emailPlaceholder]
         let emailExists: Bool
         if emailByPlaceholder.waitForExistence(timeout: elementTimeout) {
             emailExists = true
@@ -84,9 +79,8 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
             if emailExists {
                 XCTFail(
                     "⚠️ CANARY: A text field was found in the WebView but its placeholder " +
-                    "no longer matches '\(emailPlaceholder)'. Clerk may have changed its copy. " +
-                    "Update `emailPlaceholder` in CookieRotationLocatorCanaryTest.swift and " +
-                    "the matching locator in CookieRotationTest.swift."
+                    "no longer matches '\(ClerkSignInLocators.emailPlaceholder)'. Clerk may have changed its copy. " +
+                    "Update `ClerkSignInLocators.emailPlaceholder` in ClerkWebViewSignIn.swift."
                 )
             }
         }
@@ -94,14 +88,14 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
             emailExists,
             "❌ CANARY: No text field found in the Clerk sign-in WebView. " +
             "Clerk may have changed its form structure — update the email field " +
-            "locator in CookieRotationTest.swift before the next rotation run."
+            "locator in ClerkWebViewSignIn.swift before the next rotation run."
         )
 
         // ── 4. Check: at least one button (Continue / Sign in) ───────────
         // Buttons are always visible on the first step of the sign-in form,
         // so this doesn't require advancing past the email field.
-        let continueBtn = webView.buttons["Continue"].firstMatch
-        let signInBtn   = webView.buttons["Sign in"].firstMatch
+        let continueBtn = webView.buttons[ClerkSignInLocators.continueButton].firstMatch
+        let signInBtn   = webView.buttons[ClerkSignInLocators.signInButton].firstMatch
         let anyButton   = webView.buttons.firstMatch
 
         let buttonExists: Bool
@@ -110,9 +104,9 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
         } else if signInBtn.waitForExistence(timeout: 3) {
             buttonExists = true
             XCTFail(
-                "⚠️ CANARY: The primary action button label has changed from 'Continue' to " +
-                "'Sign in' (or similar). Update `tapContinueButton(in:)` in " +
-                "CookieRotationTest.swift if needed."
+                "⚠️ CANARY: The primary action button label has changed from " +
+                "'\(ClerkSignInLocators.continueButton)' to '\(ClerkSignInLocators.signInButton)' (or similar). " +
+                "Update `ClerkSignInLocators.continueButton` in ClerkWebViewSignIn.swift if needed."
             )
         } else {
             buttonExists = anyButton.waitForExistence(timeout: 3)
@@ -120,9 +114,9 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
                 // No labelled button found at all.
             } else {
                 XCTFail(
-                    "⚠️ CANARY: A button exists in the WebView but neither 'Continue' nor " +
-                    "'Sign in' label was found. Update `tapContinueButton(in:)` in " +
-                    "CookieRotationTest.swift to match the new label."
+                    "⚠️ CANARY: A button exists in the WebView but neither " +
+                    "'\(ClerkSignInLocators.continueButton)' nor '\(ClerkSignInLocators.signInButton)' label was found. " +
+                    "Update `ClerkSignInLocators` in ClerkWebViewSignIn.swift to match the new label."
                 )
             }
         }
@@ -130,7 +124,7 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
             buttonExists,
             "❌ CANARY: No button found in the Clerk sign-in WebView. " +
             "Clerk may have restructured its form — update the button locator " +
-            "in CookieRotationTest.swift before the next rotation run."
+            "in ClerkWebViewSignIn.swift before the next rotation run."
         )
 
         // ── 5. Check: at least one secure text field (password input) ─────
@@ -158,7 +152,7 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
             "❌ CANARY: No secureTextField found in the Clerk sign-in WebView " +
             "(checked both the first step and after advancing with a dummy email). " +
             "Clerk may have changed its form structure — update the password field " +
-            "locator in CookieRotationTest.swift before the next rotation run."
+            "locator in ClerkWebViewSignIn.swift before the next rotation run."
         )
 
         // ── 6. Done — do NOT submit credentials ──────────────────────────
@@ -186,7 +180,7 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
         let dummyEmail = "canary-noreply@example.invalid"
 
         // Locate and fill the email field.
-        let emailByPlaceholder = webView.textFields[emailPlaceholder]
+        let emailByPlaceholder = webView.textFields[ClerkSignInLocators.emailPlaceholder]
         let emailField: XCUIElement
         if emailByPlaceholder.waitForExistence(timeout: elementTimeout) {
             emailField = emailByPlaceholder
@@ -209,8 +203,8 @@ final class CookieRotationLocatorCanaryTest: XCTestCase {
 
     /// Taps the first visible "Continue" or "Sign in" button inside `parent`.
     private func tapContinueButton(in parent: XCUIElement) {
-        let continueBtn = parent.buttons["Continue"].firstMatch
-        let signInBtn   = parent.buttons["Sign in"].firstMatch
+        let continueBtn = parent.buttons[ClerkSignInLocators.continueButton].firstMatch
+        let signInBtn   = parent.buttons[ClerkSignInLocators.signInButton].firstMatch
         let firstButton = parent.buttons.firstMatch
 
         if continueBtn.waitForExistence(timeout: 5) {

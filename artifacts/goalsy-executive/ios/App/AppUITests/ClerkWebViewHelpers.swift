@@ -1,11 +1,15 @@
 /// ClerkWebViewHelpers.swift
 ///
 /// Shared sign-in helpers for XCUITests that interact with Clerk's WebView
-/// sign-in form.  Centralising the locators here means any Clerk markup change
-/// only needs to be updated in one place.
+/// sign-in form.
 ///
 /// ## Usage
 ///   try ClerkWebViewHelpers.signIn(app: app, email: email, password: password)
+///
+/// ## Locator constants
+/// All Clerk UI identifiers (placeholders, button labels) live in
+/// `ClerkWebViewSignIn.swift` as `ClerkSignInLocators`.  Update them there;
+/// this file picks up the change automatically.
 ///
 /// ## Locator philosophy
 /// Each locator has a primary identifier (Clerk's current placeholder / label)
@@ -15,24 +19,6 @@
 /// are caught before a full rotation wastes 10+ minutes.
 
 import XCTest
-
-// MARK: - Locator constants
-
-/// Single source of truth for every Clerk form label this test suite matches.
-/// Update here when Clerk changes its markup; tests that import this file pick
-/// up the change automatically.
-enum ClerkSignInLocators {
-    /// Placeholder text on the email / username input (Step 1).
-    static let emailPlaceholder     = "Email address"
-    /// Placeholder on the secure password input (Step 2).
-    static let passwordPlaceholder  = "Password"
-    /// Primary submit button label (both steps).
-    static let continueButton       = "Continue"
-    /// Alternative submit label some Clerk instances use on the final step.
-    static let signInButton         = "Sign in"
-    /// Native button on the app's WelcomeScreen that routes to /signin.
-    static let welcomeSignInButton  = "Sign In"
-}
 
 // MARK: - Sign-in helpers
 

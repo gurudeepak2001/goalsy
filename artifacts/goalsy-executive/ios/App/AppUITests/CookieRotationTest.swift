@@ -37,9 +37,9 @@
 ///
 /// ## UI element assumptions
 /// The test interacts with Clerk's hosted sign-in WebView via the shared
-/// `ClerkWebViewHelpers` / `ClerkSignInLocators` types defined in
-/// `ClerkWebViewHelpers.swift`.  If Clerk changes its form markup, update
-/// `ClerkSignInLocators` there — this file picks up the change automatically.
+/// `ClerkWebViewHelpers` / `ClerkSignInLocators` types.  If Clerk changes its
+/// form markup, update `ClerkSignInLocators` in `ClerkWebViewSignIn.swift` —
+/// this file picks up the change automatically.
 
 import XCTest
 
