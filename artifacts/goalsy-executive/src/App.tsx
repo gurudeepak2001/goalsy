@@ -429,7 +429,7 @@ function Router() {
 const CLERK_LS_PREF_KEY = 'cm_clerk_localstorage';
 
 const CLERK_LS_KEY_PREFIXES = ['__clerk', 'clerk.'];
-function ApiClientBootstrap() {
+export function ApiClientBootstrap() {
   const { getToken, isSignedIn } = useAuth();
   const { toast } = useToast();
 
