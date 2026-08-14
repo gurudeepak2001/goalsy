@@ -4,9 +4,15 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'artifacts/goalsy-executive/ios/**'
+      - '.github/workflows/ios-session-restore-tests.yml'
   push:
     branches:
       - main
+    paths:
+      - 'artifacts/goalsy-executive/ios/**'
+      - '.github/workflows/ios-session-restore-tests.yml'
 
 jobs:
   clerk-cookie-round-trip:
