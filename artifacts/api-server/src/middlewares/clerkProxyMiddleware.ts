@@ -89,6 +89,13 @@ export function clerkProxyMiddleware(): RequestHandler {
         if (clientIp) {
           proxyReq.setHeader('X-Forwarded-For', clientIp);
         }
+
+        // Diagnostic: log every proxied request so we can see which FAPI calls
+        // the native client makes and (in proxyRes below) what status they return.
+        // http-proxy-middleware is mounted before pinoHttp, so proxied requests
+        // are invisible to pino — these console.logs fill that gap.
+        const origin = req.headers['origin'] ?? '(no-origin)';
+        console.log(`[clerk-proxy] → ${req.method} ${req.path} | origin: ${origin}`);
       },
       // Clerk's dynamic Frontend API responses (/v1/environment, /v1/client,
       // JWKS, ...) arrive without a Content-Length, so relaying them would use
@@ -98,6 +105,9 @@ export function clerkProxyMiddleware(): RequestHandler {
       // Content-Encoding is preserved. Length-known responses (e.g. /npm/*
       // assets) and body-less responses stream through without buffering.
       proxyRes: (proxyRes, req, res) => {
+        const status = proxyRes.statusCode ?? 502;
+        console.log(`[clerk-proxy] ← ${status} ${req.method} ${req.path}`);
+
         const headers = { ...proxyRes.headers };
         // Transfer-Encoding/Connection are hop-by-hop (RFC 7230 §6.1).
         delete headers['transfer-encoding'];
@@ -114,7 +124,6 @@ export function clerkProxyMiddleware(): RequestHandler {
           headers['vary'] = 'Origin';
         }
 
-        const status = proxyRes.statusCode ?? 502;
         // Content-Length is forbidden on 1xx/204; HEAD/304 may keep theirs.
         if (status < 200 || status === 204) {
           delete headers['content-length'];

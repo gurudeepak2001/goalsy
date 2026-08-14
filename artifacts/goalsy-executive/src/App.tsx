@@ -367,18 +367,29 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
           if (data) {
             const path = (input instanceof Request ? input.url : String(input))
               .replace(FAPI_ORIGIN, '').split('?')[0];
-            const clientId = data?.response?.id ?? 'N/A';
-            const sessions = (data?.response?.sessions ?? []).length;
-            console.log(`[Goalsy:fapi] ${path}`,
-              '→ client_id:', clientId,
-              '| sessions:', sessions,
-              '| last_active:', data?.response?.last_active_session_id ?? 'none');
-            // Persist the first few /v1/client observations — this is the
-            // ground truth for whether the restored token resolved a session.
-            if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
-              debugRecord({ step: 'fapi', path, status: response.status,
-                clientId, sessions,
-                hadJwtInUrl: originalUrl.includes('__clerk_db_jwt') });
+            // Different FAPI endpoints return different shapes:
+            //   /v1/client, /v1/environment  → { response: { id, sessions, ... } }
+            //   /v1/client/sessions/*/tokens → { jwt: '...' }  (not a client object)
+            //   /v1/client/sessions/*/touch  → { response: { id } }
+            const isClientShape = data?.response?.id !== undefined && Array.isArray(data?.response?.sessions);
+            const isTokenShape  = typeof data?.jwt === 'string';
+            if (isClientShape) {
+              const clientId = data.response.id;
+              const sessions = (data.response.sessions ?? []).length;
+              console.log(`[Goalsy:fapi] ${path}`,
+                '→ client_id:', clientId,
+                '| sessions:', sessions,
+                '| last_active:', data.response.last_active_session_id ?? 'none');
+              if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
+                debugRecord({ step: 'fapi', path, status: response.status,
+                  clientId, sessions,
+                  hadJwtInUrl: originalUrl.includes('__clerk_db_jwt') });
+              }
+            } else if (isTokenShape) {
+              console.log(`[Goalsy:fapi] ${path}`, '→ jwt (len:', data.jwt.length, ')');
+            } else {
+              console.log(`[Goalsy:fapi] ${path}`, '→ status:', response.status,
+                '| keys:', Object.keys(data).join(','));
             }
           }
         } catch { /* non-fatal */ }
