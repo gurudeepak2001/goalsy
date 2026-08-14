@@ -67,7 +67,11 @@ jobs:
       - name: Select Xcode 15
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
-      # ── 2. Boot iPhone 16 simulator ──────────────────────────────────────────
+      # ── 2. Install xcpretty ──────────────────────────────────────────────────
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
+
+      # ── 3. Boot iPhone 16 simulator ──────────────────────────────────────────
       - name: Boot iPhone 16 simulator
         run: |
           UDID=$(
@@ -98,7 +102,7 @@ jobs:
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
           echo "Booted simulator: $UDID"
 
-      # ── 3. Build app for testing ─────────────────────────────────────────────
+      # ── 4. Build app for testing ─────────────────────────────────────────────
       # build-for-testing compiles everything without running tests; the next
       # step uses test-without-building so the simulator image is reused.
       - name: Build app for testing
@@ -113,7 +117,7 @@ jobs:
           | xcpretty --color \
           || (echo "::error::Build failed — see above for compiler errors"; exit 1)
 
-      # ── 4. Run CookieRotationTest ─────────────────────────────────────────────
+      # ── 5. Run CookieRotationTest ─────────────────────────────────────────────
       # Signs in with the provided credentials, backgrounds the app (triggering
       # saveClerkCookies()), waits for the async cookie write to complete, then
       # terminates.  Cookies are now in the simulator's UserDefaults.
@@ -133,7 +137,7 @@ jobs:
           | xcpretty --color \
           || (echo "::error::CookieRotationTest failed — check credentials and sign-in UI locators"; exit 1)
 
-      # ── 5. Extract cookies from UserDefaults ──────────────────────────────────
+      # ── 6. Extract cookies from UserDefaults ──────────────────────────────────
       # Mirrors the logic in ios/scripts/extract-clerk-test-cookies.sh.
       # Writes the JSON to /tmp/clerk_test_cookies.json for the upload step.
       - name: Extract cookies from simulator UserDefaults
@@ -147,7 +151,7 @@ jobs:
           PLIST="${CONTAINER}/Library/Preferences/${BUNDLE_ID}.plist"
           if [[ ! -f "${PLIST}" ]]; then
             echo "::error::Preferences plist not found at ${PLIST}"
-            echo "::error::saveClerkCookies() may not have run — check step 4 logs."
+            echo "::error::saveClerkCookies() may not have run — check step 5 logs."
             exit 1
           fi
 
@@ -196,7 +200,7 @@ jobs:
           echo "────────────────────────────────────────────────────────────"
         id: extract
 
-      # ── 6. Upload cookies as a short-lived artifact ───────────────────────────
+      # ── 7. Upload cookies as a short-lived artifact ───────────────────────────
       # retention-days: 1 minimises the window during which a live session
       # token is stored on GitHub's infrastructure.
       - name: Upload clerk_test_cookies.json (expires in 1 day)
@@ -207,7 +211,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      # ── 7. Upload xcresult for debugging failures ─────────────────────────────
+      # ── 8. Upload xcresult for debugging failures ─────────────────────────────
       - name: Upload test results (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
@@ -216,7 +220,7 @@ jobs:
           path: /tmp/CookieRotation.xcresult
           retention-days: 3
 
-      # ── 8. Print next-steps summary ───────────────────────────────────────────
+      # ── 9. Print next-steps summary ───────────────────────────────────────────
       - name: Print rotation instructions
         if: success()
         run: |
