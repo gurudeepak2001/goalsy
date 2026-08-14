@@ -63,7 +63,8 @@ export function clerkProxyMiddleware(): RequestHandler {
     return (_req, _res, next) => next();
   }
 
-  return createProxyMiddleware({
+  // Build the inner proxy once.
+  const proxy = createProxyMiddleware({
     target: CLERK_FAPI,
     changeOrigin: true,
     // Take over the response so it can be re-sent with a Content-Length (see
@@ -102,6 +103,16 @@ export function clerkProxyMiddleware(): RequestHandler {
         delete headers['transfer-encoding'];
         delete headers['connection'];
         delete headers['keep-alive'];
+
+        // Clerk's FAPI sets CORS for its own web origins (the proxy URL) but not
+        // for capacitor://localhost (iOS WKWebView origin). Override so every
+        // native client can read proxy responses without CORS errors.
+        const requestOrigin = req.headers['origin'] as string | undefined;
+        if (requestOrigin) {
+          headers['access-control-allow-origin'] = requestOrigin;
+          headers['access-control-allow-credentials'] = 'true';
+          headers['vary'] = 'Origin';
+        }
 
         const status = proxyRes.statusCode ?? 502;
         // Content-Length is forbidden on 1xx/204; HEAD/304 may keep theirs.
@@ -143,4 +154,24 @@ export function clerkProxyMiddleware(): RequestHandler {
       },
     },
   }) as RequestHandler;
+
+  // Wrap so OPTIONS preflight from the iOS WKWebView (capacitor://localhost)
+  // is answered directly — forwarding OPTIONS to Clerk's FAPI returns CORS for
+  // the proxy URL, not the native origin, causing the WebView to block it.
+  return (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      const origin = (req.headers['origin'] as string | undefined) || '*';
+      res.writeHead(204, {
+        'access-control-allow-origin': origin,
+        'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+        'access-control-allow-headers': '*',
+        'access-control-allow-credentials': 'true',
+        'access-control-max-age': '86400',
+        'content-length': '0',
+      });
+      res.end();
+      return;
+    }
+    return proxy(req, res, next);
+  };
 }
