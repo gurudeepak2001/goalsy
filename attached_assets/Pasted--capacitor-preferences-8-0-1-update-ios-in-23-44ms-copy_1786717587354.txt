@@ -1,0 +1,77 @@
+
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.44ms
+✔ copy web in 12.67ms
+✔ update web in 12.33ms
+[info] Sync finished in 0.228s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 19, done.
+remote: Counting objects: 100% (19/19), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 10 (delta 7), reused 10 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (10/10), 4.08 KiB | 321.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   d1b8c9a..e62b42c  main       -> origin/main
+Updating d1b8c9a..e62b42c
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx             | 118 ++++++++++++++++++---
+ artifacts/goalsy-executive/src/lib/clerkErrors.ts  |  27 +++++
+ .../goalsy-executive/src/pages/SignInScreen.tsx    |   2 +-
+ 3 files changed, 132 insertions(+), 15 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CbVbyIDi.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-ak6yIq2t.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DkeoYrK5.js   1,170.08 kB │ gzip: 338.55 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.73s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.47ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 374.96μs
+✔ copy android in 28.62ms
+✔ Updating Android plugins in 7.01ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.59ms
+✔ Copying web assets from public to ios/App/App/public in 4.15ms
+✔ Creating capacitor.config.json in ios/App/App in 285.04μs
+✔ copy ios in 34.98ms
+✔ Updating iOS plugins in 6.74ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.61ms
+✔ copy web in 12.65ms
+✔ update web in 12.61ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull && pnpm run cap:build
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[ERR_PNPM_NO_SCRIPT] Missing script: cap:build
+
+Command "cap:build" not found. Did you mean "pnpm run build"?
+(base) deepak@Gurus-Laptop goalsy-main % 
