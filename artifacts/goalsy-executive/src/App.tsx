@@ -74,16 +74,29 @@ console.log('[Goalsy] nativeApiHost:', nativeApiHost || '(none — web preview)'
 // Wrapped in try/catch so a derivation failure renders a visible error screen
 // rather than crashing the module (which would bypass the ErrorBoundary and
 // leave a permanent blank white screen with no recovery path).
+//
+// KEY SELECTION RATIONALE (2026-08-14):
+//   deriveLivePublishableKey(nativeApiHost) builds a pk_live_ key whose FAPI is
+//   clerk.goalsy-finance-ui.replit.app.  That domain is served by Replit's
+//   internal mTLS proxy (CN="Replit internal proxy leaf", self-signed CA).
+//   WKWebView rejects self-signed certs → TLS error on every sign_ups call.
+//   The proxy also returns 502 from external clients anyway.
+//
+//   VITE_CLERK_PUBLISHABLE_KEY (pk_test_ for the dev Clerk instance) encodes
+//   bursting-hedgehog-64.clerk.accounts.dev — a real Clerk FAPI with a trusted
+//   *.clerk.accounts.dev wildcard cert.  WKWebView accepts it without issues.
+//
+//   Therefore: always use VITE_CLERK_PUBLISHABLE_KEY for Capacitor native builds.
+//   When the app ships to the App Store a custom domain (e.g. clerk.goalsy.app)
+//   with a proper CNAME+cert should be configured and pk_live_ used here instead.
 let clerkPubKey = '';
 let _clerkInitError: string | null = null;
 try {
-  clerkPubKey = isCapacitor
-    ? (nativeApiHost
-        // Derive the live key directly — never use a pk_test fallback here.
-        ? deriveLivePublishableKey(nativeApiHost)
-        : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''))
-    // Web preview: use the baked-in key (pk_test for dev, pk_live for prod)
-    : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '');
+  // Always use the baked-in VITE_CLERK_PUBLISHABLE_KEY — for both Capacitor
+  // native builds and web preview.  Do NOT derive from nativeApiHost: the
+  // derived key's FAPI (clerk.<replit-domain>) uses a self-signed Replit cert
+  // that WKWebView rejects.
+  clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';
   if (!clerkPubKey) {
     _clerkInitError = 'Missing Clerk publishable key — set VITE_CLERK_PUBLISHABLE_KEY in your .env file.';
   }
@@ -92,14 +105,9 @@ try {
   console.error('[Goalsy] clerkPubKey error:', _clerkInitError);
 }
 
-// No proxyUrl for Capacitor. We previously routed through /api/__clerk to work
-// around a presumed CORS restriction on Clerk's FAPI, but confirmed (2026-08-14)
-// that clerk.goalsy-finance-ui.replit.app already responds with:
-//   Access-Control-Allow-Origin: capacitor://localhost
-// so no CORS shim is needed. The server-side proxy was causing /v1/* requests
-// to hang because inside the Replit container that hostname resolves to Replit's
-// own internal proxy (172.24.0.5), not Clerk's infrastructure. Clerk JS now
-// calls the FAPI directly from WKWebView, which resolves the hostname correctly.
+// No proxyUrl needed. Clerk's FAPI (bursting-hedgehog-64.clerk.accounts.dev)
+// is reachable directly from WKWebView and responds with the correct CORS
+// headers for capacitor://localhost.
 // VITE_CLERK_PROXY_URL can still be set for local web-preview testing if needed.
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
@@ -220,11 +228,19 @@ function persistDbJwt(token: string, source: string): void {
 }
 
 // ── Remote config fetch ───────────────────────────────────────────────────────
-// In production native builds the server holds the correct pk_live_ publishable
-// key in CLERK_PUBLISHABLE_KEY.  Fetch it at boot so Clerk JS initialises with
-// the exact key the server validates against — no hostname derivation guesswork.
+// DISABLED for Capacitor native builds (2026-08-14):
+//   The server's CLERK_PUBLISHABLE_KEY encodes clerk.goalsy-finance-ui.replit.app
+//   as its FAPI — a Replit-internal proxy with a self-signed cert that WKWebView
+//   rejects.  We must use VITE_CLERK_PUBLISHABLE_KEY (baked in at build time)
+//   which encodes bursting-hedgehog-64.clerk.accounts.dev (trusted cert).
+//   Fetching from the server would overwrite the correct key with the bad one.
+//
+//   Re-enable this when the production Clerk instance is configured with a
+//   custom domain (e.g. clerk.goalsy.app) whose cert WKWebView will trust.
 async function fetchRemoteClerkKey(): Promise<void> {
-  if (!isCapacitor || !nativeApiBase) return;
+  // Skip for Capacitor — server key uses Replit-proxy FAPI which breaks WKWebView TLS.
+  if (isCapacitor) return;
+  if (!nativeApiBase) return;
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 5000);
   try {
@@ -239,8 +255,7 @@ async function fetchRemoteClerkKey(): Promise<void> {
       debugRecord({ step: 'config-fetch', keyPrefix: clerkPubKey.slice(0, 15) });
     }
   } catch (e) {
-    // Network failure — fall back to the derived key from deriveLivePublishableKey.
-    console.log('[Goalsy] config fetch failed, using derived key. Error:', String(e));
+    console.log('[Goalsy] config fetch failed. Error:', String(e));
     debugRecord({ step: 'config-fetch', error: String(e) });
   } finally {
     clearTimeout(tid);
