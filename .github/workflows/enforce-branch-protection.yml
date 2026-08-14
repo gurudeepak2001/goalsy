@@ -20,13 +20,13 @@ on:
 
 jobs:
   set-branch-protection:
-    name: Require clerk-cookie-round-trip on main
+    name: Require typecheck, cookie-round-trip, and api-server-test on main
     runs-on: ubuntu-latest
     permissions:
       contents: read   # only code read; admin actions use the PAT below
 
     steps:
-      - name: Apply required-status-check rule
+      - name: Apply required-status-check rules
         env:
           GH_TOKEN: ${{ secrets.REPO_ADMIN_TOKEN }}
         run: |
@@ -34,8 +34,9 @@ jobs:
 
           REPO="${{ github.repository }}"
           BRANCH="main"
-          # All checks that must pass before merging into main.
-          CHECKS=("clerk-cookie-round-trip" "api-server-test")
+
+          # All checks that must pass before a PR can be merged into main.
+          REQUIRED_CHECKS='["clerk-cookie-round-trip","api-server-test","frontend-typecheck"]'
 
           echo "Fetching current branch protection for ${BRANCH}…"
 
@@ -53,16 +54,14 @@ jobs:
           echo "Current protection: ${CURRENT}"
 
           # Build the updated list of required context strings.
-          # If required_status_checks was null/absent we start from an empty list.
+          # Merge existing contexts with the desired list, deduplicating.
           EXISTING_CONTEXTS=$(echo "${CURRENT}" | \
             jq -r '(.required_status_checks.contexts // []) | @json')
 
-          UPDATED_CONTEXTS="${EXISTING_CONTEXTS}"
-          for CHECK in "${CHECKS[@]}"; do
-            UPDATED_CONTEXTS=$(echo "${UPDATED_CONTEXTS}" | \
-              jq --arg check "${CHECK}" \
-                 'if index($check) then . else . + [$check] end')
-          done
+          UPDATED_CONTEXTS=$(jq -n \
+            --argjson existing "${EXISTING_CONTEXTS}" \
+            --argjson required "${REQUIRED_CHECKS}" \
+            '($existing + $required) | unique')
 
           STRICT=$(echo "${CURRENT}" | \
             jq '(.required_status_checks.strict // false)')
@@ -102,4 +101,5 @@ jobs:
 
           echo ""
           echo "✅ Branch protection updated."
-          echo "   Required status checks enforced on ${BRANCH}: ${CHECKS[*]}"
+          echo "   Required status checks enforced on ${BRANCH}:"
+          echo "${UPDATED_CONTEXTS}" | jq -r '.[] | "   • " + .'
