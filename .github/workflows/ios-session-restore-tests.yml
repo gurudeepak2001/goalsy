@@ -24,6 +24,9 @@ jobs:
       - name: Select Xcode 15
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
+
       - name: Show available simulators
         run: xcrun simctl list devices available | grep -E "iPhone 1[5-9]|iPhone 16" || true
 
@@ -109,6 +112,9 @@ jobs:
 
       - name: Select Xcode 15
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
 
       # ── Preflight: fail fast if the secret is missing or expired ─────────────
       # The smoke test uses XCTSkip when CLERK_TEST_COOKIES is absent, which
