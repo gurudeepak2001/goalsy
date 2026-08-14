@@ -41,6 +41,12 @@
 /// it to the test runner via the TestAction EnvironmentVariables expansion.
 /// The test automatically skips (XCTSkip) when the variable is absent or
 /// empty, so builds without credentials stay green.
+///
+/// ## WebView sign-in
+/// If this test ever needs to drive Clerk's WebView sign-in form interactively
+/// (e.g. to obtain a fresh cookie without the seed-cookie approach), use
+/// `ClerkWebViewHelpers.signIn(app:email:password:)` from `ClerkWebViewHelpers.swift`
+/// rather than duplicating the resilient-locator logic here.
 
 import XCTest
 

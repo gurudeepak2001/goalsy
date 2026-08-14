@@ -91,7 +91,7 @@ final class CookieRotationTest: XCTestCase {
         app.launch()
 
         // ── 2. Sign in via Clerk's WebView form ──────────────────────────────
-        try signIn(app: app, email: email, password: password)
+        try ClerkWebViewHelpers.signIn(app: app, email: email, password: password)
 
         // ── 3. Confirm authenticated state ───────────────────────────────────
         // Wait for the dashboard — any element that only appears when the user
@@ -123,14 +123,4 @@ final class CookieRotationTest: XCTestCase {
         app.terminate()
     }
 
-    // MARK: - Sign-In Helpers
-
-    /// Delegates to the shared `ClerkWebViewHelpers.signIn` so that locators
-    /// are defined in exactly one place (`ClerkWebViewHelpers.swift`).
-    ///
-    /// If Clerk changes its form markup, update `ClerkSignInLocators` there —
-    /// this test picks up the change automatically.
-    private func signIn(app: XCUIApplication, email: String, password: String) throws {
-        try ClerkWebViewHelpers.signIn(app: app, email: email, password: password)
-    }
 }
