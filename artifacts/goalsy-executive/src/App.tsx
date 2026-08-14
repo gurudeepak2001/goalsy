@@ -593,7 +593,12 @@ function ClerkProviderWithRoutes() {
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
-      clerkJSUrl={clerkJSUrl}
+      // __internal_clerkJSUrl is read by @clerk/shared's clerkJSScriptUrl() before
+      // it constructs the versioned URL. Without it, Clerk fetches
+      // clerk-js@6.12.2 which 404s on Clerk's FAPI (only @6 → 6.29.0 exists).
+      // ClerkProvider spreads all extra props into IsomorphicClerkOptions so this
+      // reaches loadClerkJSScript correctly even though it's not in the public type.
+      {...({ __internal_clerkJSUrl: clerkJSUrl } as any)}
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
       // Explicit post-auth redirect URLs so native navigation is independent of
