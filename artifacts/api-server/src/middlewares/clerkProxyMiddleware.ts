@@ -1,18 +1,24 @@
 /**
- * Clerk Frontend API Proxy Middleware
+ * Clerk Frontend API — Transparent CORS Proxy
  *
- * Proxies Clerk Frontend API requests through your domain, enabling Clerk
- * authentication on custom domains and .replit.app deployments without
- * requiring CNAME DNS configuration.
+ * Problem: the native iOS WKWebView loads the app from capacitor://localhost.
+ * Clerk's FAPI lives at clerk.<your-domain> (derived from the publishable key).
+ * capacitor://localhost is not in Clerk's allowed-origins list, so direct
+ * FAPI calls from the WebView are blocked by CORS.
  *
- * AUTH CONFIGURATION: To manage users, enable/disable login providers
- * (Google, GitHub, etc.), change app branding, or configure OAuth credentials,
- * use the Auth pane in the workspace toolbar. There is no external Clerk
- * dashboard — all auth configuration is done through the Auth pane.
+ * Solution: the native app routes ALL Clerk requests through this server at
+ * /api/__clerk/*.  We forward them verbatim to Clerk's actual FAPI domain and
+ * echo back the response with the caller's Origin in ACAO so WKWebView accepts
+ * it.  No Clerk-Proxy-Url or Clerk-Secret-Key headers are added — those headers
+ * invoke Clerk's "official proxy URL" feature which requires the proxy domain to
+ * be registered in the Clerk dashboard, returning 400 when it isn't.  Instead
+ * we act as a plain CORS shim: same bytes in, same bytes out, correct CORS
+ * headers added.
  *
  * IMPORTANT:
- * - Only active in production (Clerk proxying doesn't work for dev instances)
- * - Must be mounted BEFORE express.json() middleware
+ * - Only active in production (NODE_ENV=production).
+ * - Must be mounted BEFORE express.json() middleware so the body is not
+ *   consumed before it can be forwarded.
  *
  * Usage in app.ts:
  *   import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
@@ -23,8 +29,40 @@ import type { IncomingHttpHeaders } from 'http';
 import type { RequestHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-const CLERK_FAPI = 'https://frontend-api.clerk.dev';
 export const CLERK_PROXY_PATH = '/api/__clerk';
+
+/**
+ * Derive the Clerk FAPI base URL from the publishable key.
+ *
+ * A publishable key has the form:
+ *   pk_live_<base64url( "clerk.<domain>$" )>
+ *   pk_test_<base64url( "clerk.<domain>$" )>
+ *
+ * Decoding gives "clerk.<domain>$".  Stripping "clerk." prefix and "$" suffix
+ * yields the bare domain; prepending https:// gives the FAPI origin.
+ *
+ * Example:
+ *   pk_live_Y2xlcmsuZ29hbHN5LWZpbmFuY2UtdWkucmVwbGl0LmFwcCQ
+ *   → base64url decode → "clerk.goalsy-finance-ui.replit.app$"
+ *   → "https://clerk.goalsy-finance-ui.replit.app"
+ *
+ * Falls back to the generic Clerk FAPI if the key is missing or malformed.
+ */
+function fapiUrlFromPublishableKey(pk: string): string {
+  try {
+    if (!pk) return 'https://frontend-api.clerk.dev';
+    const b64url = pk.replace(/^pk_(live|test)_/, '');
+    // base64url → standard base64
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = Buffer.from(b64, 'base64').toString('utf8');
+    // decoded = "clerk.<domain>$"
+    const domain = decoded.replace(/\$$/, '');
+    if (!domain || !domain.includes('.')) return 'https://frontend-api.clerk.dev';
+    return `https://${domain}`;
+  } catch {
+    return 'https://frontend-api.clerk.dev';
+  }
+}
 
 /**
  * Returns the first effective public hostname for the given request,
@@ -53,19 +91,18 @@ export function getClerkProxyHost(req: {
 }
 
 export function clerkProxyMiddleware(): RequestHandler {
-  // Only run proxy in production — Clerk proxying doesn't work for dev instances
+  // Only run proxy in production — dev instances use direct Clerk calls.
   if (process.env.NODE_ENV !== 'production') {
     return (_req, _res, next) => next();
   }
 
-  const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!secretKey) {
-    return (_req, _res, next) => next();
-  }
+  const publishableKey = process.env.CLERK_PUBLISHABLE_KEY ?? '';
+  const clerkFapi = fapiUrlFromPublishableKey(publishableKey);
+  console.log(`[clerk-proxy] FAPI target: ${clerkFapi}`);
 
   // Build the inner proxy once.
   const proxy = createProxyMiddleware({
-    target: CLERK_FAPI,
+    target: clerkFapi,
     changeOrigin: true,
     // Take over the response so it can be re-sent with a Content-Length (see
     // proxyRes); the deployment edge rejects chunked proxied responses.
@@ -74,13 +111,19 @@ export function clerkProxyMiddleware(): RequestHandler {
       path.replace(new RegExp(`^${CLERK_PROXY_PATH}`), ''),
     on: {
       proxyReq: (proxyReq, req) => {
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = getClerkProxyHost(req) || '';
-        const proxyUrl = `${protocol}://${host}${CLERK_PROXY_PATH}`;
-
-        proxyReq.setHeader('Clerk-Proxy-Url', proxyUrl);
-        proxyReq.setHeader('Clerk-Secret-Key', secretKey);
-
+        // ── Transparent CORS shim — NO Clerk-specific proxy headers ──────────
+        // Do NOT add Clerk-Proxy-Url or Clerk-Secret-Key here.
+        //
+        // Clerk-Proxy-Url triggers Clerk's "official proxy URL" feature, which
+        // requires the proxy domain to be pre-registered in the Clerk dashboard.
+        // Without that registration Clerk FAPI returns 400 Bad Request.
+        //
+        // Clerk-Secret-Key is a server-side credential and is unnecessary for
+        // transparent forwarding of front-end API calls.  Omitting it keeps
+        // this proxy stateless and non-privileged.
+        //
+        // Only forward the client IP so Clerk's rate-limiting and audit logs
+        // see the real caller rather than this server's address.
         const xff = req.headers['x-forwarded-for'];
         const clientIp =
           (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim() ||
@@ -90,20 +133,18 @@ export function clerkProxyMiddleware(): RequestHandler {
           proxyReq.setHeader('X-Forwarded-For', clientIp);
         }
 
-        // Diagnostic: log every proxied request so we can see which FAPI calls
-        // the native client makes and (in proxyRes below) what status they return.
-        // http-proxy-middleware is mounted before pinoHttp, so proxied requests
-        // are invisible to pino — these console.logs fill that gap.
         const origin = req.headers['origin'] ?? '(no-origin)';
         console.log(`[clerk-proxy] → ${req.method} ${req.path} | origin: ${origin}`);
       },
-      // Clerk's dynamic Frontend API responses (/v1/environment, /v1/client,
-      // JWKS, ...) arrive without a Content-Length, so relaying them would use
+
+      // Clerk's dynamic FAPI responses (/v1/environment, /v1/client, JWKS, …)
+      // arrive without a Content-Length, so relaying them would use
       // Transfer-Encoding: chunked — which the deployment edge (Cloud Run)
-      // rejects, turning the app's 200 into a 500. Buffer only those so they can
-      // be re-sent with a Content-Length; the body is forwarded untouched so
-      // Content-Encoding is preserved. Length-known responses (e.g. /npm/*
-      // assets) and body-less responses stream through without buffering.
+      // rejects, turning the app's 200 into a 500.  Buffer only those so they
+      // can be re-sent with a Content-Length; the body is forwarded untouched
+      // so Content-Encoding is preserved.  Responses that already carry a
+      // Content-Length (e.g. /npm/* JS assets) stream through without
+      // buffering.
       proxyRes: (proxyRes, req, res) => {
         const status = proxyRes.statusCode ?? 502;
         console.log(`[clerk-proxy] ← ${status} ${req.method} ${req.path}`);
@@ -114,8 +155,8 @@ export function clerkProxyMiddleware(): RequestHandler {
         delete headers['connection'];
         delete headers['keep-alive'];
 
-        // Clerk's FAPI sets CORS for its own web origins (the proxy URL) but not
-        // for capacitor://localhost (iOS WKWebView origin). Override so every
+        // Clerk's FAPI sets CORS for its own web origins but not for
+        // capacitor://localhost (iOS WKWebView origin).  Override so every
         // native client can read proxy responses without CORS errors.
         const requestOrigin = req.headers['origin'] as string | undefined;
         if (requestOrigin) {
@@ -136,9 +177,6 @@ export function clerkProxyMiddleware(): RequestHandler {
           status === 304;
         if (headers['content-length'] !== undefined || bodyless) {
           res.writeHead(status, headers);
-          // Headers are already sent, so abort the response if the upstream
-          // stream errors mid-pipe (e.g. ECONNRESET) rather than leaving an
-          // unhandled 'error' or a hung client.
           proxyRes.on('error', () => res.destroy());
           proxyRes.pipe(res);
           return;
@@ -154,8 +192,6 @@ export function clerkProxyMiddleware(): RequestHandler {
         });
         proxyRes.on('error', () => {
           if (!res.headersSent) {
-            // Set a length so the empty 502 isn't sent chunked (which the
-            // deployment edge would reject just like the original response).
             res.writeHead(502, { 'content-length': '0' });
           }
           res.end();
@@ -164,9 +200,9 @@ export function clerkProxyMiddleware(): RequestHandler {
     },
   }) as RequestHandler;
 
-  // Wrap so OPTIONS preflight from the iOS WKWebView (capacitor://localhost)
-  // is answered directly — forwarding OPTIONS to Clerk's FAPI returns CORS for
-  // the proxy URL, not the native origin, causing the WebView to block it.
+  // Answer OPTIONS preflight from the iOS WKWebView (capacitor://localhost)
+  // directly — forwarding OPTIONS to Clerk FAPI returns CORS for its own
+  // origin, not the native origin, causing the WebView to block the preflight.
   return (req, res, next) => {
     if (req.method === 'OPTIONS') {
       const origin = (req.headers['origin'] as string | undefined) || '*';
