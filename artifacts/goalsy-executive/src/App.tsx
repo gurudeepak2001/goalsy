@@ -593,12 +593,17 @@ function ClerkProviderWithRoutes() {
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
-      // __internal_clerkJSUrl is read by @clerk/shared's clerkJSScriptUrl() before
-      // it constructs the versioned URL. Without it, Clerk fetches
-      // clerk-js@6.12.2 which 404s on Clerk's FAPI (only @6 → 6.29.0 exists).
-      // ClerkProvider spreads all extra props into IsomorphicClerkOptions so this
-      // reaches loadClerkJSScript correctly even though it's not in the public type.
-      {...({ __internal_clerkJSUrl: clerkJSUrl } as any)}
+      // __internal_clerkJSUrl / __internal_clerkUIUrl are read by @clerk/shared's
+      // clerkJSScriptUrl() / clerkUIScriptUrl() before constructing the versioned
+      // fetch URLs. Without overrides, Clerk requests clerk-js@6.12.2 and
+      // ui@1.25.2 which 404 on the FAPI (only semver-range redirects exist, e.g.
+      // @6 → 6.29.0 and @1 → 1.30.2). ClerkProvider spreads all extra props into
+      // IsomorphicClerkOptions so these reach loadClerkJSScript correctly even
+      // though they are not in the public TypeScript type.
+      {...(clerkJSUrl ? {
+        __internal_clerkJSUrl: clerkJSUrl,
+        __internal_clerkUIUrl: `${FAPI_ORIGIN}/npm/@clerk/ui@1/dist/ui.browser.js`,
+      } as any : {})}
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
       // Explicit post-auth redirect URLs so native navigation is independent of
