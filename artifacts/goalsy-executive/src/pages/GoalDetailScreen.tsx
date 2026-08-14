@@ -117,6 +117,8 @@ interface RoadmapResult {
   plan: PlanStep[];
   estimatedCompletionDate: string | null;
   requiredMonthly: number | null;
+  /** Set (> 0) when behind on a contribution-rate goal (no targetDate). */
+  contributionShortfall: number | null;
 }
 
 function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): RoadmapResult {
@@ -141,6 +143,7 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
 
   let overallStatus: OverallStatus = 'no_data';
   let expectedByNow: number | null = null;
+  let contributionShortfall: number | null = null;
 
   if (goal.currentAmount >= goal.targetAmount) {
     overallStatus = 'complete';
@@ -155,7 +158,21 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
       else overallStatus = 'on_track';
     }
   } else if (monthly > 0) {
-    overallStatus = 'on_track';
+    // Contribution-rate goal (no targetDate): mirror the server-side 90% threshold.
+    const elapsedMs = Math.max(0, now.getTime() - createdAt.getTime());
+    const monthsElapsed = elapsedMs / MS_PER_MONTH;
+    if (monthsElapsed < 0.1) {
+      // Too soon after creation — avoid false positives.
+      overallStatus = 'on_track';
+    } else {
+      const actualRate = goal.currentAmount / monthsElapsed;
+      if (actualRate < monthly * 0.9) {
+        overallStatus = 'behind';
+        contributionShortfall = Math.max(0, monthly - actualRate);
+      } else {
+        overallStatus = 'on_track';
+      }
+    }
   }
 
   const monthlyIncome = fp?.annualIncome ? Math.round(fp.annualIncome / 12) : null;
@@ -204,7 +221,7 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
     });
   }
 
-  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly };
+  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly, contributionShortfall };
 }
 
 // ── Weekly milestones computation ─────────────────────────────────────────────
@@ -278,12 +295,13 @@ function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>):
 // ── Status banner ─────────────────────────────────────────────────────────────
 
 function StatusBanner({
-  status, onAdjust, dismissed, onDismiss,
+  status, onAdjust, dismissed, onDismiss, contributionShortfall,
 }: {
   status: OverallStatus;
   onAdjust: () => void;
   dismissed: boolean;
   onDismiss: () => void;
+  contributionShortfall: number | null;
 }) {
   if (dismissed || status === 'no_data') return null;
 
@@ -309,11 +327,14 @@ function StatusBanner({
   }
 
   if (status === 'behind') {
+    const behindMsg = contributionShortfall !== null && contributionShortfall > 0
+      ? `Averaging less than your planned $${Math.round(contributionShortfall).toLocaleString()}/mo below target — consider topping up to stay on pace`
+      : 'Behind schedule — consider adjusting your plan';
     return (
       <div className="flex flex-col gap-3 bg-[#451a03] border border-[#F59E0B]/30 rounded-2xl px-5 py-4">
         <div className="flex items-center gap-3">
           <AlertTriangle size={18} className="text-[#F59E0B] flex-shrink-0" />
-          <span className="text-[#F59E0B] font-bold text-sm">Behind schedule — consider adjusting your plan</span>
+          <span className="text-[#F59E0B] font-bold text-sm">{behindMsg}</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -949,6 +970,7 @@ export default function GoalDetailScreen() {
           onAdjust={startAdjusting}
           dismissed={bannerDismissed}
           onDismiss={() => setBannerDismissed(true)}
+          contributionShortfall={roadmap.contributionShortfall}
         />
 
         {/* ── Progress card ──────────────────────────────────────────────── */}
