@@ -102,64 +102,6 @@ try {
 // VITE_CLERK_PROXY_URL can still be set for local web-preview testing if needed.
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
-// ── Clerk localStorage → Preferences persistence (production native only) ──────
-//
-// Without proxyUrl, Clerk JS uses httpOnly cookies for session state rather than
-// localStorage. WKWebView persists these cookies across force-kills automatically
-// via its own on-disk cookie store — no manual save/restore needed for cookies.
-// The localStorage backup below is kept as a safety net; if proxyUrl is ever
-// re-enabled (e.g. for local dev via VITE_CLERK_PROXY_URL), the backup kicks in.
-//
-// Fix: back up every __clerk* key + __client_uat to Preferences (Keychain) when
-// the app backgrounds.  Restore them into localStorage before ClerkProvider
-// mounts so Clerk finds them and hydrates the existing session.
-const CLERK_LS_PREF_KEY = 'clerk_ls_snapshot_v1';
-
-async function saveClerkLocalStorage(): Promise<void> {
-  if (!isCapacitor || !nativeApiHost) return;
-  try {
-    const snapshot: Record<string, string> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      if (key.startsWith('__clerk') || key === '__client_uat') {
-        const val = localStorage.getItem(key);
-        if (val) snapshot[key] = val;
-      }
-    }
-    if (Object.keys(snapshot).length > 0) {
-      await Preferences.set({ key: CLERK_LS_PREF_KEY, value: JSON.stringify(snapshot) });
-      console.log('[Goalsy:session] saved Clerk localStorage snapshot, keys:', Object.keys(snapshot).join(', '));
-    } else {
-      console.log('[Goalsy:session] saveClerkLocalStorage — no Clerk keys found (not signed in?)');
-    }
-  } catch (e) {
-    console.log('[Goalsy:session] saveClerkLocalStorage error:', e);
-  }
-}
-
-async function restoreClerkLocalStorage(): Promise<void> {
-  if (!isCapacitor || !nativeApiHost) return;
-  try {
-    const { value } = await Preferences.get({ key: CLERK_LS_PREF_KEY });
-    if (!value) {
-      console.log('[Goalsy:session] no saved Clerk localStorage — first launch or cleared');
-      return;
-    }
-    const snapshot = JSON.parse(value) as Record<string, string>;
-    let restored = 0;
-    for (const [key, val] of Object.entries(snapshot)) {
-      if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, val);
-        restored++;
-      }
-    }
-    console.log('[Goalsy:session] restored', restored, 'of', Object.keys(snapshot).length, 'Clerk localStorage keys from Preferences');
-  } catch (e) {
-    console.log('[Goalsy:session] restoreClerkLocalStorage error:', e);
-  }
-}
-
 // ── __clerk_db_jwt device-token persistence ───────────────────────────────────
 //
 // Clerk passes its device token as a __clerk_db_jwt query parameter on every
@@ -309,12 +251,12 @@ async function fetchRemoteClerkKey(): Promise<void> {
 // the URL is decorated well before clerk-js reads window.location.
 const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
 
-// Boot gate: ClerkProvider must not mount until the JWT restore, the localStorage
-// restore, and the remote config fetch have all settled — never wait more than 4s
-// total (the config fetch has its own 5s abort but we cap the whole gate to protect
-// against any other stuck async at startup).
+// Boot gate: ClerkProvider must not mount until the JWT restore and the remote
+// config fetch have both settled — never wait more than 4s total (the config
+// fetch has its own 5s abort but we cap the whole gate to protect against any
+// other stuck async at startup).
 const bootReady: Promise<void> = Promise.race([
-  Promise.all([_preloadPromise, fetchRemoteClerkKey(), restoreClerkLocalStorage()]).then(() => {}),
+  Promise.all([_preloadPromise, fetchRemoteClerkKey()]).then(() => {}),
   new Promise<void>((resolve) => setTimeout(() => {
     if (!restoreDone) debugRecord({ step: 'boot-gate', timedOut: true });
     resolve();
@@ -484,15 +426,10 @@ function ApiClientBootstrap() {
   useEffect(() => { initApiClient(getToken); }, [getToken]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
-  // On background: snapshot Clerk localStorage to Preferences so session survives
-  // force-kill (WKHTTPCookieStore is always empty — Clerk uses localStorage with proxyUrl).
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
         try { await getToken({ skipCache: true }); } catch { /* auth guard handles */ }
-      } else {
-        // App going to background — persist Clerk session state to Keychain
-        saveClerkLocalStorage().catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);

@@ -3,13 +3,21 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
+import type { IncomingHttpHeaders } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
+
+/**
+ * Returns the first effective public hostname for the given request,
+ * preferring x-forwarded-host over the Host header so callers behind a
+ * proxy see the original client-facing host.
+ */
+function getClerkProxyHost(req: { headers: IncomingHttpHeaders }): string | undefined {
+  const forwarded = req.headers["x-forwarded-host"];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const firstHop = raw?.split(",")[0]?.trim();
+  return firstHop || req.headers.host?.trim() || undefined;
+}
 
 const app: Express = express();
 
@@ -19,8 +27,6 @@ app.use((_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
-
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(
   pinoHttp({
