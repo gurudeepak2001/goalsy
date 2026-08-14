@@ -1,0 +1,60 @@
+Last login: Fri Aug 14 08:59:09 on ttys000
+(base) deepak@Gurus-Laptop ~ % >....                                            
+t = f.read_text()
+
+# Edit 1
+t = re.sub(
+    r'clerkPubKey = isCapacitor[\s\S]*?VITE_CLERK_PUBLISHABLE_KEY \?\? \'\'\);', 
+    "clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';",
+    t
+)
+
+# Edit 2
+t = t.replace(
+    'async function fetchRemoteClerkKey(): Promise<void> {\n  if (!isCapacitor || !nativeApiBase) return;',
+    'async function fetchRemoteClerkKey(): Promise<void> {\n  if (isCapacitor) return;\n  if (!isCapacitor || !nativeApiBase) return;'
+)
+
+f.write_text(t)
+print('Both edits applied')
+PYEOF
+
+python3 /tmp/fix_app.py
+Both edits applied
+(base) deepak@Gurus-Laptop src % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+✓ 3 modules transformed.
+✗ Build failed in 35ms
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx:82:4: ERROR: Unexpected ":"
+file: /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx:82:4
+
+Unexpected ":"
+80 |    clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';
+81 |      // Web preview: use the baked-in key (pk_test for dev, pk_live for prod)
+82 |      : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '');
+   |      ^
+83 |    if (!clerkPubKey) {
+84 |      _clerkInitError = 'Missing Clerk publishable key — set VITE_CLERK_PUBLISHABLE_KEY in your .env file.';
+
+    at failureErrorWithLog (/Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+[ELIFECYCLE] Command failed with exit code 1.
+[ELIFECYCLE] Command failed with exit code 1.
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % 
