@@ -1,0 +1,42 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+[Goalsy:native] restoreClerkCookies — no saved cookies (first launch or cleared)
+Failed to resolve host network app id to config: bundleID: com.apple.WebKit.Networking instance ID: Optional([_EXExtensionInstanceIdentifier: 6FFCDB28-8F80-4CCA-875F-A3BD8D175582])
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  Can only perform input operation for an active session. sessionID = 63358A9A-2CD4-404C-8A0E-72B4AB515F4E
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 63358A9A-2CD4-404C-8A0E-72B4AB515F4E
+Result accumulator timeout: 0.250000, exceeded.
+Attempted to update accumulator from source type: 0, after completion has already been called for token:[22BB624E]. This is an error and will be ignored.
+WebContent[20039] Unable to hide query parameters from script (missing data)
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 63358A9A-2CD4-404C-8A0E-72B4AB515F4E
+⚡️  WebView loaded
+⚡️  [log] - [Goalsy] App.tsx module loading
+⚡️  [log] - [Goalsy] imports done
+⚡️  [log] - [Goalsy] isCapacitor: true
+⚡️  [log] - [Goalsy] nativeApiHost: goalsy-finance-ui.replit.app
+⚡️  [log] - [Goalsy] clerkPubKey (initial): pk_live_Y2xlcmsuZ29h …
+⚡️  [log] - [Goalsy] FAPI_ORIGIN (dev-only interceptor): https://bursting-hedgehog-64.clerk.accounts.dev
+⚡️  [log] - [Goalsy] module setup complete
+⚡️  To Native ->  Preferences set 133605005
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy] clerkPubKey from server: pk_live_Y2xlcmsuZ29h …
+⚡️  To Native ->  Preferences set 133605006
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 133605007
+⚡️  TO JS undefined
+⚡️  [error] - n@capacitor://localhost/assets/index-CwKuwzGK.js:22:29774
+@capacitor://localhost/assets/index-CwKuwzGK.js:22:30139
+getClerkJsEntryChunk@capacitor://localhost/assets/index-CwKuwzGK.js:23:35538
+getEntryChunks@capacitor://localhost/assets/index-CwKuwzGK.js:23:35039
+eI@capacitor://localhost/assets/index-CwKuwzGK.js:23:33902
+getOrCreateInstance@capacitor://localhost/assets/index-CwKuwzGK.js:23:12021
+vW@capacitor://localhost/assets/index-CwKuwzGK.js:23:38111
+yW@capacitor://localhost/assets/index-CwKuwzGK.js:23:37851
+dv@capacitor://localhost/assets/index-CwKuwzGK.js:8:34204
+Pv@capacitor://localhost/assets/index-CwKuwzGK.js:8:62445
+u2@capacitor://localhost/assets/index-CwKuwzGK.js:8:107074
+sV@capacitor://localhost/assets/index-CwKuwzGK.js:8:106137
+eb@capacitor://localhost/assets/index-CwKuwzGK.js:8:105967
+a2@capacitor://localhost/assets/index-CwKuwzGK.js:8:102716
+A2@capacitor://localhost/assets/index-CwKuwzGK.js:8:114553
+I@capacitor://localhost/assets/index-CwKuwzGK.js:1:3450
