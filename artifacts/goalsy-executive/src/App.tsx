@@ -30,19 +30,47 @@ import ScoreScreen from '@/pages/ScoreScreen';
 
 console.log('[Goalsy] imports done');
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Never auto-retry failed queries — a 401 storm would hammer the API.
+      // Explicit user action (pull-to-refresh, navigation) triggers refetches.
+      retry: false,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // ── Runtime detection ─────────────────────────────────────────────────────────
 const isCapacitor = !!(window as any).Capacitor;
 console.log('[Goalsy] isCapacitor:', isCapacitor);
 
+// ── Production-native detection ───────────────────────────────────────────────
+// When cap:build bakes in VITE_API_BASE_URL (always the deployed production
+// server), this build targets the production Clerk instance (live keys, swapped
+// in at publish time). The dev-instance (pk_test) machinery — dev_browser JWT
+// persistence, fetch interceptor — does not apply and must be gated off.
+const nativeApiBase = isCapacitor ? (import.meta.env.VITE_API_BASE_URL ?? '') : '';
+const nativeApiHost = (() => {
+  try { return nativeApiBase ? new URL(nativeApiBase).hostname : ''; } catch { return ''; }
+})();
+
 // ── Clerk publishable key & proxy URL ────────────────────────────────────────
 const clerkPubKey = isCapacitor
-  ? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  ? (nativeApiHost
+      // Derive from deployed host — NO fallback arg intentionally.
+      // publishableKeyFromHost short-circuits to any pk_test fallback, which
+      // would keep the device on the dev instance and cause 401s on the
+      // production API forever.
+      ? publishableKeyFromHost(nativeApiHost)
+      : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
-const clerkProxyUrl = isCapacitor ? undefined : import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkProxyUrl = isCapacitor
+  ? (nativeApiHost ? `https://${nativeApiHost}/api/__clerk` : undefined)
+  : import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
@@ -88,7 +116,9 @@ function debugRecord(entry: Record<string, unknown>): void {
 }
 
 async function preloadDbJwt(): Promise<void> {
-  if (!isCapacitor) return;
+  // Production native builds use the live Clerk instance — the dev_browser JWT
+  // is a dev-instance-only concept. Gate off entirely for production builds.
+  if (!isCapacitor || nativeApiHost) return;
   try {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
     if (value && value.length >= MIN_JWT_LENGTH) {
@@ -119,7 +149,7 @@ async function preloadDbJwt(): Promise<void> {
 // decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
 // No fetch-level injection needed — that approach fought Clerk's own layer.
 function restoreDbJwtIntoUrl(): void {
-  if (!isCapacitor) return;
+  if (!isCapacitor || nativeApiHost) return;
   try {
     if (!cachedDbJwt) {
       restoreDone = true;
@@ -191,7 +221,7 @@ console.log('[Goalsy] FAPI_ORIGIN:', FAPI_ORIGIN);
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
 // Wrapped entirely in try/catch — any failure falls through to the real fetch.
-if (isCapacitor && FAPI_ORIGIN) {
+if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
   const _fetch = window.fetch.bind(window);
   (window as any).fetch = async function clerkFapiInterceptor(
     input: RequestInfo | URL,
