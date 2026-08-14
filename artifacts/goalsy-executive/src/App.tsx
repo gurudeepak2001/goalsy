@@ -2,12 +2,13 @@
 // FIRST executable line — confirms JS execution reached this module.
 console.log('[Goalsy] App.tsx module loading');
 
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
 import { Preferences } from '@capacitor/preferences';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { initApiClient } from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
 // NOTE: We intentionally do NOT use @clerk/react/internal's publishableKeyFromHost.
 // That function is a private Clerk SDK API and returns the dev key for .replit.app
 // domains (it treats them as development environments). Instead we derive the live
@@ -256,7 +257,7 @@ const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
 // fetch has its own 5s abort but we cap the whole gate to protect against any
 // other stuck async at startup).
 const bootReady: Promise<void> = Promise.race([
-  Promise.all([_preloadPromise, fetchRemoteClerkKey()]).then(() => {}),
+  Promise.all([_preloadPromise, fetchRemoteClerkKey(), restoreClerkLocalStorage()]).then(() => {}),
   new Promise<void>((resolve) => setTimeout(() => {
     if (!restoreDone) debugRecord({ step: 'boot-gate', timedOut: true });
     resolve();
@@ -415,10 +416,30 @@ function Router() {
   );
 }
 
-// ── ApiClientBootstrap ────────────────────────────────────────────────────────
+// ── Clerk localStorage persistence (Capacitor only) ──────────────────────────
+// Snapshot any Clerk-written localStorage keys to Capacitor Preferences when
+// the app moves to the background.  This is a safety net alongside the native
+// WKHTTPCookieStore snapshot in AppDelegate.swift — Clerk may store non-cookie
+// state (e.g. client envelope cache) in localStorage that would be lost if iOS
+// purges the WKWebView's storage for an inactive app.
+//
+// On cold start, restoreClerkLocalStorage() runs inside bootReady so the keys
+// are back in localStorage before ClerkProvider mounts and makes its first FAPI
+// call.
+const CLERK_LS_PREF_KEY = 'cm_clerk_localstorage';
 
+const CLERK_LS_KEY_PREFIXES = ['__clerk', 'clerk.'];
 function ApiClientBootstrap() {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
+  const { toast } = useToast();
+
+  // Track whether Clerk considered the user signed-in at the last foreground
+  // check.  Used to distinguish "session expired while idle" (was signed-in →
+  // now null) from "user is simply on the welcome/sign-in screen" (never had a
+  // session in this mount).  A ref avoids closing over a stale boolean inside
+  // the visibilitychange handler.
+  const wasSignedIn = useRef(!!isSignedIn);
+  useEffect(() => { wasSignedIn.current = !!isSignedIn; }, [isSignedIn]);
 
   // Re-register on every getToken identity change — a new reference is issued
   // after sign-in, so the empty-deps version captured the pre-sign-in closure
@@ -426,18 +447,43 @@ function ApiClientBootstrap() {
   useEffect(() => { initApiClient(getToken); }, [getToken]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
-  // On background: snapshot Clerk localStorage to Preferences (safety net for any
-  // non-cookie state Clerk may write). The primary backup for httpOnly session cookies
-  // is the native WKHTTPCookieStore → UserDefaults mechanism in AppDelegate.swift.
+  // When getToken returns null AND the user was previously signed-in, the Clerk
+  // session expired while the app was idle (e.g. 7+ days of inactivity).  Show
+  // a clear message so the user understands why AuthGate is redirecting them to
+  // /welcome — without this they see a silent navigation with no explanation.
+  // On background: snapshot Clerk localStorage to Preferences (safety net for
+  // any non-cookie state Clerk may write; the primary backup for httpOnly
+  // session cookies is the native WKHTTPCookieStore → UserDefaults mechanism
+  // in AppDelegate.swift).
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        try { await getToken({ skipCache: true }); } catch { /* auth guard handles */ }
+        try {
+          const token = await getToken({ skipCache: true });
+          if (token === null && wasSignedIn.current) {
+            // Session expired while the app was idle — inform the user before
+            // AuthGate redirects to /welcome.  Clear the flag so the toast fires
+            // only once per sign-out transition.
+            wasSignedIn.current = false;
+            toast({
+              title: 'Session expired',
+              description: 'Please sign in again to continue.',
+              duration: 6000,
+            });
+          }
+        } catch {
+          // Network error or Clerk not yet initialised — AuthGate handles auth state.
+        }
+      } else {
+        // App going to background — persist Clerk localStorage keys to Preferences
+        // (safety net for any non-cookie state Clerk may write; the primary
+        // backup for httpOnly session cookies is in AppDelegate.swift).
+        saveClerkLocalStorage().catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [getToken]);
+  }, [getToken, toast]);
 
   // Keepalive: every 10 minutes to reset Clerk's inactivity clock.
   useEffect(() => {
@@ -593,3 +639,44 @@ function App() {
 }
 
 export default App;
+
+async function saveClerkLocalStorage(): Promise<void> {
+  if (!isCapacitor) return;
+  try {
+    const clerkEntries: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && isClerkLsKey(key)) {
+        const val = localStorage.getItem(key);
+        if (val !== null) clerkEntries[key] = val;
+      }
+    }
+    if (Object.keys(clerkEntries).length === 0) return;
+    await Preferences.set({ key: CLERK_LS_PREF_KEY, value: JSON.stringify(clerkEntries) });
+    debugRecord({ step: 'ls-save', keys: Object.keys(clerkEntries) });
+  } catch { /* never crash on background save */ }
+}
+
+async function restoreClerkLocalStorage(): Promise<void> {
+  if (!isCapacitor) return;
+  try {
+    const { value } = await Preferences.get({ key: CLERK_LS_PREF_KEY });
+    if (!value) {
+      debugRecord({ step: 'ls-restore', found: false });
+      return;
+    }
+    const entries = JSON.parse(value) as Record<string, string>;
+    const keys = Object.keys(entries);
+    for (const key of keys) {
+      if (isClerkLsKey(key)) localStorage.setItem(key, entries[key]);
+    }
+    debugRecord({ step: 'ls-restore', found: true, keys });
+    console.log('[Goalsy:ls] restored', keys.length, 'Clerk localStorage key(s)');
+  } catch (err) {
+    debugRecord({ step: 'ls-restore', error: String(err) });
+  }
+}
+
+function isClerkLsKey(key: string): boolean {
+  return CLERK_LS_KEY_PREFIXES.some((p) => key.startsWith(p));
+}
