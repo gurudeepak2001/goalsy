@@ -60,6 +60,10 @@ export default function CreateAccountScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setVerifyOpen(true);
     } catch (err) {
+      // Log the full Clerk error so we can see the exact code in Xcode output
+      const clerkErr = err as { errors?: Array<{ code?: string; longMessage?: string; message?: string }> };
+      console.error('[Goalsy:signup] error code:', clerkErr?.errors?.[0]?.code,
+        '| message:', clerkErr?.errors?.[0]?.longMessage || clerkErr?.errors?.[0]?.message);
       setErrorMessage(getClerkErrorMessage(err, 'Could not create account. Please try again.'));
     } finally {
       setSubmitting(false);
