@@ -36,10 +36,10 @@
 /// time to complete its async callback before the test harness cleans up.
 ///
 /// ## UI element assumptions
-/// The test interacts with Clerk's hosted sign-in WebView.  The identifiers
-/// used below match the Clerk default component HTML at the time of writing.
-/// If Clerk changes its markup, update the predicates in the sign-in helpers.
-/// See the "UI Locator Notes" inline comments for fallback strategies.
+/// The test interacts with Clerk's hosted sign-in WebView via the shared
+/// `ClerkWebViewHelpers` / `ClerkSignInLocators` types defined in
+/// `ClerkWebViewHelpers.swift`.  If Clerk changes its form markup, update
+/// `ClerkSignInLocators` there — this file picks up the change automatically.
 
 import XCTest
 
@@ -125,95 +125,12 @@ final class CookieRotationTest: XCTestCase {
 
     // MARK: - Sign-In Helpers
 
-    /// Drives Clerk's WebView sign-in form through its two-step flow:
-    ///   Step 1 — enter email, tap Continue
-    ///   Step 2 — enter password, tap Continue / Sign in
+    /// Delegates to the shared `ClerkWebViewHelpers.signIn` so that locators
+    /// are defined in exactly one place (`ClerkWebViewHelpers.swift`).
     ///
-    /// UI locator notes:
-    /// - Clerk renders its sign-in UI inside a WKWebView, so all elements are
-    ///   reached via `app.webViews.firstMatch`.
-    /// - The email field is identified by its placeholder "Email address";
-    ///   fall back to a text-field predicate if Clerk changes it.
-    /// - The password field is a `secureTextField`; Clerk currently uses
-    ///   placeholder "Password".
-    /// - "Continue" is Clerk's default button label for both steps; adjust if
-    ///   the instance uses a custom label.
+    /// If Clerk changes its form markup, update `ClerkSignInLocators` there —
+    /// this test picks up the change automatically.
     private func signIn(app: XCUIApplication, email: String, password: String) throws {
-        let webView = app.webViews.firstMatch
-
-        // ── Step 1: email ─────────────────────────────────────────────────────
-        // Wait for the sign-in form to appear in the WebView.
-        XCTAssertTrue(
-            webView.waitForExistence(timeout: 20),
-            "WebView did not appear — is the app showing a sign-in screen?"
-        )
-
-        // Locate the email field.  Try the placeholder first; fall back to the
-        // first text field in the WebView if Clerk changes its copy.
-        let emailField: XCUIElement
-        let emailByPlaceholder = webView.textFields["Email address"]
-        if emailByPlaceholder.waitForExistence(timeout: 10) {
-            emailField = emailByPlaceholder
-        } else {
-            // Fallback: first text field in the WebView
-            let fallback = webView.textFields.firstMatch
-            XCTAssertTrue(
-                fallback.waitForExistence(timeout: 5),
-                "Could not locate an email text field in the sign-in WebView. " +
-                "Clerk may have changed its markup — update the locator in CookieRotationTest.swift."
-            )
-            emailField = fallback
-        }
-
-        emailField.tap()
-        emailField.typeText(email)
-
-        // Tap the first "Continue" button to advance to the password step.
-        tapContinueButton(in: webView)
-
-        // ── Step 2: password ──────────────────────────────────────────────────
-        // Wait for the password field to appear (Clerk's two-step flow).
-        let passwordField: XCUIElement
-        let passwordByPlaceholder = webView.secureTextFields["Password"]
-        if passwordByPlaceholder.waitForExistence(timeout: 10) {
-            passwordField = passwordByPlaceholder
-        } else {
-            let fallback = webView.secureTextFields.firstMatch
-            XCTAssertTrue(
-                fallback.waitForExistence(timeout: 5),
-                "Could not locate a password secure text field after entering email. " +
-                "Clerk may have changed its markup — update the locator in CookieRotationTest.swift."
-            )
-            passwordField = fallback
-        }
-
-        passwordField.tap()
-        passwordField.typeText(password)
-
-        // Tap Continue / Sign in to submit credentials.
-        tapContinueButton(in: webView)
-    }
-
-    /// Taps the first visible "Continue" or "Sign in" button inside `parent`.
-    /// Waits up to 5 s for it to appear (Clerk may animate the transition).
-    private func tapContinueButton(in parent: XCUIElement) {
-        // Prefer the exact label "Continue"; fall back to "Sign in" or the
-        // first button with type="submit" (matched via predicate on identifier).
-        let continueBtn   = parent.buttons["Continue"].firstMatch
-        let signInBtn     = parent.buttons["Sign in"].firstMatch
-        let firstButton   = parent.buttons.firstMatch
-
-        if continueBtn.waitForExistence(timeout: 5) {
-            continueBtn.tap()
-        } else if signInBtn.waitForExistence(timeout: 2) {
-            signInBtn.tap()
-        } else {
-            XCTAssertTrue(
-                firstButton.waitForExistence(timeout: 2),
-                "Could not find a Continue/Sign-in button in the WebView. " +
-                "Update the button locator in CookieRotationTest.swift."
-            )
-            firstButton.tap()
-        }
+        try ClerkWebViewHelpers.signIn(app: app, email: email, password: password)
     }
 }

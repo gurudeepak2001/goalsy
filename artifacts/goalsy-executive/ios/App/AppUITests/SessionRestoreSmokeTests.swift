@@ -159,18 +159,17 @@ final class SessionRestoreSmokeTests: XCTestCase {
         //
         // Match on text/labels that Clerk's default sign-in UI renders and that
         // the app's own auth-error states might surface.
+        // Clerk-rendered labels use `ClerkSignInLocators` so any placeholder
+        // rename only needs to be updated in ClerkWebViewHelpers.swift.
         let signInIndicators: [XCUIElement] = [
-            app.staticTexts["Sign in"],
-            app.staticTexts["Sign In"],
             app.staticTexts["Session expired"],
             app.staticTexts["You have been signed out"],
             app.staticTexts["Signed out"],
-            app.buttons["Sign in"],
-            app.buttons["Sign In"],
+            app.buttons[ClerkSignInLocators.welcomeSignInButton],
+            app.buttons[ClerkSignInLocators.signInButton],
             // Clerk's sign-in form fields (rendered in the WebView)
-            app.textFields["Email address"],
-            app.textFields["Email or username"],
-            app.secureTextFields["Password"],
+            app.textFields[ClerkSignInLocators.emailPlaceholder],
+            app.secureTextFields[ClerkSignInLocators.passwordPlaceholder],
         ]
 
         let deadline = Date().addingTimeInterval(signInCheckWindow)
