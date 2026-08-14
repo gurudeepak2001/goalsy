@@ -226,3 +226,65 @@ describe('ApiClientBootstrap – session-expired toast on foreground restore', (
     expect(mockToast).toHaveBeenCalledOnce(); // still only once
   });
 });
+
+// ── Keepalive timer tests ──────────────────────────────────────────────────────
+
+describe('ApiClientBootstrap – keepalive timer respects document.hidden', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockToast.mockClear();
+    authState.getToken = vi.fn(() => Promise.resolve<string | null>('valid.jwt.token'));
+    authState.isSignedIn = true;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('does NOT call getToken when document.hidden = true and the 10-min interval fires', async () => {
+    // App is in the background.
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+
+    render(<ApiClientBootstrap />);
+
+    // Let mount effects settle.
+    await act(async () => { await Promise.resolve(); });
+
+    // Clear the getToken call made by initApiClient effect so we can isolate the keepalive.
+    authState.getToken.mockClear();
+
+    // Advance past the 10-minute keepalive interval.
+    await act(async () => {
+      vi.advanceTimersByTime(10 * 60 * 1000 + 100);
+      // Let any promises inside the interval callback settle.
+      await Promise.resolve();
+    });
+
+    // The keepalive guard must have blocked the call.
+    expect(authState.getToken).not.toHaveBeenCalled();
+  });
+
+  it('DOES call getToken when document.hidden = false and the 10-min interval fires', async () => {
+    // App is in the foreground.
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+    render(<ApiClientBootstrap />);
+
+    // Let mount effects settle.
+    await act(async () => { await Promise.resolve(); });
+
+    // Clear calls from mount effects.
+    authState.getToken.mockClear();
+
+    // Advance past the 10-minute keepalive interval.
+    await act(async () => {
+      vi.advanceTimersByTime(10 * 60 * 1000 + 100);
+      await Promise.resolve();
+    });
+
+    // The keepalive should have fired getToken once.
+    expect(authState.getToken).toHaveBeenCalledOnce();
+    expect(authState.getToken).toHaveBeenCalledWith({ skipCache: true });
+  });
+});
