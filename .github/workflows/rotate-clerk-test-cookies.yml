@@ -1,0 +1,244 @@
+name: Rotate Clerk Test Cookies
+
+# ── Purpose ────────────────────────────────────────────────────────────────────
+# Headless cookie-rotation fallback for anyone without a local Mac / Xcode.
+#
+# Trigger this workflow from the GitHub Actions UI (or via `gh workflow run`)
+# whenever CLERK_TEST_COOKIES has expired or is about to expire.  It boots an
+# iPhone 16 simulator, builds and installs the app, signs in with a Clerk
+# test-environment account, and extracts the freshly saved cookies — no Mac
+# required.
+#
+# The extracted JSON is:
+#   • Uploaded as a GitHub Actions artifact (retention: 1 day, access-controlled
+#     to repo members with at least Read access).
+#   • Printed to the job log as a masked value (GitHub replaces it with "***").
+#
+# After the run, download the artifact, copy the JSON, and paste it into the
+# CLERK_TEST_COOKIES repository secret.
+#
+# ── Required secrets ────────────────────────────────────────────────────────────
+# CLERK_ROTATE_PASSWORD  — password for the Clerk test-environment account used
+#                          to rotate the secret.  Store under:
+#                          Settings → Secrets and variables → Actions → Repository secrets
+#
+# ── Inputs ─────────────────────────────────────────────────────────────────────
+# clerk_rotate_email     — email address of the Clerk test account (not secret;
+#                          entered in the "Run workflow" dialog or passed via
+#                          `gh workflow run --field clerk_rotate_email=…`).
+
+on:
+  workflow_dispatch:
+    inputs:
+      clerk_rotate_email:
+        description: >
+          Email address of a valid Clerk test-environment account
+          (the account whose cookies will become CLERK_TEST_COOKIES).
+        required: true
+        type: string
+
+jobs:
+  extract-cookies:
+    name: Sign In & Extract Clerk Test Cookies (iPhone 16 Simulator)
+    runs-on: macos-14   # Xcode 15, iOS 17 simulator toolchain
+
+    # Limit to one concurrent rotation at a time so two runs don't race to
+    # write to the same artifact slot.
+    concurrency:
+      group: rotate-clerk-test-cookies
+      cancel-in-progress: true
+
+    defaults:
+      run:
+        working-directory: artifacts/goalsy-executive
+
+    env:
+      CLERK_ROTATE_EMAIL:    ${{ github.event.inputs.clerk_rotate_email }}
+      CLERK_ROTATE_PASSWORD: ${{ secrets.CLERK_ROTATE_PASSWORD }}
+      BUNDLE_ID:             com.goalsy.executive
+      PLIST_KEY:             cm_clerk_cookies_v2
+
+    steps:
+      # ── 0. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. Select Xcode ──────────────────────────────────────────────────────
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      # ── 2. Boot iPhone 16 simulator ──────────────────────────────────────────
+      - name: Boot iPhone 16 simulator
+        run: |
+          UDID=$(
+            xcrun simctl list devices available -j \
+            | python3 -c "
+          import sys, json
+          devs = json.load(sys.stdin)['devices']
+          for runtime, devices in devs.items():
+              for d in devices:
+                  if 'iPhone 16' in d['name'] and d['isAvailable']:
+                      print(d['udid'])
+                      exit(0)
+          " 2>/dev/null || true
+          )
+          if [ -z "$UDID" ]; then
+            RUNTIME=$(xcrun simctl list runtimes -j | python3 -c "
+          import sys, json
+          runtimes = json.load(sys.stdin)['runtimes']
+          ios = [r for r in runtimes if 'iOS' in r['name'] and r['isAvailable']]
+          ios.sort(key=lambda r: r['version'], reverse=True)
+          print(ios[0]['identifier'])
+          ")
+            UDID=$(xcrun simctl create "iPhone 16" \
+              com.apple.CoreSimulator.SimDeviceType.iPhone-16 "$RUNTIME")
+            echo "Created simulator: $UDID"
+          fi
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "Booted simulator: $UDID"
+
+      # ── 3. Build app for testing ─────────────────────────────────────────────
+      # build-for-testing compiles everything without running tests; the next
+      # step uses test-without-building so the simulator image is reused.
+      - name: Build app for testing
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project ios/App/App.xcodeproj \
+            -scheme AppUITests \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath /tmp/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcpretty --color \
+          || (echo "::error::Build failed — see above for compiler errors"; exit 1)
+
+      # ── 4. Run CookieRotationTest ─────────────────────────────────────────────
+      # Signs in with the provided credentials, backgrounds the app (triggering
+      # saveClerkCookies()), waits for the async cookie write to complete, then
+      # terminates.  Cookies are now in the simulator's UserDefaults.
+      - name: Run CookieRotationTest (sign in & save cookies)
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project ios/App/App.xcodeproj \
+            -scheme AppUITests \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath /tmp/DerivedData \
+            -only-testing AppUITests/CookieRotationTest/testSignInAndSaveCookies \
+            -testenv CLERK_ROTATE_EMAIL="${CLERK_ROTATE_EMAIL}" \
+            -testenv CLERK_ROTATE_PASSWORD="${CLERK_ROTATE_PASSWORD}" \
+            -resultBundlePath /tmp/CookieRotation.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcpretty --color \
+          || (echo "::error::CookieRotationTest failed — check credentials and sign-in UI locators"; exit 1)
+
+      # ── 5. Extract cookies from UserDefaults ──────────────────────────────────
+      # Mirrors the logic in ios/scripts/extract-clerk-test-cookies.sh.
+      # Writes the JSON to /tmp/clerk_test_cookies.json for the upload step.
+      - name: Extract cookies from simulator UserDefaults
+        run: |
+          set -euo pipefail
+
+          echo "→ Locating data container for ${BUNDLE_ID}…"
+          CONTAINER=$(xcrun simctl get_app_container booted "${BUNDLE_ID}" data)
+          echo "  Container: ${CONTAINER}"
+
+          PLIST="${CONTAINER}/Library/Preferences/${BUNDLE_ID}.plist"
+          if [[ ! -f "${PLIST}" ]]; then
+            echo "::error::Preferences plist not found at ${PLIST}"
+            echo "::error::saveClerkCookies() may not have run — check step 4 logs."
+            exit 1
+          fi
+
+          COOKIES_JSON=$(
+            plutil -convert json "${PLIST}" -o - \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          value = data.get('${PLIST_KEY}', '')
+          print(value)
+          "
+          )
+
+          if [[ -z "${COOKIES_JSON}" ]]; then
+            echo "::error::The key '${PLIST_KEY}' is absent or empty."
+            echo "::error::saveClerkCookies() may not have completed in time — try increasing cookieSaveGracePeriod in CookieRotationTest.swift."
+            exit 1
+          fi
+
+          if ! python3 -c "import json, sys; json.loads(sys.stdin.read())" \
+               <<< "${COOKIES_JSON}" 2>/dev/null; then
+            echo "::error::Extracted value is not valid JSON — check AppDelegate.swift serialisation."
+            exit 1
+          fi
+
+          COOKIE_COUNT=$(python3 -c \
+            "import json, sys; print(len(json.loads(sys.stdin.read())))" \
+            <<< "${COOKIES_JSON}" 2>/dev/null || echo "?")
+
+          echo "✓ Extracted ${COOKIE_COUNT} cookie(s)."
+
+          # Write to file for artifact upload.
+          printf '%s' "${COOKIES_JSON}" > /tmp/clerk_test_cookies.json
+
+          # Mask the value so it never appears in plain text in the log.
+          echo "::add-mask::${COOKIES_JSON}"
+
+          # Expose as a masked step output (value is redacted in the UI).
+          echo "clerk_test_cookies=${COOKIES_JSON}" >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "────────────────────────────────────────────────────────────"
+          echo "  ${COOKIE_COUNT} cookie(s) extracted and masked."
+          echo "  Download the 'clerk-test-cookies' artifact to get the JSON."
+          echo "  Artifact retention: 1 day — update the secret promptly."
+          echo "────────────────────────────────────────────────────────────"
+        id: extract
+
+      # ── 6. Upload cookies as a short-lived artifact ───────────────────────────
+      # retention-days: 1 minimises the window during which a live session
+      # token is stored on GitHub's infrastructure.
+      - name: Upload clerk_test_cookies.json (expires in 1 day)
+        uses: actions/upload-artifact@v4
+        with:
+          name: clerk-test-cookies
+          path: /tmp/clerk_test_cookies.json
+          retention-days: 1
+          if-no-files-found: error
+
+      # ── 7. Upload xcresult for debugging failures ─────────────────────────────
+      - name: Upload test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CookieRotation-xcresult
+          path: /tmp/CookieRotation.xcresult
+          retention-days: 3
+
+      # ── 8. Print next-steps summary ───────────────────────────────────────────
+      - name: Print rotation instructions
+        if: success()
+        run: |
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "  Clerk Test Cookie Rotation — Next Steps"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "  1. On this workflow run page, click 'Artifacts' (bottom of"
+          echo "     the Summary tab) and download 'clerk-test-cookies'."
+          echo ""
+          echo "  2. Open clerk_test_cookies.json and copy its entire contents."
+          echo ""
+          echo "  3. In the GitHub repository go to:"
+          echo "       Settings → Secrets and variables → Actions"
+          echo "     and update the CLERK_TEST_COOKIES repository secret with"
+          echo "     the copied JSON."
+          echo ""
+          echo "  4. Delete the downloaded file from your local machine."
+          echo ""
+          echo "  5. Re-run the 'iOS Session-Restore Tests' workflow to confirm"
+          echo "     the smoke test passes with the new cookies."
+          echo ""
+          echo "  The artifact auto-deletes after 1 day."
+          echo "════════════════════════════════════════════════════════════"

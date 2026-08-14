@@ -219,17 +219,90 @@ prompt, no FAPI error).
 
 The test skips automatically when `CLERK_TEST_COOKIES` is absent.
 
-**Obtaining test cookies:**
-1. Run the app in a simulator with a Clerk **test-environment** account.
-2. Background the app — this triggers `saveClerkCookies()`.
-3. Extract from the simulator's UserDefaults:
-   ```bash
-   CONTAINER=$(xcrun simctl get_app_container booted com.goalsy.executive data)
-   plutil -convert json \
-     "$CONTAINER/Library/Preferences/com.goalsy.executive.plist" -o - \
-     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cm_clerk_cookies_v2',''))"
-   ```
-4. Pass the output as the `CLERK_TEST_COOKIES` environment variable.
+**Obtaining test cookies — two paths:**
+
+Choose the path that fits your situation.  Both produce the same JSON value for
+`CLERK_TEST_COOKIES`.
+
+---
+
+#### Path A — Local Mac (fast, requires Xcode)
+
+Prerequisites: Xcode installed, at least one iOS Simulator booted, the app
+installed and signed in with a Clerk test-environment account, and the app
+backgrounded at least once so `saveClerkCookies()` has run.
+
+```bash
+# One-command helper (prints the JSON to stdout):
+bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh
+
+# Pipe directly to the clipboard:
+bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh | pbcopy
+```
+
+Or run the raw extraction manually:
+
+```bash
+CONTAINER=$(xcrun simctl get_app_container booted com.goalsy.executive data)
+plutil -convert json \
+  "$CONTAINER/Library/Preferences/com.goalsy.executive.plist" -o - \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cm_clerk_cookies_v2',''))"
+```
+
+---
+
+#### Path B — GitHub Actions (no Mac required)
+
+Use this path when the person rotating does not have Xcode set up locally.
+Anyone with **repo write access** can trigger it from the browser.
+
+**Required one-time setup** (first rotation only):
+
+1. Create a Clerk test-environment account dedicated to cookie rotation
+   (e.g. `ci-rotate@yourteam.example`).  Use a Clerk instance whose publishable
+   key starts with `pk_test_` — never a production instance.
+2. Store that account's password as the GitHub Actions secret
+   `CLERK_ROTATE_PASSWORD`:
+   - Repository → Settings → Secrets and variables → Actions → New repository secret.
+
+**Running the rotation workflow:**
+
+1. Go to the repository on GitHub.
+2. Click **Actions → Rotate Clerk Test Cookies**.
+3. Click **Run workflow**.
+4. Enter the rotation account's email in the **"Email address"** field.
+5. Click **Run workflow** to confirm.
+
+The workflow will:
+- Boot an iPhone 16 simulator on a GitHub-hosted macOS runner.
+- Build and install the app.
+- Run `CookieRotationTest/testSignInAndSaveCookies`, which signs in with the
+  provided credentials, backgrounds the app, and waits for `saveClerkCookies()`
+  to write cookies to `UserDefaults`.
+- Extract the cookies using the same `xcrun simctl` + `plutil` logic as
+  `extract-clerk-test-cookies.sh`.
+- Upload the result as the **`clerk-test-cookies`** artifact
+  (auto-deleted after **1 day**).
+
+**After the workflow completes:**
+
+1. On the workflow run's **Summary** page, scroll to **Artifacts** and download
+   `clerk-test-cookies`.
+2. Open `clerk_test_cookies.json` and copy the entire contents.
+3. Update the `CLERK_TEST_COOKIES` repository secret with the copied JSON:
+   - Repository → Settings → Secrets and variables → Actions →
+     `CLERK_TEST_COOKIES` → Update secret.
+4. Delete the downloaded file from your machine.
+5. Re-run **iOS Session-Restore Tests** to confirm the smoke test now passes
+   (not skipped, not failing).
+
+> **Security note:** The workflow masks the cookie JSON in the job log
+> (`::add-mask::`) so it never appears as plain text in GitHub's UI.  The
+> artifact is access-controlled to repo members and expires automatically
+> after one day to minimise the window during which live session tokens are
+> stored on GitHub's infrastructure.
+
+---
 
 **Running:**
 ```bash
@@ -249,3 +322,6 @@ xcodebuild test \
 | `ios/App/App/AppDelegate.swift` | `saveClerkCookies()` backup on `applicationDidEnterBackground`; `restoreClerkCookies()` restore on `didFinishLaunchingWithOptions`; `GOALSY_UITEST_CLERK_COOKIES` seed path for XCUITest |
 | `ios/App/AppTests/ClerkCookiePersistenceTests.swift` | Unit tests for the local save→restore round-trip |
 | `ios/App/AppUITests/SessionRestoreSmokeTests.swift` | XCUITest smoke test: force-kill → relaunch → assert FAPI accepted the restored cookie |
+| `ios/App/AppUITests/CookieRotationTest.swift` | XCUITest used by the CI rotation workflow: signs in headlessly, backgrounds the app, waits for `saveClerkCookies()`, then exits so the shell step can extract |
+| `ios/scripts/extract-clerk-test-cookies.sh` | Local Mac helper: reads `cm_clerk_cookies_v2` from a booted simulator's UserDefaults and prints the JSON for `CLERK_TEST_COOKIES` |
+| `.github/workflows/rotate-clerk-test-cookies.yml` | `workflow_dispatch` CI path for rotating cookies without a local Mac |
