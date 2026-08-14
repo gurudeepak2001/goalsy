@@ -1,0 +1,158 @@
+name: Clerk Cookie Expiry Check
+
+# Runs weekly to catch an expiring or expired CLERK_TEST_COOKIES secret
+# *before* a PR triggers the smoke test and finds a silent skip.
+#
+# Behaviour summary
+# -----------------
+#   • CLERK_TEST_COOKIES absent  → skip gracefully (forks without the secret)
+#   • Secret present but expired → fail the job AND open a GitHub issue
+#   • Secret present, valid      → emit a ::warning:: annotation if expiry
+#                                  is within 14 days; otherwise succeed silently
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  # Allow a manual run from the Actions tab for ad-hoc checks
+  workflow_dispatch:
+
+jobs:
+  check-expiry:
+    name: Check CLERK_TEST_COOKIES expiry
+    # ubuntu-latest is sufficient — we only need bash, python3, and the gh CLI
+    runs-on: ubuntu-latest
+
+    # Required for the gh CLI to open issues on failure
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      CLERK_TEST_COOKIES: ${{ secrets.CLERK_TEST_COOKIES }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. Graceful skip when the secret is absent (forks, etc.) ─────────────
+      - name: Skip if secret is absent
+        id: presence-check
+        run: |
+          if [[ -z "${CLERK_TEST_COOKIES:-}" ]]; then
+            echo "CLERK_TEST_COOKIES is not set — skipping expiry check (fork or secret not configured)."
+            echo "secret_present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "secret_present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 2. Validate the secret and capture days-remaining ────────────────────
+      # The script exits 1 when the secret is expired, which makes this step
+      # fail.  It also prints a CLERK_COOKIES_DAYS_REMAINING=<N> line that the
+      # next step parses to decide whether to emit a 14-day warning.
+      - name: Validate CLERK_TEST_COOKIES
+        if: steps.presence-check.outputs.secret_present == 'true'
+        id: validate
+        # Run in CI mode so the script enforces the expiry check.
+        # Allow the step to fail so we can open an issue before exiting.
+        continue-on-error: true
+        env:
+          CI: 'true'
+        run: |
+          set +e
+          OUTPUT=$(bash artifacts/goalsy-executive/ios/scripts/validate-clerk-test-cookies.sh 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+
+          # Parse the machine-readable days-remaining line emitted by the script.
+          DAYS=$(echo "$OUTPUT" | grep -o 'CLERK_COOKIES_DAYS_REMAINING=[0-9]*' | cut -d= -f2 || true)
+          echo "days_remaining=${DAYS}" >> "$GITHUB_OUTPUT"
+          echo "validate_exit=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+
+      # ── 3. Open a GitHub issue when the secret is already expired ─────────────
+      - name: Open issue if expired
+        if: |
+          steps.presence-check.outputs.secret_present == 'true' &&
+          steps.validate.outputs.validate_exit != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO="${{ github.repository }}"
+          TITLE="Rotate CLERK_TEST_COOKIES — expired in CI"
+
+          # Don't open a duplicate if one is already open.
+          EXISTING=$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --search "in:title Rotate CLERK_TEST_COOKIES" \
+            --json number \
+            --jq length)
+
+          if [[ "${EXISTING}" -gt 0 ]]; then
+            echo "An open issue already exists for this — skipping duplicate creation."
+          else
+            gh issue create \
+              --repo "$REPO" \
+              --title "${TITLE}" \
+              --body "$(cat <<'EOF'
+## CLERK_TEST_COOKIES has expired
+
+The weekly expiry check detected that the **CLERK_TEST_COOKIES** repository secret
+is expired (or invalid). The iOS session-restore smoke test will silently skip in CI
+until the secret is rotated.
+
+### How to rotate
+
+You need a Mac with Xcode and a booted iOS Simulator that has the Goalsy Executive
+app installed and signed in with a Clerk test-environment account.
+
+1. Launch the app on the simulator and confirm you are signed in.
+2. Background the app (press Home / swipe up) so `saveClerkCookies()` fires.
+3. Run the extraction helper:
+
+   ```bash
+   bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh | pbcopy
+   ```
+
+4. Go to **Settings → Secrets and variables → Actions → Repository secrets** in
+   GitHub and update `CLERK_TEST_COOKIES` with the copied value.
+5. Trigger the [Clerk Cookie Expiry Check](${{ github.server_url }}/${{ github.repository }}/actions/workflows/clerk-cookie-expiry-check.yml)
+   workflow manually to confirm the secret is now valid.
+
+> **Note:** Cookie extraction requires a Mac with Xcode and a booted iOS Simulator.
+> There is no CI-only rotation path — a local Mac is required to sign in and
+> capture the session cookies.
+
+/cc @${{ github.repository_owner }}
+EOF
+)"
+            echo "::error::CLERK_TEST_COOKIES is expired. A GitHub issue has been opened."
+          fi
+
+      # ── 4. Fail the job when the secret is expired ────────────────────────────
+      - name: Fail on expired secret
+        if: |
+          steps.presence-check.outputs.secret_present == 'true' &&
+          steps.validate.outputs.validate_exit != '0'
+        run: |
+          echo "::error::CLERK_TEST_COOKIES is expired — rotate it immediately to keep CI green."
+          exit 1
+
+      # ── 5. Emit a 14-day advance warning (validate already printed ::warning::) ─
+      # The validate script itself emits ::warning:: when days < 14 and
+      # GITHUB_ACTIONS=true, so this step just surfaces a summary notice.
+      - name: Summarise expiry status
+        if: |
+          steps.presence-check.outputs.secret_present == 'true' &&
+          steps.validate.outputs.validate_exit == '0'
+        run: |
+          DAYS="${{ steps.validate.outputs.days_remaining }}"
+          if [[ -n "${DAYS}" ]]; then
+            if [[ "${DAYS}" -lt 14 ]]; then
+              echo "⚠  CLERK_TEST_COOKIES expires in ${DAYS} day(s). Rotate before the next PR lands."
+            else
+              echo "✓  CLERK_TEST_COOKIES is valid and expires in ${DAYS} day(s)."
+            fi
+          else
+            echo "✓  CLERK_TEST_COOKIES is valid (no timestamped expiry found — cookies are session-scoped)."
+          fi

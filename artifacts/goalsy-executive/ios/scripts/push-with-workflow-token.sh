@@ -1,48 +1,62 @@
 #!/usr/bin/env bash
 # push-with-workflow-token.sh
 #
-# One-shot helper to update the GitHub remote with a PAT that has `workflow`
-# scope and push all pending local commits (including .github/workflows/).
+# One-shot helper to push pending local commits (including .github/workflows/)
+# to GitHub using a PAT that has `repo` + `workflow` scope.
+#
+# The token is consumed from the GITHUB_PUSH_TOKEN environment variable — never
+# passed as a command-line argument — so it does not appear in shell history,
+# process listings, or the git config that is left on disk.
 #
 # Usage:
-#   bash artifacts/goalsy-executive/ios/scripts/push-with-workflow-token.sh <NEW_TOKEN>
+#   GITHUB_PUSH_TOKEN=ghp_… bash artifacts/goalsy-executive/ios/scripts/push-with-workflow-token.sh
 #
-# Where <NEW_TOKEN> is a GitHub Personal Access Token with at minimum:
-#   - repo     (full repository access)
-#   - workflow (required to create/update .github/workflows/ files)
-#
-# How to get a token with both scopes:
+# How to get a token with the required scopes:
 #   1. https://github.com/settings/tokens
 #   2. "Generate new token" (classic) — or edit the existing one
 #   3. Check ✓ repo  and  ✓ workflow
-#   4. Copy the token and pass it as the first argument to this script.
+#   4. Copy the token and pass it via the environment variable above.
+#      Never pass it as a positional argument ($1) — that exposes it to
+#      `ps aux` and shell history.
 
 set -euo pipefail
 
-if [ -z "${1:-}" ]; then
-  echo "❌  Usage: $0 <NEW_GITHUB_TOKEN>"
+if [[ -z "${GITHUB_PUSH_TOKEN:-}" ]]; then
+  echo "❌  GITHUB_PUSH_TOKEN is not set."
+  echo ""
+  echo "   Usage:"
+  echo "     GITHUB_PUSH_TOKEN=ghp_… bash $(basename "$0")"
   echo ""
   echo "   Get a token with repo + workflow scopes at:"
   echo "   https://github.com/settings/tokens"
   exit 1
 fi
 
-NEW_TOKEN="$1"
-REPO_URL="https://gurudeepak2001:${NEW_TOKEN}@github.com/gurudeepak2001/goalsy.git"
+# Derive the repo URL from the current remote so this script is not
+# hard-coded to a specific GitHub username or repository name.
+ORIGINAL_URL=$(git remote get-url origin)
+REPO_PATH=$(echo "$ORIGINAL_URL" \
+  | sed -E 's|https?://([^@]+@)?github\.com/||; s|git@github\.com:||; s|\.git$||')
 
-# ── 1. Update the remote URL ──────────────────────────────────────────────────
-echo "→ Updating git remote 'origin' with new token…"
-git remote set-url origin "$REPO_URL"
-echo "✓ Remote updated."
+AUTHED_URL="https://x-access-token:${GITHUB_PUSH_TOKEN}@github.com/${REPO_PATH}.git"
 
-# ── 2. Push ───────────────────────────────────────────────────────────────────
-echo "→ Pushing main to origin…"
+# ── 1. Temporarily update the remote, push, then restore ─────────────────────
+echo "→ Pushing to ${REPO_PATH} on GitHub…"
+git remote set-url origin "$AUTHED_URL"
+
+# Ensure the token is scrubbed from the remote even if the push fails.
+cleanup() {
+  git remote set-url origin "$ORIGINAL_URL"
+  echo "✓ Remote URL restored."
+}
+trap cleanup EXIT
+
 git push origin main
 echo ""
 echo "✓ Push succeeded!"
 echo ""
 echo "Next steps:"
-echo "  • Open https://github.com/gurudeepak2001/goalsy/actions to watch the"
+echo "  • Open https://github.com/${REPO_PATH}/actions to watch the"
 echo "    'iOS Session-Restore Tests' workflow trigger on the main push."
 echo "  • Open a draft PR that touches artifacts/goalsy-executive/ios/ to"
 echo "    confirm the workflow also fires on pull_request events."

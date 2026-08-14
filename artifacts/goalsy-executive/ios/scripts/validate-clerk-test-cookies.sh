@@ -146,7 +146,47 @@ if [[ "${TOTAL_WITH_EXPIRY}" -gt 0 && "${EXPIRED_COUNT}" -eq "${TOTAL_WITH_EXPIR
   exit 1
 fi
 
-# ── 5. All checks passed ──────────────────────────────────────────────────────
+# ── 5. Compute days until earliest expiry and emit a warning if < 14 days ─────
+DAYS_UNTIL_EXPIRY=""
+if [[ "${TOTAL_WITH_EXPIRY}" -gt 0 ]]; then
+  DAYS_UNTIL_EXPIRY=$(python3 - <<EOF
+import json, math
+
+cookies_json = """${CLERK_TEST_COOKIES}"""
+now = ${NOW}
+
+try:
+    cookies = json.loads(cookies_json)
+except json.JSONDecodeError:
+    print("")
+    raise SystemExit(0)
+
+if not isinstance(cookies, list):
+    print("")
+    raise SystemExit(0)
+
+timestamps = [
+    c["expires"]
+    for c in cookies
+    if isinstance(c, dict)
+    and "expires" in c
+    and isinstance(c["expires"], (int, float))
+    and c["expires"] > now
+]
+
+if not timestamps:
+    print("")
+    raise SystemExit(0)
+
+earliest = min(timestamps)
+seconds_remaining = earliest - now
+days_remaining = math.floor(seconds_remaining / 86400)
+print(days_remaining)
+EOF
+  )
+fi
+
+# ── 6. All checks passed ──────────────────────────────────────────────────────
 TOTAL_COOKIES=$(python3 -c \
   "import json; print(len(json.loads('''${CLERK_TEST_COOKIES}''')))" 2>/dev/null || echo "?")
 
@@ -155,5 +195,22 @@ if [[ "${TOTAL_WITH_EXPIRY}" -gt 0 ]]; then
   echo "  ${EXPIRED_COUNT} of ${TOTAL_WITH_EXPIRY} timestamped cookie(s) are expired" \
        "(session cookies without expiry are excluded from this count)."
 fi
+
+# Emit a machine-readable days-remaining line for callers (e.g. the expiry-check
+# cron workflow) that need to parse the earliest-expiry value.
+if [[ -n "${DAYS_UNTIL_EXPIRY}" ]]; then
+  echo "  Earliest timestamped cookie expires in ${DAYS_UNTIL_EXPIRY} day(s)."
+  echo "CLERK_COOKIES_DAYS_REMAINING=${DAYS_UNTIL_EXPIRY}"
+
+  # Warn if within 14 days — works both locally and in GitHub Actions.
+  if [[ "${DAYS_UNTIL_EXPIRY}" -lt 14 ]]; then
+    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+      echo "::warning::CLERK_TEST_COOKIES expires in ${DAYS_UNTIL_EXPIRY} day(s) — rotate it before CI goes dark."
+    else
+      echo "⚠  Warning: CLERK_TEST_COOKIES expires in ${DAYS_UNTIL_EXPIRY} day(s). Rotate soon."
+    fi
+  fi
+fi
+
 echo ""
 exit 0
