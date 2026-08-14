@@ -6,7 +6,7 @@
  * seeds that user instead (handy for re-seeding during development).
  */
 
-import { db } from "./index.ts";
+import { db } from "./index";
 import {
   userProfiles,
   financialProfiles,
@@ -16,7 +16,7 @@ import {
   notifications,
   notificationPreferences,
   dailyMissions,
-} from "./schema/index.ts";
+} from "./schema/index";
 import { eq, or } from "drizzle-orm";
 
 // ── Resolve user ID ───────────────────────────────────────────────────────────
