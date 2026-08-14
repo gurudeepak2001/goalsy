@@ -91,7 +91,7 @@ vi.mock('recharts', () => ({
 
 // ── Import after all mocks are set up ────────────────────────────────────────
 
-import { computeRoadmap } from './GoalDetailScreen';
+import { computeRoadmap } from '@/lib/roadmap';
 import type { Goal } from '@workspace/api-client-react';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
