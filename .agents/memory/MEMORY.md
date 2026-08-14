@@ -1,3 +1,4 @@
+- [Clerk FAPI native proxy architecture](clerk-fapi-native.md) — no proxyUrl needed; Clerk already allows capacitor://localhost; API-server proxy loops internally; cookie persistence via AppDelegate.
 - [Clerk session restore on Capacitor](clerk-capacitor-session-restore.md) — persist __clerk_db_jwt, restore via URL param before clerk-js init; fetch injection fails.
 - [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
