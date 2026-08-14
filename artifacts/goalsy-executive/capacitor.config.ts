@@ -16,7 +16,9 @@ const config: CapacitorConfig = {
       '*.clerk.accounts.dev',
       '*.clerk.com',
       'clerk.goalsy.com',
-      // Allow the Replit API server so API calls work from the native build.
+      // Production API + Clerk proxy — always-on, used by cap:build.
+      'goalsy-finance-ui.replit.app',
+      // Dev API — Replit dev server; only active while the editor is open.
       'b89a11ff-b052-43b2-b941-88baf72a4a02-00-1vdn0ng8937zm.kirk.replit.dev',
     ],
   },

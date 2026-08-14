@@ -98,10 +98,11 @@ let cachedDbJwt: string | null = null;
 let hadSavedToken = false;   // a token existed in Preferences at launch
 let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 
-// Clerk device JWTs are always 300+ characters (signed JWTs).
-// Anything shorter is a corrupted/truncated value — discard it so we don't
-// silently poison every Clerk request with an invalid token.
-const MIN_JWT_LENGTH = 100;
+// The __clerk_db_jwt is a dev-browser device token — it is NOT a session JWT.
+// Clerk dev instances generate these as short base64 strings (~31 chars), so
+// the minimum is intentionally low. We only discard truly empty/whitespace
+// values that would be useless to pass to Clerk.
+const MIN_JWT_LENGTH = 8;
 
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
 // Every entry is written to Preferences immediately, so it survives force-kill
