@@ -1,0 +1,2066 @@
+Last login: Thu Aug 13 17:20:43 on ttys000
+(base) deepak@Gurus-Laptop ~ % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 14, done.
+remote: Counting objects: 100% (14/14), done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 9 (delta 5), reused 9 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (9/9), 8.44 MiB | 5.32 MiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   8dafa31..de68e96  main       -> origin/main
+Updating 8dafa31..de68e96
+Fast-forward
+ artifacts/goalsy-executive/package.json               |   3 ++-
+ ...eenshot_2026-08-13_at_5.38.16_PM_1786657100532.png | Bin 0 -> 8855752 bytes
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+ create mode 100644 attached_assets/Screenshot_2026-08-13_at_5.38.16_PM_1786657100532.png
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-DU0rDi4S.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-H1XqZFVs.js         1.25 kB │ gzip:   0.58 kB
+dist/public/assets/index-WWcVCstX.js   1,166.57 kB │ gzip: 337.51 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.79s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.13ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 670.04μs
+✔ copy android in 26.23ms
+✔ Updating Android plugins in 6.85ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.22ms
+✔ Copying web assets from public to ios/App/App/public in 3.90ms
+✔ Creating capacitor.config.json in ios/App/App in 294.21μs
+✔ copy ios in 34.42ms
+✔ Updating iOS plugins in 6.49ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.44ms
+✔ copy web in 12.72ms
+✔ update web in 12.90ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 21, done.
+remote: Counting objects: 100% (21/21), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 14 (delta 9), reused 14 (delta 9), pack-reused 0 (from 0)
+Unpacking objects: 100% (14/14), 4.25 KiB | 255.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   de68e96..e780721  main       -> origin/main
+Updating de68e96..e780721
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx          | 63 +++++++++++++++++++++----
+ artifacts/goalsy-executive/src/lib/apiClient.ts | 40 ++++++++++++----
+ 2 files changed, 85 insertions(+), 18 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-vgiWhtO3.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-BnAtBgZH.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-Dl9stgz7.js   1,167.47 kB │ gzip: 337.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.70s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.47ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 774.88μs
+✔ copy android in 28.19ms
+✔ Updating Android plugins in 6.92ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.69ms
+✔ Copying web assets from public to ios/App/App/public in 3.85ms
+✔ Creating capacitor.config.json in ios/App/App in 164.79μs
+✔ copy ios in 34.52ms
+✔ Updating iOS plugins in 6.27ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.96ms
+✔ copy web in 12.43ms
+✔ update web in 12.63ms
+[info] Sync finished in 0.224s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-vgiWhtO3.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-BnAtBgZH.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-Dl9stgz7.js   1,167.47 kB │ gzip: 337.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.94s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.20ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 375.96μs
+✔ copy android in 28.77ms
+✔ Updating Android plugins in 7.24ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.73ms
+✔ Copying web assets from public to ios/App/App/public in 3.70ms
+✔ Creating capacitor.config.json in ios/App/App in 204.04μs
+✔ copy ios in 36.44ms
+✔ Updating iOS plugins in 6.77ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 28.16ms
+✔ copy web in 13.00ms
+✔ update web in 13.26ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 21, done.
+remote: Counting objects: 100% (21/21), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 12 (delta 7), reused 12 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (12/12), 3.41 KiB | 249.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   e780721..868dc1b  main       -> origin/main
+Updating e780721..868dc1b
+Fast-forward
+ .agents/memory/clerk-capacitor-session-restore.md | 33 ++++++++++++++++++-----
+ artifacts/goalsy-executive/capacitor.config.ts    |  4 ++-
+ artifacts/goalsy-executive/src/App.tsx            |  9 ++++---
+ 3 files changed, 35 insertions(+), 11 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-DFiBfr-p.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-Cs84yEjf.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DE1XHNNa.js   1,167.47 kB │ gzip: 337.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.74s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.51ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.18ms
+✔ copy android in 28.29ms
+✔ Updating Android plugins in 7.11ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.03ms
+✔ Copying web assets from public to ios/App/App/public in 3.87ms
+✔ Creating capacitor.config.json in ios/App/App in 188.17μs
+✔ copy ios in 34.30ms
+✔ Updating iOS plugins in 6.58ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.92ms
+✔ copy web in 12.41ms
+✔ update web in 12.51ms
+[info] Sync finished in 0.226s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-DFiBfr-p.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-Cs84yEjf.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DE1XHNNa.js   1,167.47 kB │ gzip: 337.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.59s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.43ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 363.33μs
+✔ copy android in 26.67ms
+✔ Updating Android plugins in 6.80ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 30.24ms
+✔ Copying web assets from public to ios/App/App/public in 3.63ms
+✔ Creating capacitor.config.json in ios/App/App in 166.13μs
+✔ copy ios in 34.73ms
+✔ Updating iOS plugins in 6.61ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.22ms
+✔ copy web in 12.42ms
+✔ update web in 12.67ms
+[info] Sync finished in 0.218s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-DFiBfr-p.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-Cs84yEjf.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DE1XHNNa.js   1,167.47 kB │ gzip: 337.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.55s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.70ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 413.58μs
+✔ copy android in 27.35ms
+✔ Updating Android plugins in 6.78ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 30.38ms
+✔ Copying web assets from public to ios/App/App/public in 3.91ms
+✔ Creating capacitor.config.json in ios/App/App in 187.71μs
+✔ copy ios in 33.88ms
+✔ Updating iOS plugins in 6.65ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.52ms
+✔ copy web in 12.22ms
+✔ update web in 12.69ms
+[info] Sync finished in 0.22s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.03 KiB | 117.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   868dc1b..fa48866  main       -> origin/main
+Updating 868dc1b..fa48866
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CiJ9_p8I.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-DmpnH6mn.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-LRT6RUGR.js   1,167.52 kB │ gzip: 337.85 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.80s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.87ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 801.75μs
+✔ copy android in 27.23ms
+✔ Updating Android plugins in 6.89ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.10ms
+✔ Copying web assets from public to ios/App/App/public in 4.45ms
+✔ Creating capacitor.config.json in ios/App/App in 180.92μs
+✔ copy ios in 35.29ms
+✔ Updating iOS plugins in 6.22ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.25ms
+✔ copy web in 12.38ms
+✔ update web in 12.55ms
+[info] Sync finished in 0.225s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 13, done.
+remote: Counting objects: 100% (13/13), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 7 (delta 4), reused 7 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (7/7), 1.74 KiB | 198.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   fa48866..d1b8c9a  main       -> origin/main
+Updating fa48866..d1b8c9a
+Fast-forward
+ .../src/middlewares/clerkProxyMiddleware.ts        | 33 +++++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CiJ9_p8I.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-DmpnH6mn.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-LRT6RUGR.js   1,167.52 kB │ gzip: 337.85 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.75s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.26ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 736.46μs
+✔ copy android in 28.65ms
+✔ Updating Android plugins in 6.68ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.62ms
+✔ Copying web assets from public to ios/App/App/public in 4.14ms
+✔ Creating capacitor.config.json in ios/App/App in 205.67μs
+✔ copy ios in 35.49ms
+✔ Updating iOS plugins in 6.72ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.44ms
+✔ copy web in 12.67ms
+✔ update web in 12.33ms
+[info] Sync finished in 0.228s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 19, done.
+remote: Counting objects: 100% (19/19), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 10 (delta 7), reused 10 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (10/10), 4.08 KiB | 321.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   d1b8c9a..e62b42c  main       -> origin/main
+Updating d1b8c9a..e62b42c
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx             | 118 ++++++++++++++++++---
+ artifacts/goalsy-executive/src/lib/clerkErrors.ts  |  27 +++++
+ .../goalsy-executive/src/pages/SignInScreen.tsx    |   2 +-
+ 3 files changed, 132 insertions(+), 15 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CbVbyIDi.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-ak6yIq2t.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DkeoYrK5.js   1,170.08 kB │ gzip: 338.55 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.73s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.47ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 374.96μs
+✔ copy android in 28.62ms
+✔ Updating Android plugins in 7.01ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.59ms
+✔ Copying web assets from public to ios/App/App/public in 4.15ms
+✔ Creating capacitor.config.json in ios/App/App in 285.04μs
+✔ copy ios in 34.98ms
+✔ Updating iOS plugins in 6.74ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.61ms
+✔ copy web in 12.65ms
+✔ update web in 12.61ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull && pnpm run cap:build
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[ERR_PNPM_NO_SCRIPT] Missing script: cap:build
+
+Command "cap:build" not found. Did you mean "pnpm run build"?
+(base) deepak@Gurus-Laptop goalsy-main % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive && pnpm run cap:build && npx cap open ios
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2913 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CbVbyIDi.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-ak6yIq2t.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DkeoYrK5.js   1,170.08 kB │ gzip: 338.55 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.90s
+✔ Copying web assets from public to android/app/src/main/assets/public in 7.00ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 696.25μs
+✔ copy android in 28.35ms
+✔ Updating Android plugins in 6.85ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.58ms
+✔ Copying web assets from public to ios/App/App/public in 4.33ms
+✔ Creating capacitor.config.json in ios/App/App in 145.71μs
+✔ copy ios in 34.52ms
+✔ Updating iOS plugins in 6.66ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.09ms
+✔ copy web in 12.72ms
+✔ update web in 12.87ms
+[info] Sync finished in 0.227s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive && git pull && pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 20, done.
+remote: Counting objects: 100% (20/20), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 14 (delta 8), reused 14 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (14/14), 5.70 KiB | 306.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   e62b42c..4120345  main       -> origin/main
+Updating e62b42c..4120345
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx             | 24 +++++--
+ ...-1-update-ios-in-23-44ms-copy_1786717587354.txt | 77 ++++++++++++++++++++++
+ ...tonomous-ownership-of-getting_1786717027126.txt | 42 ++++++++++++
+ 3 files changed, 136 insertions(+), 7 deletions(-)
+ create mode 100644 attached_assets/Pasted--capacitor-preferences-8-0-1-update-ios-in-23-44ms-copy_1786717587354.txt
+ create mode 100644 attached_assets/Pasted-I-need-you-to-take-full-autonomous-ownership-of-getting_1786717027126.txt
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-CqJcmdGn.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-BDnD2pc8.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CNGbjpyH.js   1,169.56 kB │ gzip: 338.36 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.80s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.83ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 826.54μs
+✔ copy android in 27.96ms
+✔ Updating Android plugins in 6.69ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.72ms
+✔ Copying web assets from public to ios/App/App/public in 5.01ms
+✔ Creating capacitor.config.json in ios/App/App in 342.83μs
+✔ copy ios in 36.14ms
+✔ Updating iOS plugins in 6.54ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.15ms
+✔ copy web in 12.46ms
+✔ update web in 11.32ms
+[info] Sync finished in 0.232s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive
+git pull && pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 20, done.
+remote: Counting objects: 100% (20/20), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 11 (delta 8), reused 11 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (11/11), 2.92 KiB | 213.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   4120345..9abf9d8  main       -> origin/main
+Updating 4120345..9abf9d8
+Fast-forward
+ artifacts/api-server/src/routes/config.ts | 20 +++++++++++++
+ artifacts/api-server/src/routes/index.ts  |  2 ++
+ artifacts/goalsy-executive/src/App.tsx    | 48 ++++++++++++++++++++++++++-----
+ 3 files changed, 63 insertions(+), 7 deletions(-)
+ create mode 100644 artifacts/api-server/src/routes/config.ts
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.83s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.45ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.20ms
+✔ copy android in 28.36ms
+✔ Updating Android plugins in 6.94ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.73ms
+✔ Copying web assets from public to ios/App/App/public in 4.13ms
+✔ Creating capacitor.config.json in ios/App/App in 181.46μs
+✔ copy ios in 34.45ms
+✔ Updating iOS plugins in 6.78ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 24.09ms
+✔ copy web in 11.63ms
+✔ update web in 11.39ms
+[info] Sync finished in 0.226s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % git pull && pnpm run cap:build && npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.76s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.44ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.05ms
+✔ copy android in 28.58ms
+✔ Updating Android plugins in 6.91ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.85ms
+✔ Copying web assets from public to ios/App/App/public in 5.11ms
+✔ Creating capacitor.config.json in ios/App/App in 148.79μs
+✔ copy ios in 35.79ms
+✔ Updating iOS plugins in 6.47ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.94ms
+✔ copy web in 12.61ms
+✔ update web in 12.78ms
+[info] Sync finished in 0.226s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive
+git pull && pnpm run cap:build && npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.73s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.20ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.26ms
+✔ copy android in 28.40ms
+✔ Updating Android plugins in 7.06ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.42ms
+✔ Copying web assets from public to ios/App/App/public in 4.17ms
+✔ Creating capacitor.config.json in ios/App/App in 149.29μs
+✔ copy ios in 33.96ms
+✔ Updating iOS plugins in 6.71ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.23ms
+✔ copy web in 12.79ms
+✔ update web in 12.65ms
+[info] Sync finished in 0.227s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main  
+git pull origin main
+cd artifacts/goalsy-executive
+pnpm install
+pnpm run cap:build
+npx cap sync ios
+npx cap open ios
+From https://github.com/gurudeepak2001/goalsy
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+Scope: all 9 workspace projects
+Already up to date
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 11.14.0 → 11.21.0.   │
+   │   Changelog: https://pnpm.io/v/11.21.0   │
+   │     To update, run: pnpm add -g pnpm     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+Done in 231ms using pnpm v11.14.0
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.75s
+✔ Copying web assets from public to android/app/src/main/assets/public in 7.17ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 514.83μs
+✔ copy android in 29.52ms
+✔ Updating Android plugins in 7.01ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.84ms
+✔ Copying web assets from public to ios/App/App/public in 4.25ms
+✔ Creating capacitor.config.json in ios/App/App in 159.13μs
+✔ copy ios in 34.89ms
+✔ Updating iOS plugins in 6.63ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.25ms
+✔ copy web in 12.68ms
+✔ update web in 12.78ms
+[info] Sync finished in 0.231s
+✔ Copying web assets from public to ios/App/App/public in 5.40ms
+✔ Creating capacitor.config.json in ios/App/App in 1.25ms
+✔ copy ios in 36.34ms
+✔ Updating iOS plugins in 6.37ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 27.21ms
+[info] Sync finished in 0.097s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.49s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.69ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 756.58μs
+✔ copy android in 26.98ms
+✔ Updating Android plugins in 6.90ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.27ms
+✔ Copying web assets from public to ios/App/App/public in 4.30ms
+✔ Creating capacitor.config.json in ios/App/App in 202.13μs
+✔ copy ios in 35.03ms
+✔ Updating iOS plugins in 6.62ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.79ms
+✔ copy web in 12.85ms
+✔ update web in 14.01ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.74s
+✔ Copying web assets from public to android/app/src/main/assets/public in 7.01ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 486.50μs
+✔ copy android in 28.61ms
+✔ Updating Android plugins in 6.91ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.29ms
+✔ Copying web assets from public to ios/App/App/public in 4.53ms
+✔ Creating capacitor.config.json in ios/App/App in 175.67μs
+✔ copy ios in 35.10ms
+✔ Updating iOS plugins in 6.57ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.29ms
+✔ copy web in 12.41ms
+✔ update web in 12.71ms
+[info] Sync finished in 0.228s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.20s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.43ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 647.63μs
+✔ copy android in 27.57ms
+✔ Updating Android plugins in 6.57ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 38.93ms
+✔ Copying web assets from public to ios/App/App/public in 3.40ms
+✔ Creating capacitor.config.json in ios/App/App in 295.29μs
+✔ copy ios in 38.65ms
+✔ Updating iOS plugins in 6.33ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 24.69ms
+✔ copy web in 12.68ms
+✔ update web in 11.73ms
+[info] Sync finished in 0.237s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.46s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.32ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 925.67μs
+✔ copy android in 29.25ms
+✔ Updating Android plugins in 7.39ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 41.97ms
+✔ Copying web assets from public to ios/App/App/public in 3.94ms
+✔ Creating capacitor.config.json in ios/App/App in 213.96μs
+✔ copy ios in 38.22ms
+✔ Updating iOS plugins in 7.60ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 26.86ms
+✔ copy web in 14.72ms
+✔ update web in 13.38ms
+[info] Sync finished in 0.258s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+remote: Enumerating objects: 218, done.
+remote: Counting objects: 100% (218/218), done.
+remote: Compressing objects: 100% (73/73), done.
+remote: Total 173 (delta 90), reused 172 (delta 89), pack-reused 0 (from 0)
+Receiving objects: 100% (173/173), 7.01 MiB | 6.52 MiB/s, done.
+Resolving deltas: 100% (90/90), completed with 25 local objects.
+From https://github.com/gurudeepak2001/goalsy
+   9abf9d8..89b89ab  main       -> origin/main
+ * [new branch]      test/break-api-server-test-verify -> origin/test/break-api-server-test-verify
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.82s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.06ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 872.33μs
+✔ copy android in 28.95ms
+✔ Updating Android plugins in 7.65ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 35.61ms
+✔ Copying web assets from public to ios/App/App/public in 5.87ms
+✔ Creating capacitor.config.json in ios/App/App in 298.58μs
+✔ copy ios in 40.77ms
+✔ Updating iOS plugins in 7.74ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 27.21ms
+✔ copy web in 13.56ms
+✔ update web in 13.04ms
+[info] Sync finished in 0.252s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.94s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.61ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.08ms
+✔ copy android in 29.22ms
+✔ Updating Android plugins in 7.20ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.37ms
+✔ Copying web assets from public to ios/App/App/public in 3.34ms
+✔ Creating capacitor.config.json in ios/App/App in 160.46μs
+✔ copy ios in 33.08ms
+✔ Updating iOS plugins in 6.61ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.82ms
+✔ copy web in 12.88ms
+✔ update web in 12.59ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.00s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.68s
+✔ Copying web assets from public to android/app/src/main/assets/public in 7.54ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.19ms
+✔ copy android in 31.88ms
+✔ Updating Android plugins in 7.17ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 33.31ms
+✔ Copying web assets from public to ios/App/App/public in 4.31ms
+✔ Creating capacitor.config.json in ios/App/App in 166.08μs
+✔ copy ios in 35.75ms
+✔ Updating iOS plugins in 6.90ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 24.04ms
+✔ copy web in 12.85ms
+✔ update web in 12.90ms
+[info] Sync finished in 0.235s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.70s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.52ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.10ms
+✔ copy android in 26.86ms
+✔ Updating Android plugins in 6.73ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 30.95ms
+✔ Copying web assets from public to ios/App/App/public in 3.55ms
+✔ Creating capacitor.config.json in ios/App/App in 289.88μs
+✔ copy ios in 33.91ms
+✔ Updating iOS plugins in 6.54ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.87ms
+✔ copy web in 12.67ms
+✔ update web in 12.72ms
+[info] Sync finished in 0.222s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.22s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.13ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 546.17μs
+✔ copy android in 28.06ms
+✔ Updating Android plugins in 6.80ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 33.01ms
+✔ Copying web assets from public to ios/App/App/public in 4.18ms
+✔ Creating capacitor.config.json in ios/App/App in 587.75μs
+✔ copy ios in 35.31ms
+✔ Updating iOS plugins in 6.62ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.25ms
+✔ copy web in 12.82ms
+✔ update web in 13.01ms
+[info] Sync finished in 0.229s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build        # rebuilds Vite without VITE_CLERK_PROXY_URL → proxyUrl = undefined
+npx cap sync ios          # copies new bundle into ios/App
+npx cap open ios          # opens Xcode
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync '#' rebuilds Vite without VITE_CLERK_PROXY_URL '→' proxyUrl = undefined
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.79s
+[error] Platform # not found.
+[error] Platform # not found.
+✔ Copying web assets from public to ios/App/App/public in 5.40ms
+✔ Creating capacitor.config.json in ios/App/App in 372.21μs
+✔ copy ios in 37.68ms
+✔ Updating iOS plugins in 6.74ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 29.05ms
+[info] Sync finished in 0.113s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull
+cd artifacts/goalsy-executive
+pnpm run cap:build
+npx cap sync ios
+npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-CVWk_Yvf.css     51.75 kB │ gzip:   9.99 kB
+dist/public/assets/index-Jw8bIkqq.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-B8S5CMww.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CRa5eAyw.js   1,170.22 kB │ gzip: 338.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.81s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.77ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 621.79μs
+✔ copy android in 29.78ms
+✔ Updating Android plugins in 6.87ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 34.66ms
+✔ Copying web assets from public to ios/App/App/public in 5.72ms
+✔ Creating capacitor.config.json in ios/App/App in 1.01ms
+✔ copy ios in 40.18ms
+✔ Updating iOS plugins in 7.95ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 35.87ms
+✔ copy web in 19.64ms
+✔ update web in 14.29ms
+[info] Sync finished in 0.266s
+✔ Copying web assets from public to ios/App/App/public in 5.13ms
+✔ Creating capacitor.config.json in ios/App/App in 373.92μs
+✔ copy ios in 34.21ms
+✔ Updating iOS plugins in 6.55ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 27.68ms
+[info] Sync finished in 0.102s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main/artifacts/goalsy-executive
+git pull && pnpm run cap:build && npx cap open ios
+Updating 9abf9d8..89b89ab
+error: Your local changes to the following files would be overwritten by merge:
+	artifacts/goalsy-executive/ios/App/App.xcodeproj/project.pbxproj
+Please commit your changes or stash them before you merge.
+Aborting
+(base) deepak@Gurus-Laptop goalsy-executive % git stash && git pull && pnpm run cap:build && npx cap open ios
+Saved working directory and index state WIP on main: 9abf9d8 fix(auth): fetch live Clerk publishable key from server at boot
+Updating 9abf9d8..89b89ab
+Fast-forward
+ .agents/memory/MEMORY.md                           |   1 +
+ .agents/memory/clerk-capacitor-session-restore.md  |   7 +
+ .agents/memory/clerk-fapi-native.md                |  39 +++
+ artifacts/api-server/package.json                  |   1 -
+ artifacts/api-server/src/app.ts                    |  20 +-
+ .../src/middlewares/clerkProxyMiddleware.ts        | 177 --------------
+ artifacts/api-server/src/routes/bills.ts           |   3 +-
+ artifacts/api-server/src/routes/goals.ts           |  21 +-
+ artifacts/api-server/src/routes/missions.ts        |   6 +-
+ .../src/routes/notificationPreferences.ts          |   2 +-
+ artifacts/api-server/src/routes/notifications.ts   |   6 +-
+ .../WEBVIEW_SESSION_REGRESSION_CHECKLIST.md        | 146 +++++++++++
+ .../java/com/goalsy/executive/MainActivity.java    |  51 +++-
+ .../ios/App/App.xcodeproj/project.pbxproj          | 124 ++++++++++
+ .../xcshareddata/xcschemes/AppTests.xcscheme       |  82 +++++++
+ .../goalsy-executive/ios/App/App/AppDelegate.swift | 152 ++----------
+ .../ios/App/App/ClerkCookiePersistence.swift       | 155 ++++++++++++
+ .../App/AppTests/ClerkCookiePersistenceTests.swift | 268 +++++++++++++++++++++
+ .../ios/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md    | 198 +++++++++++++++
+ artifacts/goalsy-executive/src/App.tsx             | 154 ++++++++++--
+ ...tor-import-WebKit-UIApplicati_1786739144120.txt | 178 ++++++++++++++
+ ...or-creating-CHHapticPattern-E_1786738310837.txt |  10 +
+ ...shot_2026-08-14_at_4.12.35_PM_1786738359697.png | Bin 0 -> 7319769 bytes
+ lib/api-zod/src/index.ts                           |   3 -
+ lib/db/tsconfig.json                               |   3 +-
+ pnpm-lock.yaml                                     |  22 --
+ 26 files changed, 1452 insertions(+), 377 deletions(-)
+ create mode 100644 .agents/memory/clerk-fapi-native.md
+ delete mode 100644 artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts
+ create mode 100644 artifacts/goalsy-executive/android/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md
+ create mode 100644 artifacts/goalsy-executive/ios/App/App.xcodeproj/xcshareddata/xcschemes/AppTests.xcscheme
+ create mode 100644 artifacts/goalsy-executive/ios/App/App/ClerkCookiePersistence.swift
+ create mode 100644 artifacts/goalsy-executive/ios/App/AppTests/ClerkCookiePersistenceTests.swift
+ create mode 100644 artifacts/goalsy-executive/ios/WEBVIEW_SESSION_REGRESSION_CHECKLIST.md
+ create mode 100644 attached_assets/Pasted-import-UIKit-import-Capacitor-import-WebKit-UIApplicati_1786739144120.txt
+ create mode 100644 attached_assets/Pasted-kGenerator-0x105a16c40-Error-creating-CHHapticPattern-E_1786738310837.txt
+ create mode 100644 attached_assets/Screenshot_2026-08-14_at_4.12.35_PM_1786738359697.png
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+Scope: all 9 workspace projects
+✓ Lockfile passes supply-chain policies (650 entries in 1.3s)
+../..                                    |   -2 -
+../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config…
+└─ Done in 40ms
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @clerk/shared@3.47.7, @clerk/shared@4.25.2, esbuild@0.27.3
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[ERROR] Command failed with exit code 1: pnpm install
+
+pnpm: Command failed with exit code 1: pnpm install
+    at getFinalError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:88127:14)
+    at makeError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:90434:21)
+    at getSyncResult (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92278:10)
+    at spawnSubprocessSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92238:14)
+    at execaCoreSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92168:23)
+    at callBoundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94696:23)
+    at boundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94673:49)
+    at sync2 (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94828:14)
+    at runPnpmCli (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:248505:5)
+    at runDepsStatusCheck (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:250269:7)
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+pnpm approve-builds
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+✔ Choose which packages to build (Press <space> to select, <a> to toggle all, <i
+> to invert selection) @clerk/shared, esbuild
+✔ The next packages will now be built: @clerk/shared, esbuild.
+Do you approve? Yes
+node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild: Running postinstall script, done in 399ms
+node_modules/.pnpm/@clerk+shared@3.47.7_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/@clerk/shared: Running postinstall script, done in 42ms
+(base) deepak@Gurus-Laptop goalsy-main % cd artifacts/goalsy-executive && pnpm run cap:build && npx cap open ios
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-DVSBgtYH.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-DCbk26it.js         1.25 kB │ gzip:   0.58 kB
+dist/public/assets/index-VrDGyOCp.js   1,171.47 kB │ gzip: 339.07 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.77s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.06ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.10ms
+✔ copy android in 27.49ms
+✔ Updating Android plugins in 6.80ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.08ms
+✔ Copying web assets from public to ios/App/App/public in 4.23ms
+✔ Creating capacitor.config.json in ios/App/App in 286.17μs
+✔ copy ios in 34.37ms
+✔ Updating iOS plugins in 6.62ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.59ms
+✔ copy web in 12.68ms
+✔ update web in 12.49ms
+[info] Sync finished in 0.221s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.56 KiB | 177.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+ * [new branch]      fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating 89b89ab..9123632
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-ezXz-Ezz.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-ChrDu6cI.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-ADsXDLWf.js   1,171.56 kB │ gzip: 339.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.69s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.90ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 792.04μs
+✔ copy android in 27.26ms
+✔ Updating Android plugins in 6.69ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 38.09ms
+✔ Copying web assets from public to ios/App/App/public in 3.80ms
+✔ Creating capacitor.config.json in ios/App/App in 158.67μs
+✔ copy ios in 33.60ms
+✔ Updating iOS plugins in 6.46ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.02ms
+✔ copy web in 12.52ms
+✔ update web in 12.82ms
+[info] Sync finished in 0.231s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 20, done.
+remote: Counting objects: 100% (20/20), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 12 (delta 7), reused 12 (delta 7), pack-reused 0 (from 0)
+Unpacking objects: 100% (12/12), 2.52 KiB | 287.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   9123632..b14baa8  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating 9123632..b14baa8
+Fast-forward
+ artifacts/goalsy-executive/ios/App/App/Info.plist  |  2 +-
+ ...on-be-required-Failure-to-ado_1786745365606.txt | 57 ++++++++++++++++++++++
+ 2 files changed, 58 insertions(+), 1 deletion(-)
+ create mode 100644 attached_assets/Pasted--UIScene-lifecycle-will-soon-be-required-Failure-to-ado_1786745365606.txt
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-ezXz-Ezz.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-ChrDu6cI.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-ADsXDLWf.js   1,171.56 kB │ gzip: 339.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.75s
+✔ Copying web assets from public to android/app/src/main/assets/public in 7.02ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 924.00μs
+✔ copy android in 28.67ms
+✔ Updating Android plugins in 6.81ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.43ms
+✔ Copying web assets from public to ios/App/App/public in 4.50ms
+✔ Creating capacitor.config.json in ios/App/App in 179.21μs
+✔ copy ios in 34.69ms
+✔ Updating iOS plugins in 6.33ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.99ms
+✔ copy web in 12.36ms
+✔ update web in 12.36ms
+[info] Sync finished in 0.226s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1004 bytes | 167.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   b14baa8..45d6139  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating b14baa8..45d6139
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx | 34 +++++++++++++++-------------------
+ 1 file changed, 15 insertions(+), 19 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-B_BYFdvg.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-KvPgfrLg.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CwKuwzGK.js   1,171.56 kB │ gzip: 339.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.70s
+✔ Copying web assets from public to android/app/src/main/assets/public in 6.53ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 605.42μs
+✔ copy android in 28.55ms
+✔ Updating Android plugins in 6.91ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 32.19ms
+✔ Copying web assets from public to ios/App/App/public in 3.68ms
+✔ Creating capacitor.config.json in ios/App/App in 166.83μs
+✔ copy ios in 33.31ms
+✔ Updating iOS plugins in 6.63ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.85ms
+✔ copy web in 12.68ms
+✔ update web in 12.70ms
+[info] Sync finished in 0.228s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.05 KiB | 154.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   45d6139..f2196c0  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating 45d6139..f2196c0
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-CLjyXcB5.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-Cye9uejM.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-Dw4gUa1Y.js   1,171.57 kB │ gzip: 339.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.71s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.90ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.54ms
+✔ copy android in 29.00ms
+✔ Updating Android plugins in 6.95ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.66ms
+✔ Copying web assets from public to ios/App/App/public in 4.23ms
+✔ Creating capacitor.config.json in ios/App/App in 176.17μs
+✔ copy ios in 34.61ms
+✔ Updating iOS plugins in 6.69ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 29.53ms
+✔ copy web in 12.93ms
+✔ update web in 12.72ms
+[info] Sync finished in 0.226s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.07 KiB | 99.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   f2196c0..6174e8c  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating f2196c0..6174e8c
+Fast-forward
+ artifacts/goalsy-executive/src/App.tsx | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-D198ay6y.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-DmlKynof.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-DxCB1fg_.js   1,171.65 kB │ gzip: 339.15 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.71s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.52ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.17ms
+✔ copy android in 27.34ms
+✔ Updating Android plugins in 6.74ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.82ms
+✔ Copying web assets from public to ios/App/App/public in 3.90ms
+✔ Creating capacitor.config.json in ios/App/App in 182.29μs
+✔ copy ios in 33.75ms
+✔ Updating iOS plugins in 7.13ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 24.84ms
+✔ copy web in 12.48ms
+✔ update web in 12.78ms
+[info] Sync finished in 0.225s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 13, done.
+remote: Counting objects: 100% (13/13), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 7 (delta 5), reused 7 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (7/7), 837 bytes | 93.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   6174e8c..282188d  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating 6174e8c..282188d
+Fast-forward
+ artifacts/goalsy-executive/src/pages/CreateAccountScreen.tsx | 4 ++++
+ 1 file changed, 4 insertions(+)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-Cg5p3d86.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-C7AHWEgA.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-D3noifL5.js   1,171.79 kB │ gzip: 339.21 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.79s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.41ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 680.29μs
+✔ copy android in 26.78ms
+✔ Updating Android plugins in 7.11ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.36ms
+✔ Copying web assets from public to ios/App/App/public in 4.13ms
+✔ Creating capacitor.config.json in ios/App/App in 157.96μs
+✔ copy ios in 34.45ms
+✔ Updating iOS plugins in 6.40ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 23.14ms
+✔ copy web in 12.32ms
+✔ update web in 12.51ms
+[info] Sync finished in 0.222s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git fetch origin
+git merge origin/fix/clerk-js-url
+cd artifacts/goalsy-executive
+pnpm run cap:build && npx cap open ios
+remote: Enumerating objects: 13, done.
+remote: Counting objects: 100% (13/13), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 7 (delta 5), reused 7 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (7/7), 734 bytes | 66.00 KiB/s, done.
+From https://github.com/gurudeepak2001/goalsy
+   282188d..7f12a55  fix/clerk-js-url -> origin/fix/clerk-js-url
+Updating 282188d..7f12a55
+Fast-forward
+ artifacts/goalsy-executive/src/pages/SignInScreen.tsx | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ VITE_API_BASE_URL=https://goalsy-finance-ui.replit.app pnpm build && npx cap sync
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-CtQqhdqS.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-CTi-pRl6.js         1.25 kB │ gzip:   0.58 kB
+dist/public/assets/index-CaRXPUSx.js   1,171.90 kB │ gzip: 339.24 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.86s
+✔ Copying web assets from public to android/app/src/main/assets/public in 5.47ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.10ms
+✔ copy android in 27.18ms
+✔ Updating Android plugins in 6.67ms
+[info] Found 2 Capacitor plugins for android:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update android in 31.82ms
+✔ Copying web assets from public to ios/App/App/public in 3.68ms
+✔ Creating capacitor.config.json in ios/App/App in 168.92μs
+✔ copy ios in 33.79ms
+✔ Updating iOS plugins in 6.50ms
+[info] All Capacitor plugins have a Package.swift file and will be included in
+       Package.swift
+[info] Writing Package.swift
+[info] Found 2 Capacitor plugins for ios:
+       @capacitor/keyboard@8.0.5
+       @capacitor/preferences@8.0.1
+✔ update ios in 22.74ms
+✔ copy web in 12.59ms
+✔ update web in 12.68ms
+[info] Sync finished in 0.223s
+✔ Opening the Xcode workspace... in 3.01s
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+git pull origin fix/clerk-js-url
+pnpm --filter @workspace/goalsy-executive build
+npx cap sync ios
+From https://github.com/gurudeepak2001/goalsy
+ * branch            fix/clerk-js-url -> FETCH_HEAD
+Already up to date.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+$ vite build --config vite.config.ts
+vite v7.3.6 building client environment for production...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2912 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/deepak/StudioProjects/goalsy-main/node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.4.2/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/pages/WelcomeScreen.tsx but also statically imported by /Users/deepak/StudioProjects/goalsy-main/artifacts/goalsy-executive/src/App.tsx, dynamic import will not move module into another chunk.
+
+dist/public/index.html                     1.54 kB │ gzip:   0.60 kB
+dist/public/assets/index-B1fjcBgW.css     51.78 kB │ gzip:  10.00 kB
+dist/public/assets/index-D47gsuHp.js       0.30 kB │ gzip:   0.23 kB
+dist/public/assets/web-Em8Q7-f5.js         1.25 kB │ gzip:   0.59 kB
+dist/public/assets/index-CFew6fSX.js   1,171.01 kB │ gzip: 338.84 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.09s
+npm error could not determine executable to run
+npm error A complete log of this run can be found in: /Users/deepak/.npm/_logs/2026-08-14T23_07_37_952Z-debug-0.log
+(base) deepak@Gurus-Laptop goalsy-main % cd ~/StudioProjects/goalsy-main
+git stash
+git pull origin fix/clerk-js-url
+Saved working directory and index state WIP on main: 7f12a55 debug(ios): log actual error message/code on sign-in failure
+From https://github.com/gurudeepak2001/goalsy
+ * branch            fix/clerk-js-url -> FETCH_HEAD
+Already up to date.
+(base) deepak@Gurus-Laptop goalsy-main % pnpm --filter @workspace/goalsy-executive build
+npx cap sync ios
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+Scope: all 9 workspace projects
+✓ Lockfile passes supply-chain policies (verified 1h ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_use…
+└─ Done in 36ms
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @clerk/shared@3.47.7, @clerk/shared@4.25.2, esbuild@0.27.3
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[ERROR] Command failed with exit code 1: pnpm install
+
+pnpm: Command failed with exit code 1: pnpm install
+    at getFinalError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:88127:14)
+    at makeError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:90434:21)
+    at getSyncResult (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92278:10)
+    at spawnSubprocessSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92238:14)
+    at execaCoreSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92168:23)
+    at callBoundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94696:23)
+    at boundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94673:49)
+    at sync2 (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94828:14)
+    at runPnpmCli (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:248505:5)
+    at runDepsStatusCheck (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:250269:7)
+npm error could not determine executable to run
+npm error A complete log of this run can be found in: /Users/deepak/.npm/_logs/2026-08-14T23_11_25_254Z-debug-0.log
+(base) deepak@Gurus-Laptop goalsy-main % 
