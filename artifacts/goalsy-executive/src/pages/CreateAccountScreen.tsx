@@ -64,6 +64,7 @@ export default function CreateAccountScreen() {
       const clerkErr = err as { errors?: Array<{ code?: string; longMessage?: string; message?: string }> };
       console.error('[Goalsy:signup] error code:', clerkErr?.errors?.[0]?.code,
         '| message:', clerkErr?.errors?.[0]?.longMessage || clerkErr?.errors?.[0]?.message);
+      console.error('[Goalsy:signup] raw error:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
       setErrorMessage(getClerkErrorMessage(err, 'Could not create account. Please try again.'));
     } finally {
       setSubmitting(false);
