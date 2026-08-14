@@ -18,6 +18,18 @@ name: Enforce Branch Protection
 on:
   workflow_dispatch:
 
+  # Re-apply automatically whenever this file is updated, so any drift from
+  # manual UI edits is corrected on the next push that touches the workflow.
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/enforce-branch-protection.yml'
+
+  # Also re-apply nightly so protection stays current even without code changes.
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC every day
+
 jobs:
   set-branch-protection:
     name: Require typecheck, cookie-round-trip, and api-server-test on main
