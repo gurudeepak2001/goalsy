@@ -34,7 +34,8 @@ jobs:
 
           REPO="${{ github.repository }}"
           BRANCH="main"
-          CHECK="clerk-cookie-round-trip"
+          # All checks that must pass before merging into main.
+          CHECKS=("clerk-cookie-round-trip" "api-server-test")
 
           echo "Fetching current branch protection for ${BRANCH}…"
 
@@ -56,9 +57,12 @@ jobs:
           EXISTING_CONTEXTS=$(echo "${CURRENT}" | \
             jq -r '(.required_status_checks.contexts // []) | @json')
 
-          UPDATED_CONTEXTS=$(echo "${EXISTING_CONTEXTS}" | \
-            jq --arg check "${CHECK}" \
-               'if index($check) then . else . + [$check] end')
+          UPDATED_CONTEXTS="${EXISTING_CONTEXTS}"
+          for CHECK in "${CHECKS[@]}"; do
+            UPDATED_CONTEXTS=$(echo "${UPDATED_CONTEXTS}" | \
+              jq --arg check "${CHECK}" \
+                 'if index($check) then . else . + [$check] end')
+          done
 
           STRICT=$(echo "${CURRENT}" | \
             jq '(.required_status_checks.strict // false)')
@@ -98,4 +102,4 @@ jobs:
 
           echo ""
           echo "✅ Branch protection updated."
-          echo "   Required status check '${CHECK}' is now enforced on ${BRANCH}."
+          echo "   Required status checks enforced on ${BRANCH}: ${CHECKS[*]}"
