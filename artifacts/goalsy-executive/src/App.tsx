@@ -389,7 +389,12 @@ function ClerkProviderWithRoutes() {
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
     >
-      <ClerkLoading><SplashScreen /></ClerkLoading>
+      {/* Static dark placeholder while Clerk initialises — do NOT use
+          SplashScreen here because its 2.5s redirect timer fires before
+          ClerkLoaded mounts the Router, leaving /welcome unmatched → blank. */}
+      <ClerkLoading>
+        <div style={{ minHeight: '100dvh', backgroundColor: '#05070A' }} />
+      </ClerkLoading>
       <ClerkLoaded>
         <ApiClientBootstrap />
         <Router />
