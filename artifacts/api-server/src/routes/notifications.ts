@@ -143,11 +143,12 @@ router.get("/notifications", requireAuth, async (req, res) => {
 // POST /api/notifications/:id/read
 router.post("/notifications/:id/read", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const [notification] = await db
       .update(notifications)
       .set({ isRead: true })
-      .where(and(eq(notifications.id, req.params.id), eq(notifications.userId, userId)))
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
       .returning();
     if (!notification) { res.status(404).json({ message: "Notification not found" }); return; }
     res.json(notification);
@@ -159,11 +160,12 @@ router.post("/notifications/:id/read", requireAuth, async (req, res) => {
 // POST /api/notifications/:id/dismiss
 router.post("/notifications/:id/dismiss", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const [notification] = await db
       .update(notifications)
       .set({ isDismissed: true, isRead: true })
-      .where(and(eq(notifications.id, req.params.id), eq(notifications.userId, userId)))
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
       .returning();
     if (!notification) { res.status(404).json({ message: "Notification not found" }); return; }
     res.json(notification);

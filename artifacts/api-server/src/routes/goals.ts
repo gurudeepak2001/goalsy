@@ -65,11 +65,12 @@ router.post("/goals", requireAuth, async (req, res) => {
 // GET /api/goals/:id
 router.get("/goals/:id", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const [goal] = await db
       .select()
       .from(goals)
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
     if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
     res.json(goal);
   } catch {
@@ -80,6 +81,7 @@ router.get("/goals/:id", requireAuth, async (req, res) => {
 // PUT /api/goals/:id
 router.put("/goals/:id", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   const {
     name, type, targetAmount, currentAmount, monthlyContribution, targetDate, status, priority,
   } = req.body as Partial<{
@@ -107,7 +109,7 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
         ...(priority !== undefined && { priority }),
         updatedAt: new Date(),
       })
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)))
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)))
       .returning();
     if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
     res.json(goal);
@@ -119,10 +121,11 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
 // DELETE /api/goals/:id
 router.delete("/goals/:id", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const deleted = await db
       .delete(goals)
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)))
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)))
       .returning();
     if (!deleted.length) { res.status(404).json({ message: "Goal not found" }); return; }
     res.status(204).send();
@@ -134,12 +137,13 @@ router.delete("/goals/:id", requireAuth, async (req, res) => {
 // GET /api/goals/:id/progress
 router.get("/goals/:id/progress", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     // Verify the goal belongs to this user
     const [goal] = await db
       .select({ id: goals.id })
       .from(goals)
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
     if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
 
     const entries = await db
@@ -147,7 +151,7 @@ router.get("/goals/:id/progress", requireAuth, async (req, res) => {
       .from(goalProgressEntries)
       .where(
         and(
-          eq(goalProgressEntries.goalId, req.params.id),
+          eq(goalProgressEntries.goalId, id),
           eq(goalProgressEntries.userId, userId),
         ),
       )
@@ -161,6 +165,7 @@ router.get("/goals/:id/progress", requireAuth, async (req, res) => {
 // POST /api/goals/:id/progress
 router.post("/goals/:id/progress", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   const { weekIndex, confirmedAmount } = req.body as {
     weekIndex: number;
     confirmedAmount: number;
@@ -176,13 +181,13 @@ router.post("/goals/:id/progress", requireAuth, async (req, res) => {
     const [goal] = await db
       .select({ id: goals.id })
       .from(goals)
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
     if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
 
     const [entry] = await db
       .insert(goalProgressEntries)
       .values({
-        goalId: req.params.id,
+        goalId: id,
         userId,
         weekIndex,
         confirmedAmount,
@@ -193,7 +198,7 @@ router.post("/goals/:id/progress", requireAuth, async (req, res) => {
     await db
       .update(goals)
       .set({ currentAmount: confirmedAmount, updatedAt: new Date() })
-      .where(and(eq(goals.id, req.params.id), eq(goals.userId, userId)));
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
 
     res.status(201).json(entry);
   } catch {

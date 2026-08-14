@@ -49,7 +49,7 @@ router.get("/notification-preferences", requireAuth, async (req, res) => {
 // PUT /api/notification-preferences/:type
 router.put("/notification-preferences/:type", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
-  const { type } = req.params;
+  const type = req.params.type as string;
   const { enabled } = req.body as { enabled: boolean };
 
   if (typeof enabled !== "boolean") {

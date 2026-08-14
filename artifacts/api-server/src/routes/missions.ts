@@ -73,11 +73,12 @@ router.get("/missions/today", requireAuth, async (req, res) => {
 // POST /api/missions/:id/complete
 router.post("/missions/:id/complete", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const [mission] = await db
       .update(dailyMissions)
       .set({ status: "completed", completedAt: new Date() })
-      .where(and(eq(dailyMissions.id, req.params.id), eq(dailyMissions.userId, userId)))
+      .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)))
       .returning();
     if (!mission) { res.status(404).json({ message: "Mission not found" }); return; }
     res.json(mission);
@@ -89,6 +90,7 @@ router.post("/missions/:id/complete", requireAuth, async (req, res) => {
 // POST /api/missions/:id/skip
 router.post("/missions/:id/skip", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   const { reason } = req.body as { reason: string };
   if (!reason) { res.status(400).json({ message: "reason is required" }); return; }
 
@@ -96,7 +98,7 @@ router.post("/missions/:id/skip", requireAuth, async (req, res) => {
     const [mission] = await db
       .update(dailyMissions)
       .set({ status: "skipped", skipReason: reason })
-      .where(and(eq(dailyMissions.id, req.params.id), eq(dailyMissions.userId, userId)))
+      .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)))
       .returning();
     if (!mission) { res.status(404).json({ message: "Mission not found" }); return; }
     res.json(mission);

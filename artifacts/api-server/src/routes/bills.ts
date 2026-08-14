@@ -23,11 +23,12 @@ router.get("/bills", requireAuth, async (req, res) => {
 // PUT /api/bills/:id/pay
 router.put("/bills/:id/pay", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
+  const id = req.params.id as string;
   try {
     const [bill] = await db
       .update(bills)
       .set({ isPaid: true, paidAt: new Date() })
-      .where(and(eq(bills.id, req.params.id), eq(bills.userId, userId)))
+      .where(and(eq(bills.id, id), eq(bills.userId, userId)))
       .returning();
     if (!bill) { res.status(404).json({ message: "Bill not found" }); return; }
     res.json(bill);
