@@ -8,7 +8,18 @@ import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/
 import { Preferences } from '@capacitor/preferences';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { initApiClient } from '@/lib/apiClient';
-import { publishableKeyFromHost } from '@clerk/react/internal';
+// NOTE: We intentionally do NOT use @clerk/react/internal's publishableKeyFromHost.
+// That function is a private Clerk SDK API and returns the dev key for .replit.app
+// domains (it treats them as development environments). Instead we derive the live
+// key ourselves using the canonical Clerk formula:
+//   pk_live_  +  base64url( "clerk.<host>$" )
+function deriveLivePublishableKey(host: string): string {
+  const raw = `clerk.${host}$`;
+  // btoa is available in both browsers and WKWebView
+  const b64 = btoa(raw);
+  // base64url: replace URL-unsafe chars, strip padding
+  return 'pk_live_' + b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
@@ -56,6 +67,7 @@ const nativeApiBase = isCapacitor ? (import.meta.env.VITE_API_BASE_URL ?? '') : 
 const nativeApiHost = (() => {
   try { return nativeApiBase ? new URL(nativeApiBase).hostname : ''; } catch { return ''; }
 })();
+console.log('[Goalsy] nativeApiHost:', nativeApiHost || '(none — web preview)');
 
 // ── Clerk publishable key & proxy URL ────────────────────────────────────────
 // Wrapped in try/catch so a derivation failure renders a visible error screen
@@ -66,13 +78,11 @@ let _clerkInitError: string | null = null;
 try {
   clerkPubKey = isCapacitor
     ? (nativeApiHost
-        // Derive from deployed host — NO fallback arg intentionally.
-        // publishableKeyFromHost short-circuits to any pk_test fallback, which
-        // would keep the device on the dev instance and cause 401s on the
-        // production API forever.
-        ? publishableKeyFromHost(nativeApiHost)
+        // Derive the live key directly — never use a pk_test fallback here.
+        ? deriveLivePublishableKey(nativeApiHost)
         : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''))
-    : publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+    // Web preview: use the baked-in key (pk_test for dev, pk_live for prod)
+    : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '');
   if (!clerkPubKey) {
     _clerkInitError = 'Missing Clerk publishable key — set VITE_CLERK_PUBLISHABLE_KEY in your .env file.';
   }
