@@ -211,23 +211,55 @@ function persistDbJwt(token: string, source: string): void {
   } catch { /* never crash the fetch call */ }
 }
 
+// ── Remote config fetch ───────────────────────────────────────────────────────
+// In production native builds the server holds the correct pk_live_ publishable
+// key in CLERK_PUBLISHABLE_KEY.  Fetch it at boot so Clerk JS initialises with
+// the exact key the server validates against — no hostname derivation guesswork.
+async function fetchRemoteClerkKey(): Promise<void> {
+  if (!isCapacitor || !nativeApiBase) return;
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 5000);
+  try {
+    const r = await fetch(`${nativeApiBase}/api/config`, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    const json = await r.json() as { clerkPublishableKey?: string };
+    if (json.clerkPublishableKey) {
+      clerkPubKey = json.clerkPublishableKey;
+      console.log('[Goalsy] clerkPubKey from server:', clerkPubKey.slice(0, 20), '…');
+      debugRecord({ step: 'config-fetch', keyPrefix: clerkPubKey.slice(0, 15) });
+    }
+  } catch (e) {
+    // Network failure — fall back to the derived key from deriveLivePublishableKey.
+    console.log('[Goalsy] config fetch failed, using derived key. Error:', String(e));
+    debugRecord({ step: 'config-fetch', error: String(e) });
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 // Preload then restore, at module evaluation — Preferences.get is a fast native
 // bridge call (~ms) while Clerk's CDN bundle takes hundreds of ms to load, so
 // the URL is decorated well before clerk-js reads window.location.
 const _preloadPromise: Promise<void> = preloadDbJwt().then(restoreDbJwtIntoUrl);
 
-// Boot gate: ClerkProvider must not mount until the restore has settled — but
-// never wait more than 1.5s (a stuck Capacitor bridge previously caused an
-// indefinite blank-screen hang when rendering was gated without a timeout).
+// Boot gate: ClerkProvider must not mount until both the JWT restore and the
+// remote config fetch have settled — never wait more than 4s total (the config
+// fetch has its own 5s abort but we cap the whole gate to protect against any
+// other stuck async at startup).
 const bootReady: Promise<void> = Promise.race([
-  _preloadPromise,
+  Promise.all([_preloadPromise, fetchRemoteClerkKey()]).then(() => {}),
   new Promise<void>((resolve) => setTimeout(() => {
     if (!restoreDone) debugRecord({ step: 'boot-gate', timedOut: true });
     resolve();
-  }, 1500)),
+  }, 4000)),
 ]).catch(() => {});
 
-// ── FAPI base URL ─────────────────────────────────────────────────────────────
+// ── FAPI base URL (dev-only fetch-interceptor path) ───────────────────────────
+// For production native builds (nativeApiHost set) the fetch interceptor is
+// gated OFF — FAPI_ORIGIN is irrelevant there.  On dev/web it is derived from
+// VITE_CLERK_PUBLISHABLE_KEY so the interceptor knows which Clerk FAPI to watch.
 function computeFapiUrl(): string {
   try {
     const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';
@@ -236,7 +268,9 @@ function computeFapiUrl(): string {
   } catch { return ''; }
 }
 const FAPI_ORIGIN = computeFapiUrl();
-console.log('[Goalsy] FAPI_ORIGIN:', FAPI_ORIGIN);
+// Log the initial clerkPubKey so native Xcode output confirms pk_live_ or pk_test_.
+console.log('[Goalsy] clerkPubKey (initial):', clerkPubKey.slice(0, 20), '…');
+console.log('[Goalsy] FAPI_ORIGIN (dev-only interceptor):', FAPI_ORIGIN);
 
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
