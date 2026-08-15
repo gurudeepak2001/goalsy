@@ -2,22 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
-import type { IncomingHttpHeaders } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-
-/**
- * Returns the first effective public hostname for the given request,
- * preferring x-forwarded-host over the Host header so callers behind a
- * proxy see the original client-facing host.
- */
-function getClerkProxyHost(req: { headers: IncomingHttpHeaders }): string | undefined {
-  const forwarded = req.headers["x-forwarded-host"];
-  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  const firstHop = raw?.split(",")[0]?.trim();
-  return firstHop || req.headers.host?.trim() || undefined;
-}
 
 const app: Express = express();
 
@@ -52,12 +38,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware({
+    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY,
+  }),
 );
 
 app.use("/api", router);
