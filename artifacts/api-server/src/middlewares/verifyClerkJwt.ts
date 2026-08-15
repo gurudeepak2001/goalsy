@@ -15,18 +15,31 @@ function fapiHostFromPublishableKey(pk: string): string {
  * Returns true when the host is a Replit-managed Clerk proxy
  * (e.g. clerk.goalsy-finance-ui.replit.app). These proxies do NOT expose a
  * JWKS endpoint, so JWTs signed by the real Clerk instance can't be verified
- * against them. We must skip any key that decodes to one of these.
+ * against them.
  */
 function isReplitProxyHost(host: string): boolean {
   return host.endsWith(".replit.app") || host.endsWith(".replit.dev");
 }
 
 /**
- * Finds the first publishable key whose decoded host is a real Clerk FAPI
- * instance (not a Replit proxy). Tries every candidate env var in order.
- * Throws at startup if none is usable — fail fast rather than silently 401.
+ * Resolves the Clerk JWKS URI using the following priority order:
+ *
+ *  1. CLERK_FAPI_HOST env var — explicit override, always wins.
+ *  2. VITE_CLERK_PUBLISHABLE_KEY — the frontend key; decodes to the real
+ *     Clerk instance in dev but may be unavailable in the deployed runtime.
+ *  3. CLERK_PUBLISHABLE_KEY — Replit overrides this with a proxy domain in
+ *     production, so it is skipped when it decodes to a *.replit.app host.
+ *  4. Hardcoded fallback — the known Clerk FAPI host for this project,
+ *     used only if all env vars are missing or decode to proxy domains.
  */
 function resolveJwksUri(): string {
+  // 1. Explicit override
+  const explicitHost = process.env.CLERK_FAPI_HOST;
+  if (explicitHost) {
+    return `https://${explicitHost}/.well-known/jwks.json`;
+  }
+
+  // 2 & 3. Derive from publishable keys, skip Replit proxy hosts
   const candidates = [
     process.env.VITE_CLERK_PUBLISHABLE_KEY,
     process.env.CLERK_PUBLISHABLE_KEY,
@@ -38,11 +51,12 @@ function resolveJwksUri(): string {
       return `https://${host}/.well-known/jwks.json`;
     }
   }
-  throw new Error(
-    "[auth] No valid Clerk FAPI host found. Both VITE_CLERK_PUBLISHABLE_KEY and " +
-      "CLERK_PUBLISHABLE_KEY decode to Replit proxy domains. " +
-      "Set one of them to the real Clerk publishable key for this instance.",
-  );
+
+  // 4. Known fallback for this project — prevents a startup crash when Replit
+  //    overrides both keys with proxy domains in the deployed environment.
+  const FALLBACK = "bursting-hedgehog-64.clerk.accounts.dev";
+  console.log("[auth] WARNING: falling back to hardcoded FAPI host. Set CLERK_FAPI_HOST to remove this warning.");
+  return `https://${FALLBACK}/.well-known/jwks.json`;
 }
 
 const JWKS_URI = resolveJwksUri();
