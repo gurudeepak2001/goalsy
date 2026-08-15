@@ -68,3 +68,9 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+CLERK_ISSUER = "https://bursting-hedgehog-64.clerk.accounts.dev"
+CLERK_JWKS_URL = "https://bursting-hedgehog-64.clerk.accounts.dev/.well-known/jwks.json"

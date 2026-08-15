@@ -30,17 +30,35 @@ function fapiHostFromPublishableKey(pk: string): string {
 }
 
 // Build the JWKS URI and a cached remote JWKS set (jose caches internally).
-// Prefer CLERK_PUBLISHABLE_KEY (explicitly updated to pk_test_ dev key).
-// VITE_CLERK_PUBLISHABLE_KEY may be pk_live_ in the production deployment
-// environment (different from the dev workspace value), so we do NOT use it
-// as the primary source here.
-const PK = process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
-const FAPI_HOST = PK ? fapiHostFromPublishableKey(PK) : "";
-const JWKS_URL = FAPI_HOST ? `https://${FAPI_HOST}/.well-known/jwks.json` : "";
-const EXPECTED_ISSUER = FAPI_HOST ? `https://${FAPI_HOST}` : "";
+//
+// Priority:
+//   1. CLERK_JWKS_URL — explicit override (most reliable; bypasses key derivation).
+//      Set this env var to the direct Clerk JWKS URL so production always uses
+//      the right host regardless of which publishable key is present.
+//   2. Derive from CLERK_PUBLISHABLE_KEY — explicit server-side key.
+//   3. Derive from VITE_CLERK_PUBLISHABLE_KEY — fallback (may encode a Replit
+//      proxy host in the production deployment environment).
+const JWKS_URL_OVERRIDE = process.env.CLERK_JWKS_URL ?? "";
+const ISSUER_OVERRIDE   = process.env.CLERK_ISSUER ?? "";
+
+let FAPI_HOST = "";
+let JWKS_URL  = JWKS_URL_OVERRIDE;
+let EXPECTED_ISSUER = ISSUER_OVERRIDE;
+
+if (!JWKS_URL) {
+  const PK = process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
+  FAPI_HOST = PK ? fapiHostFromPublishableKey(PK) : "";
+  JWKS_URL  = FAPI_HOST ? `https://${FAPI_HOST}/.well-known/jwks.json` : "";
+  if (!EXPECTED_ISSUER) EXPECTED_ISSUER = FAPI_HOST ? `https://${FAPI_HOST}` : "";
+} else if (!EXPECTED_ISSUER) {
+  // Derive issuer from JWKS URL: strip /.well-known/jwks.json
+  EXPECTED_ISSUER = JWKS_URL.replace(/\/\.well-known\/jwks\.json$/, "");
+  FAPI_HOST = EXPECTED_ISSUER.replace(/^https?:\/\//, "");
+}
 
 console.log("[verifyClerkJwt] FAPI host:", FAPI_HOST || "(none — PK missing)");
 console.log("[verifyClerkJwt] JWKS URL:", JWKS_URL || "(none)");
+console.log("[verifyClerkJwt] source:", JWKS_URL_OVERRIDE ? "CLERK_JWKS_URL env var" : "derived from publishable key");
 
 // `createRemoteJWKSet` fetches and caches the JWKS automatically.
 const remoteJwks = JWKS_URL ? createRemoteJWKSet(new URL(JWKS_URL)) : null;
