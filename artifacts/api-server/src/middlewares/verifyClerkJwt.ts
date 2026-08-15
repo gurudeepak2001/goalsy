@@ -11,7 +11,14 @@ function fapiHostFromPublishableKey(pk: string): string {
   return decoded.replace(/[$]+$/, "");
 }
 
-const pk = process.env.CLERK_PUBLISHABLE_KEY ?? "";
+// Prefer VITE_CLERK_PUBLISHABLE_KEY — it points to the real Clerk FAPI instance
+// that the iOS/web frontend was built against. CLERK_PUBLISHABLE_KEY in
+// production resolves to a Replit proxy domain (clerk.<host>) whose JWKS keys
+// are different, so JWTs from the frontend would always fail verification.
+const pk =
+  process.env.VITE_CLERK_PUBLISHABLE_KEY ??
+  process.env.CLERK_PUBLISHABLE_KEY ??
+  "";
 const fapiHost = fapiHostFromPublishableKey(pk);
 const JWKS_URI = `https://${fapiHost}/.well-known/jwks.json`;
 
@@ -27,7 +34,7 @@ console.log("[auth] JWKS URI:", JWKS_URI);
 export const verifyClerkJwt: RequestHandler = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    console.warn("[auth] 401 — no Bearer header on", req.method, req.url);
+    console.log("[auth] 401 — no Bearer header on", req.method, req.url);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
@@ -41,14 +48,14 @@ export const verifyClerkJwt: RequestHandler = async (req, res, next) => {
     });
     const userId = payload.sub;
     if (!userId) {
-      console.warn("[auth] 401 — JWT verified but no sub claim");
+      console.log("[auth] 401 — JWT verified but no sub claim");
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
     res.locals.userId = userId;
     next();
   } catch (err) {
-    console.warn("[auth] 401 — JWT verification failed:", (err as Error).message);
+    console.log("[auth] 401 — JWT verification failed:", (err as Error).message);
     res.status(401).json({ message: "Unauthorized" });
   }
 };

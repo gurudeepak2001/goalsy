@@ -1,48 +1,31 @@
 /**
- * Integration smoke test: Clerk auth middleware wiring for GET /api/goals
+ * Integration smoke test: JWKS auth middleware wiring for GET /api/goals
  *
- * Purpose: catch a broken clerkMiddleware setup before it reaches production.
- * The bug this guards against: clerkMiddleware() called without `publishableKey`
- * silently returns 401 for every request because Clerk falls back to
- * publishableKeyFromHost(), which fails under the Replit proxy.
+ * Purpose: catch a broken verifyClerkJwt setup before it reaches production.
  *
  * How the mock works:
- *   - clerkMiddleware factory throws immediately if publishableKey is absent,
- *     making app initialisation fail loudly instead of silently.
- *   - When a "Bearer …" Authorization header is present the mock sets a userId,
- *     simulating what a correctly-configured Clerk middleware would do after
- *     verifying a real JWT.
- *   - getAuth() reads that userId so requireAuth can pass the request through.
+ *   - verifyClerkJwt is mocked to avoid real JWKS network calls in tests.
+ *   - When a "Bearer …" Authorization header is present the mock sets userId,
+ *     simulating what the real middleware does after verifying a JWT.
+ *   - When no header is present it returns 401, matching production behaviour.
  */
 
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import type { Server } from "http";
 
-// ── Mock @clerk/express ──────────────────────────────────────────────────────
+// ── Mock verifyClerkJwt ──────────────────────────────────────────────────────
 // Must be registered before app.ts is imported (vi.mock is hoisted).
-vi.mock("@clerk/express", () => ({
-  clerkMiddleware:
-    (opts: Record<string, unknown> = {}) => {
-      // ⚠ This assertion catches the original bug:
-      //   if publishableKey is absent, Clerk falls back to deriving it from
-      //   the host header, which silently 401s every request in the Replit env.
-      if (!opts.publishableKey) {
-        throw new Error(
-          "clerkMiddleware called without publishableKey. " +
-            "Pass publishableKey explicitly so Clerk does not fall back to " +
-            "publishableKeyFromHost(), which silently rejects every JWT.",
-        );
-      }
-      // Simulate JWT verification: attach a userId when a Bearer token is present.
-      return (req: any, _res: any, next: any) => {
-        const auth = (req.headers.authorization as string) ?? "";
-        req.__clerkUserId =
-          auth.startsWith("Bearer ") && auth.length > 7 ? "usr_test123" : null;
-        next();
-      };
-    },
-  getAuth: (req: any) => ({ userId: req.__clerkUserId ?? null }),
+vi.mock("../middlewares/verifyClerkJwt.js", () => ({
+  verifyClerkJwt: (req: any, res: any, next: any) => {
+    const auth = (req.headers.authorization as string) ?? "";
+    if (auth.startsWith("Bearer ") && auth.length > 7) {
+      res.locals.userId = "usr_test123";
+      next();
+    } else {
+      res.status(401).json({ message: "Unauthorized" });
+    }
+  },
 }));
 
 // ── Mock @workspace/db ───────────────────────────────────────────────────────
@@ -62,8 +45,6 @@ vi.mock("@workspace/db", () => {
 });
 
 // ── Mock drizzle-orm query helpers ───────────────────────────────────────────
-// The real helpers expect column objects from the schema; our db mock ignores
-// the where/orderBy arguments anyway, so stubs are enough.
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn(),
   and: vi.fn(),
@@ -74,7 +55,7 @@ vi.mock("drizzle-orm", () => ({
 import app from "../app.js";
 
 // ── Tests ────────────────────────────────────────────────────────────────────
-describe("GET /api/goals — Clerk auth middleware wiring", () => {
+describe("GET /api/goals — JWKS auth middleware wiring", () => {
   let server: Server;
 
   beforeAll(() => {
@@ -96,8 +77,7 @@ describe("GET /api/goals — Clerk auth middleware wiring", () => {
       .set("Authorization", "Bearer any-signed-jwt");
 
     // Any successful response means auth was accepted — the middleware is wired.
-    // 200 = goals found (or empty list), 404 = route mismatch (unlikely).
-    // Either way it must NOT be 401 or 403.
+    // 200 = goals found (or empty list). Must NOT be 401 or 403.
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(403);
     expect(Array.isArray(res.body)).toBe(true);
