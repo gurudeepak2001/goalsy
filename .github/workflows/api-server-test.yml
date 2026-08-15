@@ -1,0 +1,41 @@
+name: API Server Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  api-server-test:
+    name: api-server-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Rebuild @workspace/db declaration files so the api-server can typecheck
+      # and import table names cleanly.  The db package uses composite: true and
+      # emits only .d.ts files; without this step the dist/ declarations may be
+      # stale and the test runner will fail to resolve table imports.
+      - name: Build @workspace/db declarations
+        run: pnpm --filter @workspace/db exec tsc -p tsconfig.json
+
+      - name: Run API server tests
+        run: pnpm --filter @workspace/api-server run test

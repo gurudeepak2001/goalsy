@@ -1,0 +1,126 @@
+# ios-ci.yml
+#
+# Runs on every PR that touches iOS source files.
+#
+# Jobs:
+#   unit-tests   — XCTest suite (AppTests) including the cookie round-trip regression test.
+#   ui-tests     — XCUITest suite (AppUITests) including ForceKillSessionTest, which
+#                  kills and relaunches the app and asserts the session survives.
+#
+# Requirements:
+#   • macOS runner with Xcode 15+
+#   • No provisioning profile needed — both test bundles target a simulator.
+#
+# To run locally:
+#   xcodebuild test \
+#     -project artifacts/goalsy-executive/ios/App/App.xcodeproj \
+#     -scheme AppUITests \
+#     -destination 'platform=iOS Simulator,name=iPhone 16'
+
+name: iOS CI
+
+on:
+  pull_request:
+    paths:
+      - 'artifacts/goalsy-executive/ios/**'
+      - '.github/workflows/ios-ci.yml'
+
+jobs:
+  # ── Unit tests ──────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests (AppTests)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Run unit tests
+        working-directory: artifacts/goalsy-executive/ios/App
+        run: |
+          xcodebuild test \
+            -project App.xcodeproj \
+            -scheme AppTests \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults/unit \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: artifacts/goalsy-executive/ios/App/TestResults/unit.xcresult
+          if-no-files-found: warn
+
+  # ── UI tests ────────────────────────────────────────────────────────────────
+  # ForceKillSessionTest requires a running simulator with a signed-in session.
+  # The test self-documents its pre-condition: if the simulator has no session,
+  # step 1 (waiting for the dashboard) will fail — a clear, actionable message.
+  #
+  # For full automation (no human pre-sign-in), seed a real session via the
+  # GOALSY_UITEST_CLERK_COOKIES launch-environment key (see AppDelegate.swift).
+  # That wiring is left to a future task once the CI runner has secrets access.
+  ui-tests:
+    name: UI Tests — Force-Kill Session Regression (AppUITests)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available --json \
+            | python3 -c "
+import sys, json
+devs = json.load(sys.stdin)['devices']
+iphone16 = [d for runtimes in devs.values() for d in runtimes
+            if 'iPhone 16' in d.get('name','') and d.get('isAvailable')]
+print(iphone16[0]['udid'] if iphone16 else '')
+")
+          if [ -z "$UDID" ]; then
+            echo "Creating iPhone 16 simulator..."
+            RUNTIME=$(xcrun simctl list runtimes --json \
+              | python3 -c "
+import sys, json
+rts = json.load(sys.stdin)['runtimes']
+ios = [r['identifier'] for r in rts if r.get('isAvailable') and 'iOS' in r.get('name','')]
+print(ios[-1] if ios else '')
+")
+            UDID=$(xcrun simctl create "iPhone 16" "iPhone 16" "$RUNTIME")
+          fi
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID" || true
+
+      - name: Run UI tests
+        working-directory: artifacts/goalsy-executive/ios/App
+        env:
+          # Optional: pass serialised Clerk cookies to seed the session without
+          # requiring an interactive sign-in inside the runner.
+          # Set this GitHub secret to a JSON array of Clerk cookie dictionaries
+          # matching the cm_clerk_cookies_v2 UserDefaults format.
+          GOALSY_UITEST_CLERK_COOKIES: ${{ secrets.GOALSY_UITEST_CLERK_COOKIES }}
+        run: |
+          xcodebuild test \
+            -project App.xcodeproj \
+            -scheme AppUITests \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -resultBundlePath TestResults/ui \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: artifacts/goalsy-executive/ios/App/TestResults/ui.xcresult
+          if-no-files-found: warn
