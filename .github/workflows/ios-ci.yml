@@ -38,6 +38,36 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Patch CapApp-SPM package name for @capacitor/preferences
+        working-directory: artifacts/goalsy-executive
+        run: |
+          INSTALLED_NAME=$(grep '^    name:' \
+            node_modules/@capacitor/preferences/Package.swift \
+            | sed 's/.*"\(.*\)".*/\1/')
+          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
+          sed -i '' \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift || \
+          sed -i \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift
+
       - name: Run unit tests
         working-directory: artifacts/goalsy-executive/ios/App
         run: |
@@ -75,6 +105,36 @@ jobs:
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Patch CapApp-SPM package name for @capacitor/preferences
+        working-directory: artifacts/goalsy-executive
+        run: |
+          INSTALLED_NAME=$(grep '^    name:' \
+            node_modules/@capacitor/preferences/Package.swift \
+            | sed 's/.*"\(.*\)".*/\1/')
+          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
+          sed -i '' \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift || \
+          sed -i \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift
 
       - name: Boot simulator
         run: |
