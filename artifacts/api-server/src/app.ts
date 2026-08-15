@@ -2,7 +2,6 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import type { IncomingHttpHeaders } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
