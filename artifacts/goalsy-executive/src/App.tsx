@@ -652,6 +652,10 @@ export function ApiClientBootstrap() {
             // AuthGate redirects to /welcome.  Clear the flag so the toast fires
             // only once per sign-out transition.
             wasSignedIn.current = false;
+            // Update the native accessibility identifier immediately so XCUITest
+            // polling catches the expiry before isSignedIn flips (which only
+            // happens after getToken resolves on the next Clerk tick).
+            if (isCapacitor) postAuthScreenToNative('signin');
             toast({
               title: 'Session expired',
               description: 'Please sign in again to continue.',
