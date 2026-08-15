@@ -158,9 +158,9 @@ function flushPendingDbJwt(): void {
   const token = pendingDbJwt ?? cachedDbJwt;
   pendingDbJwt = null;
   if (!token || token.length < MIN_JWT_LENGTH) return;
-  if (token === cachedDbJwt && hadSavedToken) return; // already saved from last launch
+  if (token === cachedDbJwt && hadSavedToken) return; // already have it from last launch
   cachedDbJwt = token;
-  saveDbJwt(token); // synchronous — survives force-kill
+  saveDbJwtToLs(token); // best-effort fast path; reliable path fires on background event
   console.log('[Goalsy:jwt] flushed __clerk_db_jwt on session confirm (len:', token.length, ')');
   debugRecord({ step: 'flush', tokenLen: token.length });
 }
@@ -185,67 +185,119 @@ function debugRecord(entry: Record<string, unknown>): void {
 // internal testing.
 const isDevClerkInstance = isCapacitor && clerkPubKey.startsWith('pk_test_');
 
-// ── localStorage-backed __clerk_db_jwt persistence ───────────────────────────
+// ── __clerk_db_jwt two-layer persistence ─────────────────────────────────────
 //
-// WHY localStorage AND NOT Capacitor Preferences:
-//   Preferences.set() routes through the WKWebView message bridge (JS → Swift →
-//   UserDefaults).  That bridge call is async (~10-50 ms).  If the user force-
-//   kills the app before the native side processes the message, the write is
-//   silently lost.  This made every prior fix unreliable under instant force-kill.
+// WHY TWO LAYERS:
 //
-//   WKWebView's localStorage is DISK-BACKED and SYNCHRONOUS.  Writes complete in
-//   the same JS turn with no native round-trip, so they survive force-kill with
-//   no timing dependency.  iOS only clears it on explicit "Clear Website Data" in
-//   Settings — not on normal app restarts, updates, or kills.
+//   Layer 1 — synchronous localStorage (fast path, best-effort):
+//     localStorage.setItem() is JS-synchronous but WebKit defers the actual
+//     disk write.  Under a fast force-kill the deferred write can be lost.
+//     Used as a read-fast path on cold start (no async bridge round-trip) and
+//     as a best-effort backup for the reliable layer.
 //
-// RESTORE STRATEGY:
-//   We read from localStorage synchronously at module-evaluation time (before
-//   React or Clerk loads) and immediately patch window.location so Clerk's
-//   devBrowser.setup() finds the token in the URL — the earliest possible moment.
-//   This replaces the async preloadDbJwt()+restoreDbJwtIntoUrl() chain entirely.
+//   Layer 2 — Capacitor Preferences / UserDefaults (reliable path):
+//     Preferences.set() routes JS → WKWebView message bridge → UserDefaults.
+//     When triggered from the 'visibilitychange' hidden event (user pressed
+//     Home), iOS enters the background state and calls UserDefaults.synchronize()
+//     before the process can be killed.  This guarantees the write survives.
+//     The key: save in the BACKGROUND EVENT, not at the moment the token arrives.
+//
+// SAVE FLOW (two writers):
+//   a) Token arrives via FAPI: update cachedDbJwt in memory + localStorage.
+//   b) App goes to background (visibilitychange hidden): flush cachedDbJwt to
+//      Preferences — this is the iOS-guaranteed path; called from ApiClientBootstrap.
+//
+// RESTORE FLOW (two readers, in order):
+//   1. Synchronous at module level: localStorage.getItem() → inject into URL.
+//      Fastest; fires before React or Clerk CDN bundle loads.
+//   2. Async in bootReady: Preferences.get() → inject into URL (overrides if
+//      localStorage was stale or empty).  ClerkProvider waits for this to settle.
 
-function saveDbJwt(token: string): void {
-  try { localStorage.setItem(DB_JWT_PREF_KEY, token); } catch { /* quota or private */ }
-}
-function loadDbJwt(): string | null {
-  try { return localStorage.getItem(DB_JWT_PREF_KEY); } catch { return null; }
-}
-function clearDbJwt(): void {
-  try { localStorage.removeItem(DB_JWT_PREF_KEY); } catch { /* ignore */ }
+const DB_JWT_LS_KEY = DB_JWT_PREF_KEY; // same string; named alias for clarity
+
+function saveDbJwtToLs(token: string): void {
+  try { localStorage.setItem(DB_JWT_LS_KEY, token); } catch { /* quota or private mode */ }
 }
 
-// ── Synchronous early restore (runs at module level, before React) ────────────
+// ── Layer 1: synchronous early restore ────────────────────────────────────────
+// Runs at module-evaluation time — before React, before the Clerk CDN bundle.
+// Injects any locally-cached token into window.location so Clerk's
+// devBrowser.setup() (extractDevBrowserFromURL) picks it up natively.
 if (isDevClerkInstance) {
   try {
-    const saved = loadDbJwt();
-    if (saved && saved.length >= MIN_JWT_LENGTH) {
-      cachedDbJwt = saved;
+    const lsVal = (() => { try { return localStorage.getItem(DB_JWT_LS_KEY); } catch { return null; } })();
+    if (lsVal && lsVal.length >= MIN_JWT_LENGTH) {
+      cachedDbJwt = lsVal;
       hadSavedToken = true;
-      // Patch the URL immediately so Clerk picks it up from window.location.
       const url = new URL(window.location.href);
       if (!url.searchParams.get('__clerk_db_jwt')) {
-        url.searchParams.set('__clerk_db_jwt', saved);
+        url.searchParams.set('__clerk_db_jwt', lsVal);
         window.history.replaceState(null, '', url.toString());
       }
-      restoreDone = true;
-      console.log('[Goalsy:jwt] ✓ restored __clerk_db_jwt from localStorage (len:', saved.length, ')');
-      debugRecord({ step: 'restore-sync', found: true, tokenLen: saved.length });
+      console.log('[Goalsy:jwt] layer1 restore from localStorage (len:', lsVal.length, ')');
+      debugRecord({ step: 'restore-ls', found: true, tokenLen: lsVal.length });
     } else {
-      if (saved) clearDbJwt(); // discard corrupt/short value
-      restoreDone = true;
-      console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
-      debugRecord({ step: 'restore-sync', found: false });
+      console.log('[Goalsy:jwt] layer1 — no localStorage token');
+      debugRecord({ step: 'restore-ls', found: false });
     }
   } catch (err) {
-    restoreDone = true;
-    debugRecord({ step: 'restore-sync', error: String(err) });
+    debugRecord({ step: 'restore-ls', error: String(err) });
   }
 }
 
-// Keep preloadDbJwt as a no-op so the existing _preloadPromise chain still
-// works without changes downstream.  Restore already happened synchronously above.
-async function preloadDbJwt(): Promise<void> { /* restore done synchronously above */ }
-function restoreDbJwtIntoUrl(): void { /* restore done synchronously above */ }
+// ── Layer 2: async Preferences restore (runs in bootReady) ────────────────────
+// Reads from UserDefaults (written by the background-event saver).  This is the
+// reliable path: iOS synchronizes UserDefaults before killing a backgrounded app.
+async function preloadDbJwt(): Promise<void> {
+  if (!isDevClerkInstance) return;
+  try {
+    const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
+    if (value && value.length >= MIN_JWT_LENGTH) {
+      // Prefer Preferences over the localStorage value: it was saved at a
+      // background-event boundary where iOS guarantees UserDefaults.synchronize.
+      if (value !== cachedDbJwt) {
+        cachedDbJwt = value;
+        hadSavedToken = true;
+        console.log('[Goalsy:jwt] layer2 restore from Preferences (len:', value.length, ')');
+        debugRecord({ step: 'restore-prefs', found: true, tokenLen: value.length });
+      } else {
+        console.log('[Goalsy:jwt] layer2 — Preferences matches localStorage, no change');
+        debugRecord({ step: 'restore-prefs', sameAsLs: true });
+      }
+    } else {
+      console.log('[Goalsy:jwt] layer2 — no Preferences token', value ? '(too short)' : '(empty)');
+      debugRecord({ step: 'restore-prefs', found: false });
+    }
+  } catch (err) {
+    debugRecord({ step: 'restore-prefs', error: String(err) });
+  }
+}
+
+function restoreDbJwtIntoUrl(): void {
+  if (!isDevClerkInstance || !cachedDbJwt) { restoreDone = true; return; }
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.get('__clerk_db_jwt')) {
+      url.searchParams.set('__clerk_db_jwt', cachedDbJwt);
+      window.history.replaceState(null, '', url.toString());
+      console.log('[Goalsy:jwt] layer2 injected __clerk_db_jwt into URL');
+      debugRecord({ step: 'restore-url', tokenLen: cachedDbJwt.length });
+    }
+  } catch (err) {
+    debugRecord({ step: 'restore-url', error: String(err) });
+  }
+  restoreDone = true;
+}
+
+// Called from ApiClientBootstrap's visibilitychange handler (background event).
+// iOS calls UserDefaults.synchronize() before suspending, so this write survives
+// a subsequent force-kill from the app switcher.
+export function saveDbJwtToPrefsOnBackground(): void {
+  if (!isDevClerkInstance || !cachedDbJwt) return;
+  Preferences.set({ key: DB_JWT_PREF_KEY, value: cachedDbJwt }).catch(() => {});
+  debugRecord({ step: 'bg-save', tokenLen: cachedDbJwt.length });
+  console.log('[Goalsy:jwt] background save to Preferences (len:', cachedDbJwt.length, ')');
+}
 
 function persistDbJwt(token: string, source: string): void {
   try {
@@ -265,7 +317,7 @@ function persistDbJwt(token: string, source: string): void {
       return;
     }
     cachedDbJwt = token;
-    saveDbJwt(token); // synchronous localStorage write — survives force-kill
+    saveDbJwtToLs(token); // best-effort fast path; reliable path is bg-save
     console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
     debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
@@ -578,9 +630,11 @@ export function ApiClientBootstrap() {
           // Network error or Clerk not yet initialised — AuthGate handles auth state.
         }
       } else {
-        // App going to background — persist Clerk localStorage keys to Preferences
-        // (safety net for any non-cookie state Clerk may write; the primary
-        // backup for httpOnly session cookies is in AppDelegate.swift).
+        // App going to background — two saves:
+        // 1. Our __clerk_db_jwt token → Preferences (reliable: iOS calls
+        //    UserDefaults.synchronize() before killing a backgrounded app).
+        // 2. Any Clerk-native localStorage keys → Preferences (safety net).
+        saveDbJwtToPrefsOnBackground();
         saveClerkLocalStorage().catch(() => {});
       }
     };
