@@ -1,0 +1,35 @@
+deepak@Gurus-Laptop goalsy-executive % grep -c "GoalsyDbJwtHandler" ios/App/App/AppDelegate.swift
+0
+(base) deepak@Gurus-Laptop goalsy-executive % cd ~/StudioProjects/goalsy-main
+
+git stash
+
+git checkout jwt-native-fix
+
+cd artifacts/goalsy-executive && pnpm run cap:build
+Saved working directory and index state WIP on main: 7f12a55 debug(ios): log actual error message/code on sign-in failure
+branch 'jwt-native-fix' set up to track 'origin/jwt-native-fix'.
+Switched to a new branch 'jwt-native-fix'
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.supportedArchitectures". See https://pnpm.io/settings for the new home of each setting.
+Scope: all 9 workspace projects
+✓ Lockfile passes supply-chain policies (verified 4h ago)
+../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+└─ Done in 28ms
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @clerk/shared@3.47.7, @clerk/shared@4.25.2, esbuild@0.27.3
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[ERROR] Command failed with exit code 1: pnpm install
+
+pnpm: Command failed with exit code 1: pnpm install
+    at getFinalError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:88127:14)
+    at makeError (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:90434:21)
+    at getSyncResult (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92278:10)
+    at spawnSubprocessSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92238:14)
+    at execaCoreSync (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:92168:23)
+    at callBoundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94696:23)
+    at boundExeca (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94673:49)
+    at sync2 (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:94828:14)
+    at runPnpmCli (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:248505:5)
+    at runDepsStatusCheck (file:///opt/homebrew/lib/node_modules/pnpm/dist/pnpm.mjs:250269:7)
+(base) deepak@Gurus-Laptop goalsy-executive % 
