@@ -1,0 +1,51 @@
+Run pnpm --filter @workspace/goalsy-executive run typecheck
+
+> @workspace/goalsy-executive@0.0.0 typecheck /home/runner/work/goalsy/goalsy/artifacts/goalsy-executive
+> tsc -p tsconfig.json --noEmit
+
+Error: src/components/AppHeader.tsx(16,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/components/AppHeader.tsx(17,38): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/components/AppHeader.tsx(120,41): error TS7006: Parameter 'n' implicitly has an 'any' type.
+Error: src/components/AppHeader.tsx(226,33): error TS7006: Parameter 'notif' implicitly has an 'any' type.
+Error: src/lib/apiClient.ts(17,48): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/lib/roadmap.ts(6,45): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/AIHomeScreen.tsx(23,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/CalendarScreen.tsx(27,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/CalendarScreen.tsx(28,37): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/CalendarScreen.tsx(191,14): error TS7006: Parameter 'b' implicitly has an 'any' type.
+Error: src/pages/CalendarScreen.tsx(192,12): error TS7006: Parameter 'a' implicitly has an 'any' type.
+Error: src/pages/CalendarScreen.tsx(192,15): error TS7006: Parameter 'b' implicitly has an 'any' type.
+Error: src/pages/CalendarScreen.tsx(359,31): error TS7006: Parameter 'briefing' implicitly has an 'any' type.
+Error: src/pages/FinancialConnectionScreen.tsx(14,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalDetailScreen.test.tsx(73,27): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalDetailScreen.tsx(28,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalDetailScreen.tsx(29,45): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalsOverviewScreen.tsx(16,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalsOverviewScreen.tsx(17,27): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/GoalsOverviewScreen.tsx(165,6): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(170,6): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(184,46): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(184,51): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(350,45): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(382,30): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/GoalsOverviewScreen.tsx(382,65): error TS7006: Parameter 'goal' implicitly has an 'any' type.
+Error: src/pages/ProfileScreen.tsx(47,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/ProfileScreen.tsx(411,36): error TS7006: Parameter 'pref' implicitly has an 'any' type.
+Error: src/pages/ScoreScreen.tsx(15,49): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/ScoreScreen.tsx(177,26): error TS7006: Parameter 'd' implicitly has an 'any' type.
+Error: src/pages/ScoreScreen.tsx(179,23): error TS7006: Parameter 'd' implicitly has an 'any' type.
+Error: src/pages/ScoreScreen.tsx(266,29): error TS7006: Parameter 'driver' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(31,8): error TS6305: Output file '/home/runner/work/goalsy/goalsy/lib/api-client-react/dist/index.d.ts' has not been built from source file '/home/runner/work/goalsy/goalsy/lib/api-client-react/src/index.ts'.
+Error: src/pages/TodayScreen.tsx(79,45): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(81,38): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(81,43): error TS7006: Parameter 'g' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(85,14): error TS7006: Parameter 'b' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(86,12): error TS7006: Parameter 'a' implicitly has an 'any' type.
+Error: src/pages/TodayScreen.tsx(86,15): error TS7006: Parameter 'b' implicitly has an 'any' type.
+/home/runner/work/goalsy/goalsy/artifacts/goalsy-executive:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/goalsy-executive@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+Error: Process completed with exit code 2.
+1s
+0s
+0s
