@@ -10,6 +10,10 @@ description: CLERK_SECRET_KEY is set to invalid placeholder text; JWT auth bypas
 
 **Why:** Clerk's `clerkMiddleware` from `@clerk/express` uses the secret key internally when authenticating backend API calls to Clerk. With an invalid secret key, JWT verification via the middleware fails → every authenticated API call returns 401.
 
+## nativeApiHost gate kills dev_browser persistence (critical)
+All `__clerk_db_jwt` persistence functions were gated on `!nativeApiHost`. But `VITE_API_BASE_URL` (deployed production URL) makes `nativeApiHost` truthy, silently disabling every save/restore even when using `pk_test_` dev Clerk instance.
+**Fix**: gate on `clerkPubKey.startsWith('pk_test_')` instead — this correctly means "dev instance needs persistence" regardless of which API URL is configured.
+
 ## MIN_JWT_LENGTH gotcha
 `MIN_JWT_LENGTH` was raised to 100 to block a bogus 31-char pre-sign-in dev_browser token.
 But the real post-sign-in `__clerk_db_jwt` is ALSO ~31 chars → `persistDbJwt` never saves anything → session lost on every force-kill.

@@ -177,10 +177,16 @@ function debugRecord(entry: Record<string, unknown>): void {
   } catch { /* never crash */ }
 }
 
+// True when the app is a Capacitor build using Clerk's dev instance (pk_test_).
+// The __clerk_db_jwt persistence is a dev-instance-only mechanism — Clerk's
+// production instance uses a different session model that does not need it.
+// We key on pk_test_ rather than nativeApiHost because the app may target the
+// deployed production API while still using the dev Clerk instance during
+// internal testing.
+const isDevClerkInstance = isCapacitor && clerkPubKey.startsWith('pk_test_');
+
 async function preloadDbJwt(): Promise<void> {
-  // Production native builds use the live Clerk instance — the dev_browser JWT
-  // is a dev-instance-only concept. Gate off entirely for production builds.
-  if (!isCapacitor || nativeApiHost) return;
+  if (!isDevClerkInstance) return;
   try {
     const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
     if (value && value.length >= MIN_JWT_LENGTH) {
@@ -211,7 +217,7 @@ async function preloadDbJwt(): Promise<void> {
 // decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
 // No fetch-level injection needed — that approach fought Clerk's own layer.
 function restoreDbJwtIntoUrl(): void {
-  if (!isCapacitor || nativeApiHost) return;
+  if (!isDevClerkInstance) return;
   try {
     if (!cachedDbJwt) {
       restoreDone = true;
@@ -350,7 +356,7 @@ console.log('[Goalsy] FAPI_ORIGIN (dev-only interceptor):', FAPI_ORIGIN);
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
 // Wrapped entirely in try/catch — any failure falls through to the real fetch.
-if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
+if (isDevClerkInstance && FAPI_ORIGIN) {
   const _fetch = window.fetch.bind(window);
   (window as any).fetch = async function clerkFapiInterceptor(
     input: RequestInfo | URL,
