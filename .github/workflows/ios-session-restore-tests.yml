@@ -47,6 +47,23 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ${{ github.workspace }}
 
+      # CapApp-SPM/Package.swift references CapacitorPreferences by a hardcoded
+      # package name that can drift when @capacitor/preferences re-publishes its
+      # Package.swift.  Read the declared name from the freshly-installed copy and
+      # patch the reference so xcodebuild always sees a consistent identifier.
+      - name: Patch CapApp-SPM package name for @capacitor/preferences
+        run: |
+          INSTALLED_NAME=$(grep '^    name:' \
+            node_modules/@capacitor/preferences/Package.swift \
+            | sed 's/.*"\(.*\)".*/\1/')
+          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
+          sed -i '' \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift || \
+          sed -i \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift
+
       - name: Show available simulators
         run: xcrun simctl list devices available | grep -E "iPhone 1[5-9]|iPhone 16" || true
 
@@ -149,6 +166,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ${{ github.workspace }}
+
+      - name: Patch CapApp-SPM package name for @capacitor/preferences
+        run: |
+          INSTALLED_NAME=$(grep '^    name:' \
+            node_modules/@capacitor/preferences/Package.swift \
+            | sed 's/.*"\(.*\)".*/\1/')
+          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
+          sed -i '' \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift || \
+          sed -i \
+            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
+            ios/App/CapApp-SPM/Package.swift
 
       # ── Preflight: fail fast if the secret is missing or expired ─────────────
       # The smoke test uses XCTSkip when CLERK_TEST_COOKIES is absent, which
