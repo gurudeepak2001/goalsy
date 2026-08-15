@@ -2,10 +2,103 @@ import UIKit
 import Capacitor
 import WebKit
 
+// ── GoalsyDbJwtHandler ───────────────────────────────────────────────────────
+// Receives the Clerk dev-browser token (__clerk_db_jwt) from JS and writes it
+// directly to UserDefaults while the app is in the foreground — bypassing the
+// async Capacitor Preferences bridge and the frozen-JS background problem.
+//
+// WKWebView pauses JavaScript when the app backgrounds, so any JS-side save
+// (Preferences.set / localStorage.setItem) triggered by a visibilitychange
+// event may never complete.  By posting to this handler from JS the moment the
+// token is confirmed (inside flushPendingDbJwt / persistDbJwt — both in the
+// foreground), we guarantee a synchronous disk write via UserDefaults.synchronize()
+// before the user can even reach the app switcher.
+//
+// Key: "CapacitorStorage.cm_clerk_db_jwt" — Capacitor Preferences uses the
+// "CapacitorStorage." prefix, so Preferences.get({ key: "cm_clerk_db_jwt" })
+// in JS reads the same UserDefaults entry this handler writes.
+private final class GoalsyDbJwtHandler: NSObject, WKScriptMessageHandler {
+    static let userDefaultsKey = "CapacitorStorage.cm_clerk_db_jwt"
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        guard let token = message.body as? String, token.count >= 10 else {
+            NSLog("[Goalsy:native] goalsyDbJwt — ignored (empty or too short)")
+            return
+        }
+        UserDefaults.standard.set(token, forKey: GoalsyDbJwtHandler.userDefaultsKey)
+        UserDefaults.standard.synchronize()
+        NSLog("[Goalsy:native] goalsyDbJwt — saved dev_browser token (len: %d)", token.count)
+    }
+}
+
+private final class GoalsyDbJwtHandlerProxy: NSObject, WKScriptMessageHandler {
+    weak var target: GoalsyDbJwtHandler?
+    init(_ target: GoalsyDbJwtHandler) { self.target = target }
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) { target?.userContentController(userContentController, didReceive: message) }
+}
+
+// ── GoalsyAuthStateHandler ────────────────────────────────────────────────────
+// WKScriptMessageHandler that receives auth-state messages posted by the web
+// layer (App.tsx → postAuthScreenToNative) and sets a stable
+// accessibilityIdentifier on the Capacitor root view so XCUITest can assert on
+// "goalsy.screen.dashboard" / "goalsy.screen.signin" instead of fragile text.
+//
+// Registered under the handler name "goalsyAuthState".  The WKWebView holds a
+// strong reference to message handlers, so we use the weak-delegate pattern
+// (GoalsyAuthStateHandlerProxy) to avoid a retain cycle with AppDelegate.
+private final class GoalsyAuthStateHandler: NSObject, WKScriptMessageHandler {
+    // The view whose accessibilityIdentifier we update on each auth-state change.
+    // AppDelegate sets this once the Capacitor root view is available.
+    weak var targetView: UIView?
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        guard let body = message.body as? [String: Any],
+              let screen = body["screen"] as? String else {
+            NSLog("[Goalsy:native] goalsyAuthState — unexpected message body: %@", "\(message.body)")
+            return
+        }
+        let identifier = "goalsy.screen.\(screen)"
+        DispatchQueue.main.async { [weak self] in
+            self?.targetView?.accessibilityIdentifier = identifier
+            NSLog("[Goalsy:native] goalsyAuthState — set accessibilityIdentifier to '%@'", identifier)
+        }
+    }
+}
+
+/// Proxy wrapper held by WKUserContentController to break the retain cycle.
+/// WKUserContentController strongly retains its message handlers; this proxy
+/// holds only a weak reference to the real handler so the handler (and anything
+/// it holds) can be deallocated normally.
+private final class GoalsyAuthStateHandlerProxy: NSObject, WKScriptMessageHandler {
+    weak var target: GoalsyAuthStateHandler?
+    init(_ target: GoalsyAuthStateHandler) { self.target = target }
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        target?.userContentController(userContentController, didReceive: message)
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+
+    // Auth-state bridge: set up once when Capacitor's WKWebView is available.
+    private let authStateHandler = GoalsyAuthStateHandler()
+    private let dbJwtHandler = GoalsyDbJwtHandler()
+    private var authHandlerRegistered = false
 
     /// Handles the Clerk cookie backup/restore round-trip.
     /// Instantiated once; AppDelegate supplies the live Capacitor cookie store
@@ -36,6 +129,36 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // ── XCUITest cookie seeding ───────────────────────────────────────────
+        // When running under an XCUITest scheme the test harness may pass
+        // pre-serialised Clerk cookies via the GOALSY_UITEST_CLERK_COOKIES
+        // launch-environment key.  Writing them into UserDefaults here lets the
+        // normal ClerkCookiePersistence.restore() path below pick them up as if
+        // they had been saved by a prior backgrounding — so the test can verify
+        // that the restored cookies are still accepted by Clerk's FAPI server
+        // without having to go through a real sign-in flow inside the test runner.
+        //
+        // This block is unreachable in production: the key is never set by the
+        // app itself and ProcessInfo.environment is read-only at runtime.
+        if let cookiesJSON = ProcessInfo.processInfo.environment["GOALSY_UITEST_CLERK_COOKIES"],
+           let data = cookiesJSON.data(using: .utf8) {
+            UserDefaults.standard.set(data, forKey: "cm_clerk_cookies_v2")
+            UserDefaults.standard.synchronize()
+            NSLog("[Goalsy:native] XCUITest seed — wrote GOALSY_UITEST_CLERK_COOKIES to UserDefaults (%d bytes)", data.count)
+        }
+
+        // ── Dev-browser token diagnostic ─────────────────────────────────────
+        // Log the saved __clerk_db_jwt token on every cold start so the Xcode
+        // console confirms whether the native-handler save path is working.
+        // Key format: "CapacitorStorage.<key>" — matches Capacitor Preferences.
+        let dbJwtKey = GoalsyDbJwtHandler.userDefaultsKey
+        if let saved = UserDefaults.standard.string(forKey: dbJwtKey) {
+            NSLog("[Goalsy:native] cold-start — found dev_browser token in UserDefaults (len: %d)", saved.count)
+        } else {
+            NSLog("[Goalsy:native] cold-start — NO dev_browser token in UserDefaults (first launch or cleared)")
+        }
+
+        // ── Normal restore ────────────────────────────────────────────────────
         // Restore Clerk session cookies into WKHTTPCookieStore BEFORE the WebView
         // makes its first network request.  Force-kill wipes WKHTTPCookieStore
         // entirely; UserDefaults survives it.  Without the __client cookie on
@@ -57,8 +180,58 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
-    func applicationWillTerminate(_ application: UIApplication) {}
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // Register the auth-state script-message handler the first time the
+        // Capacitor WKWebView is available (i.e. after viewDidLoad has run).
+        // applicationDidBecomeActive is the earliest reliable point where
+        // CAPBridgeViewController.webView is non-nil.
+        registerAuthStateHandlerIfNeeded()
+    }
+
+    func applicationWillTerminate(_ application: UIApplication) {
+        // applicationDidEnterBackground fires when the user opens the app switcher,
+        // so cookies are usually already saved by the time they swipe the card.
+        // This is a belt-and-suspenders save for the rare case where the process
+        // is terminated without a prior background transition (e.g. force-kill
+        // directly from the foreground on older iOS versions).
+        // We block the main thread for up to 4 s so getAllCookies() — which is
+        // async — has time to complete before iOS sends SIGKILL (~5 s budget).
+        let sema = DispatchSemaphore(value: 0)
+        clerkPersistence.save { sema.signal() }
+        _ = sema.wait(timeout: .now() + 4)
+    }
+
+    // MARK: - Auth-state accessibility bridge
+
+    /// Registers the GoalsyAuthStateHandler on the Capacitor WKWebView's
+    /// userContentController exactly once.  Safe to call repeatedly — the
+    /// `authHandlerRegistered` flag prevents double-registration (which would
+    /// crash with a WKWebView "handler already registered" assertion).
+    private func registerAuthStateHandlerIfNeeded() {
+        guard !authHandlerRegistered,
+              let bridgeVC = window?.rootViewController as? CAPBridgeViewController,
+              let webView = bridgeVC.webView else { return }
+
+        // Point the handler at Capacitor's root view so the identifier is
+        // always visible at the top of the accessibility tree.
+        authStateHandler.targetView = webView.superview ?? webView
+
+        // Use the proxy to break the retain cycle: WKUserContentController
+        // holds a strong ref to its handlers; the proxy holds only a weak ref
+        // back to authStateHandler, letting both be deallocated normally.
+        let proxy = GoalsyAuthStateHandlerProxy(authStateHandler)
+        webView.configuration.userContentController.add(proxy, name: "goalsyAuthState")
+
+        // Dev-browser token handler: JS posts the token here the instant it is
+        // confirmed (flushPendingDbJwt / persistDbJwt), while still in the
+        // foreground.  We write it to UserDefaults and synchronize immediately.
+        let dbJwtProxy = GoalsyDbJwtHandlerProxy(dbJwtHandler)
+        webView.configuration.userContentController.add(dbJwtProxy, name: "goalsyDbJwt")
+
+        authHandlerRegistered = true
+        NSLog("[Goalsy:native] goalsyAuthState + goalsyDbJwt message handlers registered")
+    }
 
     func application(_ app: UIApplication, open url: URL,
                      options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {

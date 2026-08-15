@@ -74,16 +74,29 @@ console.log('[Goalsy] nativeApiHost:', nativeApiHost || '(none — web preview)'
 // Wrapped in try/catch so a derivation failure renders a visible error screen
 // rather than crashing the module (which would bypass the ErrorBoundary and
 // leave a permanent blank white screen with no recovery path).
+//
+// KEY SELECTION RATIONALE (2026-08-14):
+//   deriveLivePublishableKey(nativeApiHost) builds a pk_live_ key whose FAPI is
+//   clerk.goalsy-finance-ui.replit.app.  That domain is served by Replit's
+//   internal mTLS proxy (CN="Replit internal proxy leaf", self-signed CA).
+//   WKWebView rejects self-signed certs → TLS error on every sign_ups call.
+//   The proxy also returns 502 from external clients anyway.
+//
+//   VITE_CLERK_PUBLISHABLE_KEY (pk_test_ for the dev Clerk instance) encodes
+//   bursting-hedgehog-64.clerk.accounts.dev — a real Clerk FAPI with a trusted
+//   *.clerk.accounts.dev wildcard cert.  WKWebView accepts it without issues.
+//
+//   Therefore: always use VITE_CLERK_PUBLISHABLE_KEY for Capacitor native builds.
+//   When the app ships to the App Store a custom domain (e.g. clerk.goalsy.app)
+//   with a proper CNAME+cert should be configured and pk_live_ used here instead.
 let clerkPubKey = '';
 let _clerkInitError: string | null = null;
 try {
-  clerkPubKey = isCapacitor
-    ? (nativeApiHost
-        // Derive the live key directly — never use a pk_test fallback here.
-        ? deriveLivePublishableKey(nativeApiHost)
-        : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''))
-    // Web preview: use the baked-in key (pk_test for dev, pk_live for prod)
-    : (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '');
+  // Always use the baked-in VITE_CLERK_PUBLISHABLE_KEY — for both Capacitor
+  // native builds and web preview.  Do NOT derive from nativeApiHost: the
+  // derived key's FAPI (clerk.<replit-domain>) uses a self-signed Replit cert
+  // that WKWebView rejects.
+  clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? '';
   if (!clerkPubKey) {
     _clerkInitError = 'Missing Clerk publishable key — set VITE_CLERK_PUBLISHABLE_KEY in your .env file.';
   }
@@ -92,14 +105,9 @@ try {
   console.error('[Goalsy] clerkPubKey error:', _clerkInitError);
 }
 
-// No proxyUrl for Capacitor. We previously routed through /api/__clerk to work
-// around a presumed CORS restriction on Clerk's FAPI, but confirmed (2026-08-14)
-// that clerk.goalsy-finance-ui.replit.app already responds with:
-//   Access-Control-Allow-Origin: capacitor://localhost
-// so no CORS shim is needed. The server-side proxy was causing /v1/* requests
-// to hang because inside the Replit container that hostname resolves to Replit's
-// own internal proxy (172.24.0.5), not Clerk's infrastructure. Clerk JS now
-// calls the FAPI directly from WKWebView, which resolves the hostname correctly.
+// No proxyUrl needed. Clerk's FAPI (bursting-hedgehog-64.clerk.accounts.dev)
+// is reachable directly from WKWebView and responds with the correct CORS
+// headers for capacitor://localhost.
 // VITE_CLERK_PROXY_URL can still be set for local web-preview testing if needed.
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
 
@@ -126,10 +134,44 @@ let hadSavedToken = false;   // a token existed in Preferences at launch
 let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 
 // The __clerk_db_jwt is a dev-browser device token — it is NOT a session JWT.
-// Clerk dev instances generate these as short base64 strings (~31 chars), so
-// the minimum is intentionally low. We only discard truly empty/whitespace
-// values that would be useless to pass to Clerk.
-const MIN_JWT_LENGTH = 8;
+// Clerk dev instances generate these as short base64 strings (~31 chars).
+// We accept any non-trivial token length, but ONLY persist after we have
+// confirmed an active session from FAPI (hasActiveSession guard below) —
+// this prevents saving the pre-sign-in token which, when restored, causes
+// Clerk to start a fresh session-less browser on next launch.
+const MIN_JWT_LENGTH = 10;
+
+// Set to true the first time a /v1/client FAPI response confirms ≥1 active
+// session.  persistDbJwt refuses to write until this flag is true so a
+// pre-sign-in dev_browser token never overwrites a good saved token.
+let hasActiveSession = false;
+
+// Buffer for tokens seen in FAPI requests BEFORE hasActiveSession is confirmed.
+// The race: the /v1/client request carries __clerk_db_jwt in its URL, but
+// hasActiveSession only flips true when the *response* comes back.  persistDbJwt
+// refuses to save while hasActiveSession is false, so the token passes through
+// unsaved.  We capture it here and flush it to Preferences the instant we know
+// a session exists.
+let pendingDbJwt: string | null = null;
+
+function flushPendingDbJwt(): void {
+  const token = pendingDbJwt ?? cachedDbJwt;
+  pendingDbJwt = null;
+  if (!token || token.length < MIN_JWT_LENGTH) return;
+  const alreadyHave = token === cachedDbJwt && hadSavedToken;
+  if (!alreadyHave) {
+    cachedDbJwt = token;
+    saveDbJwtToLs(token); // secondary: localStorage best-effort
+  }
+  // Always notify native regardless of alreadyHave: this is the first
+  // opportunity to write to UserDefaults via the native WKScriptMessageHandler
+  // (the handler may not have existed in the prior build that saved to Preferences).
+  // Writing the same token again is idempotent and costs ~1 ms.
+  notifyNativeDbJwt(token); // primary: synchronous UserDefaults.synchronize() in Swift
+  console.log('[Goalsy:jwt] flushed __clerk_db_jwt (len:', token.length,
+    alreadyHave ? '— already in storage, re-notifying native' : '— new token saved', ')');
+  debugRecord({ step: 'flush', tokenLen: token.length, alreadyHave });
+}
 
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
 // Every entry is written to Preferences immediately, so it survives force-kill
@@ -143,88 +185,180 @@ function debugRecord(entry: Record<string, unknown>): void {
   } catch { /* never crash */ }
 }
 
-async function preloadDbJwt(): Promise<void> {
-  // Production native builds use the live Clerk instance — the dev_browser JWT
-  // is a dev-instance-only concept. Gate off entirely for production builds.
-  if (!isCapacitor || nativeApiHost) return;
+// True when the app is a Capacitor build using Clerk's dev instance (pk_test_).
+// The __clerk_db_jwt persistence is a dev-instance-only mechanism — Clerk's
+// production instance uses a different session model that does not need it.
+// We key on pk_test_ rather than nativeApiHost because the app may target the
+// deployed production API while still using the dev Clerk instance during
+// internal testing.
+const isDevClerkInstance = isCapacitor && clerkPubKey.startsWith('pk_test_');
+
+// ── __clerk_db_jwt two-layer persistence ─────────────────────────────────────
+//
+// WHY TWO LAYERS:
+//
+//   Layer 1 — synchronous localStorage (fast path, best-effort):
+//     localStorage.setItem() is JS-synchronous but WebKit defers the actual
+//     disk write.  Under a fast force-kill the deferred write can be lost.
+//     Used as a read-fast path on cold start (no async bridge round-trip) and
+//     as a best-effort backup for the reliable layer.
+//
+//   Layer 2 — Capacitor Preferences / UserDefaults (reliable path):
+//     Preferences.set() routes JS → WKWebView message bridge → UserDefaults.
+//     When triggered from the 'visibilitychange' hidden event (user pressed
+//     Home), iOS enters the background state and calls UserDefaults.synchronize()
+//     before the process can be killed.  This guarantees the write survives.
+//     The key: save in the BACKGROUND EVENT, not at the moment the token arrives.
+//
+// SAVE FLOW (two writers):
+//   a) Token arrives via FAPI: update cachedDbJwt in memory + localStorage.
+//   b) App goes to background (visibilitychange hidden): flush cachedDbJwt to
+//      Preferences — this is the iOS-guaranteed path; called from ApiClientBootstrap.
+//
+// RESTORE FLOW (two readers, in order):
+//   1. Synchronous at module level: localStorage.getItem() → inject into URL.
+//      Fastest; fires before React or Clerk CDN bundle loads.
+//   2. Async in bootReady: Preferences.get() → inject into URL (overrides if
+//      localStorage was stale or empty).  ClerkProvider waits for this to settle.
+
+const DB_JWT_LS_KEY = DB_JWT_PREF_KEY; // same string; named alias for clarity
+
+function saveDbJwtToLs(token: string): void {
+  try { localStorage.setItem(DB_JWT_LS_KEY, token); } catch { /* quota or private mode */ }
+}
+
+// ── Layer 1: synchronous early restore ────────────────────────────────────────
+// Runs at module-evaluation time — before React, before the Clerk CDN bundle.
+// Injects any locally-cached token into window.location so Clerk's
+// devBrowser.setup() (extractDevBrowserFromURL) picks it up natively.
+if (isDevClerkInstance) {
   try {
-    const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
-    if (value && value.length >= MIN_JWT_LENGTH) {
-      cachedDbJwt = value;
+    const lsVal = (() => { try { return localStorage.getItem(DB_JWT_LS_KEY); } catch { return null; } })();
+    if (lsVal && lsVal.length >= MIN_JWT_LENGTH) {
+      cachedDbJwt = lsVal;
       hadSavedToken = true;
-      console.log('[Goalsy:jwt] preloaded __clerk_db_jwt (len:', value.length, ')');
-      debugRecord({ step: 'preload', found: true, tokenLen: value.length });
-    } else if (value) {
-      // Too short to be a real JWT — discard so we don't poison Clerk's session.
-      Preferences.remove({ key: DB_JWT_PREF_KEY }).catch(() => {});
-      console.log('[Goalsy:jwt] discarded corrupt stored JWT (len:', value.length, ')');
-      debugRecord({ step: 'preload', found: true, discarded: true, tokenLen: value.length });
+      const url = new URL(window.location.href);
+      if (!url.searchParams.get('__clerk_db_jwt')) {
+        url.searchParams.set('__clerk_db_jwt', lsVal);
+        window.history.replaceState(null, '', url.toString());
+      }
+      console.log('[Goalsy:jwt] layer1 restore from localStorage (len:', lsVal.length, ')');
+      debugRecord({ step: 'restore-ls', found: true, tokenLen: lsVal.length });
     } else {
-      console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
-      debugRecord({ step: 'preload', found: false });
+      console.log('[Goalsy:jwt] layer1 — no localStorage token');
+      debugRecord({ step: 'restore-ls', found: false });
     }
   } catch (err) {
-    console.log('[Goalsy:jwt] preload skipped:', err);
-    debugRecord({ step: 'preload', error: String(err) });
+    debugRecord({ step: 'restore-ls', error: String(err) });
   }
 }
 
-// ── The actual restore: hand the token to Clerk through its own front door ───
-// clerk-js's devBrowser.setup() looks for __clerk_db_jwt in the page URL's
-// search params FIRST (extractDevBrowserFromURL), before checking its own
-// storage or minting a new token via POST /v1/dev_browser.  If we put the
-// saved token in the URL before Clerk initializes, Clerk adopts it natively,
-// decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
-// No fetch-level injection needed — that approach fought Clerk's own layer.
-function restoreDbJwtIntoUrl(): void {
-  if (!isCapacitor || nativeApiHost) return;
+// ── Layer 2: async Preferences restore (runs in bootReady) ────────────────────
+// Reads from UserDefaults (written by the background-event saver).  This is the
+// reliable path: iOS synchronizes UserDefaults before killing a backgrounded app.
+async function preloadDbJwt(): Promise<void> {
+  if (!isDevClerkInstance) return;
   try {
-    if (!cachedDbJwt) {
-      restoreDone = true;
-      debugRecord({ step: 'restore', skipped: 'no saved token' });
-      return;
+    const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
+    if (value && value.length >= MIN_JWT_LENGTH) {
+      // Prefer Preferences over the localStorage value: it was saved at a
+      // background-event boundary where iOS guarantees UserDefaults.synchronize.
+      if (value !== cachedDbJwt) {
+        cachedDbJwt = value;
+        hadSavedToken = true;
+        console.log('[Goalsy:jwt] layer2 restore from Preferences (len:', value.length, ')');
+        debugRecord({ step: 'restore-prefs', found: true, tokenLen: value.length });
+      } else {
+        console.log('[Goalsy:jwt] layer2 — Preferences matches localStorage, no change');
+        debugRecord({ step: 'restore-prefs', sameAsLs: true });
+      }
+    } else {
+      console.log('[Goalsy:jwt] layer2 — no Preferences token', value ? '(too short)' : '(empty)');
+      debugRecord({ step: 'restore-prefs', found: false });
     }
+  } catch (err) {
+    debugRecord({ step: 'restore-prefs', error: String(err) });
+  }
+}
+
+function restoreDbJwtIntoUrl(): void {
+  if (!isDevClerkInstance || !cachedDbJwt) { restoreDone = true; return; }
+  try {
     const url = new URL(window.location.href);
     if (!url.searchParams.get('__clerk_db_jwt')) {
       url.searchParams.set('__clerk_db_jwt', cachedDbJwt);
       window.history.replaceState(null, '', url.toString());
+      console.log('[Goalsy:jwt] layer2 injected __clerk_db_jwt into URL');
+      debugRecord({ step: 'restore-url', tokenLen: cachedDbJwt.length });
     }
-    restoreDone = true;
-    console.log('[Goalsy:jwt] restored __clerk_db_jwt into URL for Clerk pickup');
-    debugRecord({ step: 'restore', ok: true, tokenLen: cachedDbJwt.length });
   } catch (err) {
-    restoreDone = true;
-    debugRecord({ step: 'restore', error: String(err) });
+    debugRecord({ step: 'restore-url', error: String(err) });
   }
+  restoreDone = true;
+}
+
+// Post the token to the native GoalsyDbJwtHandler while in the foreground.
+// The handler writes it to UserDefaults.standard with synchronize() immediately —
+// a synchronous disk write that survives any subsequent kill.
+// This is the primary reliable save path; background/localStorage are belt-and-suspenders.
+function notifyNativeDbJwt(token: string): void {
+  try {
+    const wk = (window as any).webkit;
+    if (wk?.messageHandlers?.goalsyDbJwt) {
+      wk.messageHandlers.goalsyDbJwt.postMessage(token);
+    }
+  } catch { /* never fatal */ }
+}
+
+// Called from ApiClientBootstrap's visibilitychange handler (background event).
+// Belt-and-suspenders: saves cachedDbJwt to Preferences in case the native
+// message handler hasn't fired yet (e.g. first launch before handler registers).
+export function saveDbJwtToPrefsOnBackground(): void {
+  if (!isDevClerkInstance || !cachedDbJwt) return;
+  Preferences.set({ key: DB_JWT_PREF_KEY, value: cachedDbJwt }).catch(() => {});
+  debugRecord({ step: 'bg-save', tokenLen: cachedDbJwt.length });
+  console.log('[Goalsy:jwt] background save to Preferences (len:', cachedDbJwt.length, ')');
 }
 
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
-    // Never persist a value too short to be a real JWT — a truncated or bogus
-    // URL param would overwrite the good saved token and sign the user out
-    // on next launch.
     if (token.length < MIN_JWT_LENGTH) return;
-    // Clobber guard: until the preload+restore sequence has settled we cannot
-    // know whether a saved token exists — refuse ALL writes so a freshly minted
-    // (session-less) token can never overwrite an unread saved one.
+    // Clobber guard: refuse writes before the restore has settled.
     if (!restoreDone) {
-      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled — refusing write' });
+      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled' });
+      return;
+    }
+    // Session guard: only persist once FAPI has confirmed an active session.
+    // A pre-sign-in dev_browser token restored on next launch causes Clerk to
+    // open a fresh session-less browser — exactly what we must avoid.
+    if (!hasActiveSession) {
+      pendingDbJwt = token; // buffered; flushed when session is confirmed
+      debugRecord({ step: 'persist-buffered', source, tokenLen: token.length });
       return;
     }
     cachedDbJwt = token;
-    Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
+    notifyNativeDbJwt(token); // primary: synchronous UserDefaults write via native handler
+    saveDbJwtToLs(token);     // secondary: localStorage best-effort
     console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
     debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
 }
 
 // ── Remote config fetch ───────────────────────────────────────────────────────
-// In production native builds the server holds the correct pk_live_ publishable
-// key in CLERK_PUBLISHABLE_KEY.  Fetch it at boot so Clerk JS initialises with
-// the exact key the server validates against — no hostname derivation guesswork.
+// DISABLED for Capacitor native builds (2026-08-14):
+//   The server's CLERK_PUBLISHABLE_KEY encodes clerk.goalsy-finance-ui.replit.app
+//   as its FAPI — a Replit-internal proxy with a self-signed cert that WKWebView
+//   rejects.  We must use VITE_CLERK_PUBLISHABLE_KEY (baked in at build time)
+//   which encodes bursting-hedgehog-64.clerk.accounts.dev (trusted cert).
+//   Fetching from the server would overwrite the correct key with the bad one.
+//
+//   Re-enable this when the production Clerk instance is configured with a
+//   custom domain (e.g. clerk.goalsy.app) whose cert WKWebView will trust.
 async function fetchRemoteClerkKey(): Promise<void> {
-  if (!isCapacitor || !nativeApiBase) return;
+  // Skip for Capacitor — server key uses Replit-proxy FAPI which breaks WKWebView TLS.
+  if (isCapacitor) return;
+  if (!nativeApiBase) return;
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 5000);
   try {
@@ -239,8 +373,7 @@ async function fetchRemoteClerkKey(): Promise<void> {
       debugRecord({ step: 'config-fetch', keyPrefix: clerkPubKey.slice(0, 15) });
     }
   } catch (e) {
-    // Network failure — fall back to the derived key from deriveLivePublishableKey.
-    console.log('[Goalsy] config fetch failed, using derived key. Error:', String(e));
+    console.log('[Goalsy] config fetch failed. Error:', String(e));
     debugRecord({ step: 'config-fetch', error: String(e) });
   } finally {
     clearTimeout(tid);
@@ -276,6 +409,21 @@ function computeFapiUrl(): string {
   } catch { return ''; }
 }
 const FAPI_ORIGIN = computeFapiUrl();
+
+// clerkJSUrl — explicit clerk.browser.js location for Capacitor native builds.
+//
+// Problem: @clerk/react@6.12.2 calls getClerkJsEntryChunk() at runtime, which
+// fetches https://<fapi>/npm/@clerk/clerk-js@6.12.2/dist/clerk.browser.js.
+// The FAPI does not host that exact patch version — it 404s. Only the @6 semver
+// range redirect (→ 6.29.0) returns 200 with access-control-allow-origin: *.
+//
+// Fix: supply the @6 URL explicitly so WKWebView can load it successfully.
+// Must be declared AFTER FAPI_ORIGIN (TDZ guard).
+const clerkJSUrl: string | undefined =
+  isCapacitor && nativeApiHost && FAPI_ORIGIN
+    ? `${FAPI_ORIGIN}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`
+    : undefined;
+
 // Log the initial clerkPubKey so native Xcode output confirms pk_live_ or pk_test_.
 console.log('[Goalsy] clerkPubKey (initial):', clerkPubKey.slice(0, 20), '…');
 console.log('[Goalsy] FAPI_ORIGIN (dev-only interceptor):', FAPI_ORIGIN);
@@ -283,7 +431,7 @@ console.log('[Goalsy] FAPI_ORIGIN (dev-only interceptor):', FAPI_ORIGIN);
 // ── Fetch interceptor ─────────────────────────────────────────────────────────
 // Installed at module level, before any import of @clerk/* triggers a CDN load.
 // Wrapped entirely in try/catch — any failure falls through to the real fetch.
-if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
+if (isDevClerkInstance && FAPI_ORIGIN) {
   const _fetch = window.fetch.bind(window);
   (window as any).fetch = async function clerkFapiInterceptor(
     input: RequestInfo | URL,
@@ -330,6 +478,15 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
                 '→ client_id:', clientId,
                 '| sessions:', sessions,
                 '| last_active:', data.response.last_active_session_id ?? 'none');
+              // Unlock token persistence once FAPI confirms an active session.
+              if (sessions > 0 && !hasActiveSession) {
+                hasActiveSession = true;
+                console.log('[Goalsy:jwt] active session confirmed — __clerk_db_jwt persistence enabled');
+                debugRecord({ step: 'hasActiveSession', sessions });
+                // Flush any token that arrived in the request URL before this
+                // response came back (closes the hasActiveSession race condition).
+                flushPendingDbJwt();
+              }
               if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
                 debugRecord({ step: 'fapi', path, status: response.status,
                   clientId, sessions,
@@ -429,7 +586,16 @@ function Router() {
 const CLERK_LS_PREF_KEY = 'cm_clerk_localstorage';
 
 const CLERK_LS_KEY_PREFIXES = ['__clerk', 'clerk.'];
-function ApiClientBootstrap() {
+
+function postAuthScreenToNative(screen: 'dashboard' | 'signin'): void {
+  try {
+    const wk = (window as any).webkit;
+    if (wk?.messageHandlers?.goalsyAuthState) {
+      wk.messageHandlers.goalsyAuthState.postMessage({ screen });
+    }
+  } catch { /* never fatal — native bridge is best-effort */ }
+}
+export function ApiClientBootstrap() {
   const { getToken, isSignedIn } = useAuth();
   const { toast } = useToast();
 
@@ -445,6 +611,17 @@ function ApiClientBootstrap() {
   // after sign-in, so the empty-deps version captured the pre-sign-in closure
   // (returns null forever). This keeps the API client live post-sign-in.
   useEffect(() => { initApiClient(getToken); }, [getToken]);
+
+  // Bridge resolved auth state to native UIView accessibilityIdentifier so
+  // XCUITest can assert on stable identifiers ("goalsy.screen.dashboard" /
+  // "goalsy.screen.signin") rather than fragile visible-text matches.
+  // isSignedIn is always a boolean here (ApiClientBootstrap lives inside
+  // ClerkLoaded, so Clerk has already resolved auth state).
+  useEffect(() => {
+    if (!isCapacitor) return;
+    if (isSignedIn === true)  postAuthScreenToNative('dashboard');
+    if (isSignedIn === false) postAuthScreenToNative('signin');
+  }, [isSignedIn]);
 
   // Refresh session token on foreground restore (prevents 401 after suspension).
   // When getToken returns null AND the user was previously signed-in, the Clerk
@@ -475,9 +652,11 @@ function ApiClientBootstrap() {
           // Network error or Clerk not yet initialised — AuthGate handles auth state.
         }
       } else {
-        // App going to background — persist Clerk localStorage keys to Preferences
-        // (safety net for any non-cookie state Clerk may write; the primary
-        // backup for httpOnly session cookies is in AppDelegate.swift).
+        // App going to background — two saves:
+        // 1. Our __clerk_db_jwt token → Preferences (reliable: iOS calls
+        //    UserDefaults.synchronize() before killing a backgrounded app).
+        // 2. Any Clerk-native localStorage keys → Preferences (safety net).
+        saveDbJwtToPrefsOnBackground();
         saveClerkLocalStorage().catch(() => {});
       }
     };
@@ -558,6 +737,17 @@ function ClerkProviderWithRoutes() {
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
+      // __internal_clerkJSUrl / __internal_clerkUIUrl are read by @clerk/shared's
+      // clerkJSScriptUrl() / clerkUIScriptUrl() before constructing the versioned
+      // fetch URLs. Without overrides, Clerk requests clerk-js@6.12.2 and
+      // ui@1.25.2 which 404 on the FAPI (only semver-range redirects exist, e.g.
+      // @6 → 6.29.0 and @1 → 1.30.2). ClerkProvider spreads all extra props into
+      // IsomorphicClerkOptions so these reach loadClerkJSScript correctly even
+      // though they are not in the public TypeScript type.
+      {...(clerkJSUrl ? {
+        __internal_clerkJSUrl: clerkJSUrl,
+        __internal_clerkUIUrl: `${FAPI_ORIGIN}/npm/@clerk/ui@1/dist/ui.browser.js`,
+      } as any : {})}
       routerPush={(to) => setLocation(to)}
       routerReplace={(to) => setLocation(to, { replace: true })}
       // Explicit post-auth redirect URLs so native navigation is independent of
