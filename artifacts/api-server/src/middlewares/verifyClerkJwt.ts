@@ -1,117 +1,100 @@
-/**
- * Drop-in replacement for Clerk's clerkMiddleware that verifies Clerk JWTs
- * using JWKS directly — no CLERK_SECRET_KEY required.
- *
- * Clerk JWTs are RS256-signed.  The public keys are published at:
- *   https://<fapi_host>/.well-known/jwks.json
- * where <fapi_host> is derived from the publishable key.
- *
- * We use `jose` (RFC-compliant JWT library) to fetch the JWKS and verify the
- * token signature + standard claims (exp, nbf).  The userId is read from the
- * `sub` claim and stored on res.locals for downstream middlewares.
- */
-
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { RequestHandler } from "express";
-import { logger } from "../lib/logger";
 
-// ---------------------------------------------------------------------------
-// Derive the FAPI host from the Clerk publishable key.
-// Format: pk_test_<base64url(hostname + '$')>  or  pk_live_<...>
-// ---------------------------------------------------------------------------
+/**
+ * Derives the Clerk FAPI host from a publishable key.
+ * pk_test_<base64>$ → base64-decode → "<host>$" → strip trailing "$"
+ */
 function fapiHostFromPublishableKey(pk: string): string {
-  const b64 = pk.replace(/^pk_(test|live)_/, "");
-  try {
-    const decoded = Buffer.from(b64, "base64").toString("utf8").replace(/\$$/, "");
-    return decoded;
-  } catch {
-    throw new Error(`Cannot decode FAPI host from publishable key: ${pk.slice(0, 20)}…`);
+  const encoded = pk.replace(/^pk_(test|live)_/, "");
+  const decoded = Buffer.from(encoded, "base64").toString("utf8");
+  return decoded.replace(/[$]+$/, "");
+}
+
+/**
+ * Returns true when the host is a Replit-managed Clerk proxy
+ * (e.g. clerk.goalsy-finance-ui.replit.app). These proxies do NOT expose a
+ * JWKS endpoint, so JWTs signed by the real Clerk instance can't be verified
+ * against them.
+ */
+function isReplitProxyHost(host: string): boolean {
+  return host.endsWith(".replit.app") || host.endsWith(".replit.dev");
+}
+
+/**
+ * Resolves the Clerk JWKS URI using the following priority order:
+ *
+ *  1. CLERK_FAPI_HOST env var — explicit override, always wins.
+ *  2. VITE_CLERK_PUBLISHABLE_KEY — the frontend key; decodes to the real
+ *     Clerk instance in dev but may be unavailable in the deployed runtime.
+ *  3. CLERK_PUBLISHABLE_KEY — Replit overrides this with a proxy domain in
+ *     production, so it is skipped when it decodes to a *.replit.app host.
+ *  4. Hardcoded fallback — the known Clerk FAPI host for this project,
+ *     used only if all env vars are missing or decode to proxy domains.
+ */
+function resolveJwksUri(): string {
+  // 1. Explicit override
+  const explicitHost = process.env.CLERK_FAPI_HOST;
+  if (explicitHost) {
+    return `https://${explicitHost}/.well-known/jwks.json`;
   }
-}
 
-// Build the JWKS URI and a cached remote JWKS set (jose caches internally).
-//
-// Priority:
-//   1. CLERK_JWKS_URL — explicit override (most reliable; bypasses key derivation).
-//      Set this env var to the direct Clerk JWKS URL so production always uses
-//      the right host regardless of which publishable key is present.
-//   2. Derive from CLERK_PUBLISHABLE_KEY — explicit server-side key.
-//   3. Derive from VITE_CLERK_PUBLISHABLE_KEY — fallback (may encode a Replit
-//      proxy host in the production deployment environment).
-const JWKS_URL_OVERRIDE = process.env.CLERK_JWKS_URL ?? "";
-const ISSUER_OVERRIDE   = process.env.CLERK_ISSUER ?? "";
-
-let FAPI_HOST = "";
-let JWKS_URL  = JWKS_URL_OVERRIDE;
-let EXPECTED_ISSUER = ISSUER_OVERRIDE;
-
-if (!JWKS_URL) {
-  const PK = process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
-  FAPI_HOST = PK ? fapiHostFromPublishableKey(PK) : "";
-  JWKS_URL  = FAPI_HOST ? `https://${FAPI_HOST}/.well-known/jwks.json` : "";
-  if (!EXPECTED_ISSUER) EXPECTED_ISSUER = FAPI_HOST ? `https://${FAPI_HOST}` : "";
-} else if (!EXPECTED_ISSUER) {
-  // Derive issuer from JWKS URL: strip /.well-known/jwks.json
-  EXPECTED_ISSUER = JWKS_URL.replace(/\/\.well-known\/jwks\.json$/, "");
-  FAPI_HOST = EXPECTED_ISSUER.replace(/^https?:\/\//, "");
-}
-
-console.log("[verifyClerkJwt] FAPI host:", FAPI_HOST || "(none — PK missing)");
-console.log("[verifyClerkJwt] JWKS URL:", JWKS_URL || "(none)");
-console.log("[verifyClerkJwt] source:", JWKS_URL_OVERRIDE ? "CLERK_JWKS_URL env var" : "derived from publishable key");
-
-// `createRemoteJWKSet` fetches and caches the JWKS automatically.
-const remoteJwks = JWKS_URL ? createRemoteJWKSet(new URL(JWKS_URL)) : null;
-
-// Type augmentation so downstream middlewares can read the verified payload.
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Locals {
-      clerkPayload?: JWTPayload & { sub: string };
-      userId?: string;
+  // 2 & 3. Derive from publishable keys, skip Replit proxy hosts
+  const candidates = [
+    process.env.VITE_CLERK_PUBLISHABLE_KEY,
+    process.env.CLERK_PUBLISHABLE_KEY,
+  ];
+  for (const pk of candidates) {
+    if (!pk) continue;
+    const host = fapiHostFromPublishableKey(pk);
+    if (!isReplitProxyHost(host)) {
+      return `https://${host}/.well-known/jwks.json`;
     }
   }
+
+  // 4. Known fallback for this project — prevents a startup crash when Replit
+  //    overrides both keys with proxy domains in the deployed environment.
+  const FALLBACK = "bursting-hedgehog-64.clerk.accounts.dev";
+  console.log("[auth] WARNING: falling back to hardcoded FAPI host. Set CLERK_FAPI_HOST to remove this warning.");
+  return `https://${FALLBACK}/.well-known/jwks.json`;
 }
 
+const JWKS_URI = resolveJwksUri();
+
+// Cache the remote JWKS set (re-fetches automatically when keys rotate)
+const JWKS = createRemoteJWKSet(new URL(JWKS_URI));
+console.log("[auth] JWKS URI:", JWKS_URI);
+
 /**
- * Express middleware that:
- * 1. Extracts the Bearer token from the Authorization header.
- * 2. Verifies it against Clerk's JWKS (signature + exp + iss).
- * 3. Stores the verified payload on res.locals.clerkPayload and
- *    res.locals.userId so requireAuth and route handlers can use it.
- *
- * Unauthenticated requests are allowed through — requireAuth enforces the gate.
+ * Verifies the Clerk session JWT from the Authorization header using the
+ * public JWKS endpoint — no CLERK_SECRET_KEY required.
+ * Sets res.locals.userId on success, calls next(). Returns 401 otherwise.
  */
 export const verifyClerkJwt: RequestHandler = async (req, res, next) => {
-  if (!remoteJwks) {
-    logger.warn("[verifyClerkJwt] No JWKS configured — skipping JWT verification");
-    return next();
-  }
-
-  const authHeader = req.headers["authorization"];
+  const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    return next(); // no token — let requireAuth reject if the route needs auth
+    console.log("[auth] 401 — no Bearer header on", req.method, req.url);
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
 
   const token = authHeader.slice(7);
-
   try {
-    const { payload } = await jwtVerify(token, remoteJwks, {
-      issuer: EXPECTED_ISSUER,
+    const { payload } = await jwtVerify(token, JWKS, {
+      // Clerk session JWTs set azp to the origin; skip strict audience check
+      // since Capacitor apps use capacitor://localhost as origin.
+      clockTolerance: 60,
     });
-
-    if (!payload.sub) {
-      logger.warn("[verifyClerkJwt] JWT has no sub claim");
-      return next();
+    const userId = payload.sub;
+    if (!userId) {
+      console.log("[auth] 401 — JWT verified but no sub claim");
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
-
-    res.locals.clerkPayload = payload as JWTPayload & { sub: string };
-    res.locals.userId = payload.sub;
+    res.locals.userId = userId;
+    next();
   } catch (err) {
-    // Log but don't reject here — let requireAuth handle protected routes.
-    logger.warn({ err }, "[verifyClerkJwt] JWT verification failed");
+    console.log("[auth] 401 — JWT verification failed:", (err as Error).message);
+    res.status(401).json({ message: "Unauthorized" });
   }
-
-  next();
 };

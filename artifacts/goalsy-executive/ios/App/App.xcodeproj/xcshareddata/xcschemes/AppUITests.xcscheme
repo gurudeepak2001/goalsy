@@ -28,7 +28,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BB000000000000000000BB07"
+               BlueprintIdentifier = "BB000000000000000000BB06"
                BuildableName = "AppUITests.xctest"
                BlueprintName = "AppUITests"
                ReferencedContainer = "container:App.xcodeproj">
@@ -46,40 +46,13 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BB000000000000000000BB07"
+               BlueprintIdentifier = "BB000000000000000000BB06"
                BuildableName = "AppUITests.xctest"
                BlueprintName = "AppUITests"
                ReferencedContainer = "container:App.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <EnvironmentVariables>
-         <!-- Expand secrets/inputs from the process environment so CI can pass
-              them without using the unsupported -testenv flag. xcodebuild
-              substitutes $(VAR) from the invoking shell environment before
-              launching the test runner. isEnabled="YES" means the variable is
-              always forwarded; when a CI secret is absent the value is an empty
-              string and each test guards with XCTSkip / a nil-check. -->
-
-         <!-- Session-restore smoke test (SessionRestoreSmokeTests.swift) -->
-         <EnvironmentVariable
-            key = "CLERK_TEST_COOKIES"
-            value = "$(CLERK_TEST_COOKIES)"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-
-         <!-- Cookie-rotation test (CookieRotationTest.swift) -->
-         <EnvironmentVariable
-            key = "CLERK_ROTATE_EMAIL"
-            value = "$(CLERK_ROTATE_EMAIL)"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "CLERK_ROTATE_PASSWORD"
-            value = "$(CLERK_ROTATE_PASSWORD)"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

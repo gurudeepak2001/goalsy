@@ -1,6 +1,7 @@
 - [Clerk FAPI native proxy architecture](clerk-fapi-native.md) — no proxyUrl needed; Clerk already allows capacitor://localhost; API-server proxy loops internally; cookie persistence via AppDelegate.
 - [Clerk session restore on Capacitor](clerk-capacitor-session-restore.md) — persist __clerk_db_jwt, restore via URL param before clerk-js init; fetch injection fails.
 - [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
+- [Clerk FAPI session detection](clerk-fapi-session-detection.md) — sign-in/touch responses put sessions under data.client.sessions, not data.response.sessions; check both.
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
-- [Clerk secret key workaround](clerk-secret-key-workaround.md) — CLERK_SECRET_KEY is invalid placeholder; verifyClerkJwt middleware uses JWKS directly via jose instead.
+- [Clerk API server auth](clerk-api-auth.md) — use jose JWKS, never @clerk/express; CLERK_SECRET_KEY is an invalid placeholder.

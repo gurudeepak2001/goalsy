@@ -14,7 +14,7 @@
 			remoteGlobalIDString = 504EC3031FED79650016851F;
 			remoteInfo = App;
 		};
-		BB000000000000000000BB08 /* PBXContainerItemProxy */ = {
+		BB000000000000000000BB09 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
 			proxyType = 1;
@@ -29,10 +29,10 @@
 			target = 504EC3031FED79650016851F /* App */;
 			targetProxy = AA000000000000000000AA0D /* PBXContainerItemProxy */;
 		};
-		BB000000000000000000BB09 /* PBXTargetDependency */ = {
+		BB000000000000000000BB0A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 504EC3031FED79650016851F /* App */;
-			targetProxy = BB000000000000000000BB08 /* PBXContainerItemProxy */;
+			targetProxy = BB000000000000000000BB09 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -47,9 +47,7 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		AA000000000000000000AA05 /* ClerkCookiePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA04 /* ClerkCookiePersistence.swift */; };
 		AA000000000000000000AA03 /* ClerkCookiePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */; };
-		BB000000000000000000BB03 /* SessionRestoreSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */; };
-		BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB0D /* CookieRotationTest.swift */; };
-		BB000000000000000000BB15 /* ClerkWebViewHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB14 /* ClerkWebViewHelpers.swift */; };
+		BB000000000000000000BB03 /* ForceKillSessionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB01 /* ForceKillSessionTest.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,10 +64,8 @@
 		AA000000000000000000AA01 /* AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistenceTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000AA04 /* ClerkCookiePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistence.swift; sourceTree = "<group>"; };
-		BB000000000000000000BB01 /* AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRestoreSmokeTests.swift; sourceTree = "<group>"; };
-		BB000000000000000000BB0D /* CookieRotationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookieRotationTest.swift; sourceTree = "<group>"; };
-		BB000000000000000000BB14 /* ClerkWebViewHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkWebViewHelpers.swift; sourceTree = "<group>"; };
+		BB000000000000000000BB01 /* ForceKillSessionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceKillSessionTest.swift; sourceTree = "<group>"; };
+		BB000000000000000000BB05 /* AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +84,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BB000000000000000000BB06 /* Frameworks */ = {
+		BB000000000000000000BB08 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -114,7 +110,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				AA000000000000000000AA01 /* AppTests.xctest */,
-				BB000000000000000000BB01 /* AppUITests.xctest */,
+				BB000000000000000000BB05 /* AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -146,9 +142,7 @@
 		BB000000000000000000BB04 /* AppUITests */ = {
 			isa = PBXGroup;
 			children = (
-				BB000000000000000000BB14 /* ClerkWebViewHelpers.swift */,
-				BB000000000000000000BB0D /* CookieRotationTest.swift */,
-				BB000000000000000000BB02 /* SessionRestoreSmokeTests.swift */,
+				BB000000000000000000BB01 /* ForceKillSessionTest.swift */,
 			);
 			path = AppUITests;
 			sourceTree = "<group>";
@@ -193,21 +187,21 @@
 			productReference = AA000000000000000000AA01 /* AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		BB000000000000000000BB07 /* AppUITests */ = {
+		BB000000000000000000BB06 /* AppUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BB000000000000000000BB0C /* Build configuration list for PBXNativeTarget "AppUITests" */;
+			buildConfigurationList = BB000000000000000000BB0D /* Build configuration list for PBXNativeTarget "AppUITests" */;
 			buildPhases = (
-				BB000000000000000000BB05 /* Sources */,
-				BB000000000000000000BB06 /* Frameworks */,
+				BB000000000000000000BB07 /* Sources */,
+				BB000000000000000000BB08 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				BB000000000000000000BB09 /* PBXTargetDependency */,
+				BB000000000000000000BB0A /* PBXTargetDependency */,
 			);
 			name = AppUITests;
 			productName = AppUITests;
-			productReference = BB000000000000000000BB01 /* AppUITests.xctest */;
+			productReference = BB000000000000000000BB05 /* AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -229,7 +223,7 @@
 						ProvisioningStyle = Automatic;
 						TestTargetID = 504EC3031FED79650016851F;
 					};
-					BB000000000000000000BB07 = {
+					BB000000000000000000BB06 = {
 						CreatedOnToolsVersion = 9.2;
 						ProvisioningStyle = Automatic;
 						TestTargetID = 504EC3031FED79650016851F;
@@ -254,7 +248,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				AA000000000000000000AA09 /* AppTests */,
-				BB000000000000000000BB07 /* AppUITests */,
+				BB000000000000000000BB06 /* AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -293,13 +287,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BB000000000000000000BB05 /* Sources */ = {
+		BB000000000000000000BB07 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BB000000000000000000BB15 /* ClerkWebViewHelpers.swift in Sources */,
-				BB000000000000000000BB0E /* CookieRotationTest.swift in Sources */,
-				BB000000000000000000BB03 /* SessionRestoreSmokeTests.swift in Sources */,
+				BB000000000000000000BB03 /* ForceKillSessionTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -520,7 +512,7 @@
 			};
 			name = Release;
 		};
-		BB000000000000000000BB0A /* Debug */ = {
+		BB000000000000000000BB0B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -540,7 +532,7 @@
 			};
 			name = Debug;
 		};
-		BB000000000000000000BB0B /* Release */ = {
+		BB000000000000000000BB0C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -590,11 +582,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BB000000000000000000BB0C /* Build configuration list for PBXNativeTarget "AppUITests" */ = {
+		BB000000000000000000BB0D /* Build configuration list for PBXNativeTarget "AppUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BB000000000000000000BB0A /* Debug */,
-				BB000000000000000000BB0B /* Release */,
+				BB000000000000000000BB0B /* Debug */,
+				BB000000000000000000BB0C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

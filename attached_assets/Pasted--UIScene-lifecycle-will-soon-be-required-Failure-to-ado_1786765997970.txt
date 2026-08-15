@@ -1,0 +1,137 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+[Goalsy:native] cold-start — found dev_browser token in UserDefaults (len: 31)
+[Goalsy:native] restoreClerkCookies — no saved cookies (first launch or cleared)
+Reading from public effective user settings.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/5D3524C8-A502-412E-B243-C78D7B44AF96/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+[Goalsy:native] goalsyAuthState + goalsyDbJwt message handlers registered
+WebContent[3814] Unable to hide query parameters from script (missing data)
+⚡️  WebView loaded
+⚡️  To Native ->  Preferences set 3060338
+⚡️  To Native ->  Preferences get 3060339
+⚡️  To Native ->  Preferences set 3060340
+⚡️  [log] - [Goalsy] App.tsx module loading
+⚡️  [log] - [Goalsy] imports done
+⚡️  [log] - [Goalsy] isCapacitor: true
+⚡️  [log] - [Goalsy] nativeApiHost: goalsy-finance-ui.replit.app
+⚡️  [log] - [Goalsy:jwt] layer1 restore from localStorage (len: 31 )
+⚡️  [log] - [Goalsy] clerkPubKey (initial): pk_test_YnVyc3Rpbmct …
+⚡️  [log] - [Goalsy] FAPI_ORIGIN (dev-only interceptor): https://bursting-hedgehog-64.clerk.accounts.dev
+⚡️  [log] - [Goalsy:jwt] fetch interceptor installed
+⚡️  [log] - [Goalsy] module setup complete
+⚡️  TO JS undefined
+⚡️  TO JS {"value":"dvb_3HvxbY9OoGY8AKsd5XrJEaNWdAP"}
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:jwt] layer2 — Preferences matches localStorage, no change
+⚡️  To Native ->  Preferences set 3060341
+⚡️  TO JS undefined
+⚡️  [warn] - Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview
+⚡️  [log] - [Goalsy:fapi] /v1/client → client_id: client_3HvxbdahPsupms7noGfxPilXtbC | sessions: 1 | last_active: sess_3Hvz3eU20Ob1Zm0Wa1qmc8JzUdQ
+⚡️  [log] - [Goalsy:jwt] active session confirmed — __clerk_db_jwt persistence enabled
+[Goalsy:native] goalsyDbJwt — saved dev_browser token (len: 31)
+⚡️  To Native ->  Preferences set 3060342
+⚡️  [log] - [Goalsy:jwt] flushed __clerk_db_jwt (len: 31 — already in storage, re-notifying native )
+⚡️  To Native ->  Preferences set 3060343
+⚡️  To Native ->  Preferences set 3060344
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/environment → status: 200 | keys: auth_config,display_config,user_settings,organization_settings,fraud_settings,commerce_settings,api_keys_settings,maintenance_mode,client_debug_mode,partitioned_cookies
+[Goalsy:native] goalsyAuthState — set accessibilityIdentifier to 'goalsy.screen.dashboard'
+WebContent[3814] xpc_user_sessions_get_foreground_uid() failed with error 1 - Operation not permitted
+⚡️  To Native ->  Keyboard addListener 3060345
+⚡️  To Native ->  Keyboard addListener 3060346
+⚡️  TO JS {"keyboardHeight":335}
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 7C861E57-3269-4737-B0D5-D89AEDE90FBD
+The variant selector cell index number could not be found.
+The variant selector cell index number could not be found.
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<NSLayoutConstraint:0x11b743480 UILayoutGuide:0x11b65f020'TUIKeyplane.right'.width == - 1.5   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x11b743480 UILayoutGuide:0x11b65f020'TUIKeyplane.right'.width == - 1.5   (active)>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+⚡️  TO JS {"keyboardHeight":308}
+⚡️  TO JS {"keyboardHeight":308}
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 7C861E57-3269-4737-B0D5-D89AEDE90FBD
+⚡️  TO JS {"keyboardHeight":308}
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 7C861E57-3269-4737-B0D5-D89AEDE90FBD
+⚡️  TO JS {"keyboardHeight":308}
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 7C861E57-3269-4737-B0D5-D89AEDE90FBD
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<_UISystemBaselineConstraint:0x12daa5720 UIDatePicker:0x11b778780.bottom == UIToolbar:0x11b77b700.top NSLayoutAnchorConstraintSpace(0)   (active)>",
+    "<NSLayoutConstraint:0x12daa5680 UIDatePicker:0x11b778780.height == 335   (active)>",
+    "<NSLayoutConstraint:0x12daa6530 UIToolbar:0x11b77b700.height == 48   (active)>",
+    "<NSLayoutConstraint:0x12daa56d0 WKDatePickerContentView:0x12e47ae00.height == 417   (active)>",
+    "<NSLayoutConstraint:0x12daa5630 V:|-(0)-[UIDatePicker:0x11b778780]   (active, names: '|':WKDatePickerContentView:0x12e47ae00 )>",
+    "<NSLayoutConstraint:0x12daa64e0 UIToolbar:0x11b77b700.bottom == WKDatePickerContentView:0x12e47ae00.bottom - 12   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x12daa5680 UIDatePicker:0x11b778780.height == 335   (active)>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<_UISystemBaselineConstraint:0x12daa5720 UIDatePicker:0x11b778780.bottom == UIToolbar:0x11b77b700.top NSLayoutAnchorConstraintSpace(0)   (active)>",
+    "<NSLayoutConstraint:0x12daa56d0 WKDatePickerContentView:0x12e47ae00.height == 417   (active)>",
+    "<NSLayoutConstraint:0x12daa5630 V:|-(0)-[UIDatePicker:0x11b778780]   (active, names: '|':WKDatePickerContentView:0x12e47ae00 )>",
+    "<NSLayoutConstraint:0x12daa64e0 UIToolbar:0x11b77b700.bottom == WKDatePickerContentView:0x12e47ae00.bottom - 12   (active)>",
+    "<NSLayoutConstraint:0x12daa5680 UIDatePicker:0x11b778780.height == 335   (active)>",
+    "<NSLayoutConstraint:0x12daa6530 UIToolbar:0x11b77b700.height == 48   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x12daa5680 UIDatePicker:0x11b778780.height == 335   (active)>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+⚡️  TO JS undefined
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<NSLayoutConstraint:0x12da6caf0 _TtC5UIKitP33_DDE14AA6B49FCAFC5A54255A118E1D8713ButtonWrapper:0x12e478800.width == _UIButtonBarButton:0x11b779400.width   (active)>",
+    "<NSLayoutConstraint:0x11b788140 'IB_Leading_Leading' H:|-(1)-[_UIModernBarButton:0x12da98e00]   (active, names: '|':_UIButtonBarButton:0x11b779400 )>",
+    "<NSLayoutConstraint:0x11b7886e0 'IB_Trailing_Trailing' H:[_UIModernBarButton:0x12da98e00]-(1)-|   (active, names: '|':_UIButtonBarButton:0x11b779400 )>",
+    "<NSLayoutConstraint:0x12daa7b60 'UIView-Encapsulated-Layout-Width' _TtC5UIKitP33_DDE14AA6B49FCAFC5A54255A118E1D8713ButtonWrapper:0x12e478800.width == 0   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x11b7886e0 'IB_Trailing_Trailing' H:[_UIModernBarButton:0x12da98e00]-(1)-|   (active, names: '|':_UIButtonBarButton:0x11b779400 )>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+⚡️  To Native ->  Keyboard removeListener 3060347
+⚡️  To Native ->  Keyboard removeListener 3060348
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+⚡️  To Native ->  Keyboard addListener 3060349
+⚡️  To Native ->  Keyboard addListener 3060350
+⚡️  To Native ->  Keyboard removeListener 3060351
+⚡️  To Native ->  Keyboard removeListener 3060352

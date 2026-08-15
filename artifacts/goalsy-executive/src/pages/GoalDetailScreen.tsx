@@ -102,10 +102,118 @@ function feasibilityNote(
 }
 
 // ── Roadmap computation ───────────────────────────────────────────────────────
-// Pure logic lives in src/lib/roadmap.ts so it can be unit-tested directly.
 
-import { computeRoadmap } from '@/lib/roadmap';
-import type { OverallStatus, PlanStep, RoadmapResult } from '@/lib/roadmap';
+type OverallStatus = 'ahead' | 'on_track' | 'behind' | 'complete' | 'no_data';
+
+interface PlanStep {
+  icon: 'save' | 'spend' | 'rate' | 'setup';
+  label: string;
+  description: string;
+}
+
+interface RoadmapResult {
+  overallStatus: OverallStatus;
+  expectedByNow: number | null;
+  plan: PlanStep[];
+  estimatedCompletionDate: string | null;
+  requiredMonthly: number | null;
+}
+
+export function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): RoadmapResult {
+  const gap = Math.max(0, goal.targetAmount - goal.currentAmount);
+  const monthly = goal.monthlyContribution ?? 0;
+  const now = new Date();
+  const createdAt = new Date(goal.createdAt);
+  const targetDate = goal.targetDate ? new Date(goal.targetDate) : null;
+
+  const msToTarget = targetDate ? targetDate.getTime() - now.getTime() : null;
+  const monthsToTarget = msToTarget && msToTarget > 0 ? msToTarget / MS_PER_MONTH : null;
+  const requiredMonthly = monthsToTarget && gap > 0 ? Math.ceil(gap / monthsToTarget) : null;
+  const estimatedMonths = monthly > 0 && gap > 0 ? gap / monthly : null;
+
+  let estimatedCompletionDate: string | null = null;
+  if (goal.currentAmount >= goal.targetAmount) {
+    estimatedCompletionDate = 'Complete';
+  } else if (estimatedMonths) {
+    const d = new Date(now.getTime() + estimatedMonths * MS_PER_MONTH);
+    estimatedCompletionDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+
+  let overallStatus: OverallStatus = 'no_data';
+  let expectedByNow: number | null = null;
+
+  if (goal.currentAmount >= goal.targetAmount) {
+    overallStatus = 'complete';
+  } else if (targetDate && goal.targetAmount > 0) {
+    const totalMs = targetDate.getTime() - createdAt.getTime();
+    const elapsedMs = now.getTime() - createdAt.getTime();
+    if (totalMs > 0) {
+      const fraction = Math.min(1, Math.max(0, elapsedMs / totalMs));
+      expectedByNow = Math.round(goal.targetAmount * fraction);
+      if (goal.currentAmount >= expectedByNow * 1.05) overallStatus = 'ahead';
+      else if (goal.currentAmount < expectedByNow * 0.9) overallStatus = 'behind';
+      else overallStatus = 'on_track';
+      // Grace window: a brand-new deadline goal (created <3 days ago) has had
+      // almost no time to accumulate savings. The interpolated expectedByNow is
+      // a tiny positive number and currentAmount=0 would immediately trip the
+      // 'behind' threshold. Clamp to 'on_track' for the first 3 days.
+      const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+      if (overallStatus === 'behind' && elapsedMs < GRACE_MS) {
+        overallStatus = 'on_track';
+      }
+    }
+  } else if (monthly > 0) {
+    overallStatus = 'on_track';
+  }
+
+  const monthlyIncome = fp?.annualIncome ? Math.round(fp.annualIncome / 12) : null;
+  const monthlyExpenses = fp?.monthlyExpenses ?? null;
+  const monthlySurplus =
+    monthlyIncome !== null && monthlyExpenses !== null ? monthlyIncome - monthlyExpenses : null;
+
+  const plan: PlanStep[] = [];
+  const targetMonthly = requiredMonthly ?? (monthly > 0 ? monthly : null);
+
+  if (targetMonthly && targetMonthly > 0) {
+    plan.push({
+      icon: 'save',
+      label: `Save $${targetMonthly.toLocaleString()}/month`,
+      description: targetDate
+        ? `Needed to reach your goal by ${targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+        : `At this pace you'll reach your goal in ${estimatedMonths ? Math.ceil(estimatedMonths) : '?'} months`,
+    });
+  }
+
+  if (monthlySurplus !== null && targetMonthly !== null) {
+    const discretionary = monthlySurplus - targetMonthly;
+    if (discretionary > 200) {
+      const weeklyBudget = Math.floor(discretionary / 4.33);
+      plan.push({
+        icon: 'spend',
+        label: `Spend under $${weeklyBudget.toLocaleString()}/week`,
+        description: 'Discretionary budget to stay on track with your goal',
+      });
+    }
+  }
+
+  if (fp?.savingsRate && fp.savingsRate > 0) {
+    plan.push({
+      icon: 'rate',
+      label: `Save $${fp.savingsRate.toLocaleString()}/mo`,
+      description: 'Your monthly savings discipline keeps this goal on schedule',
+    });
+  }
+
+  if (plan.length === 0) {
+    plan.push({
+      icon: 'setup',
+      label: 'Add a monthly contribution',
+      description: 'Set a contribution amount to generate your personalised roadmap',
+    });
+  }
+
+  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly };
+}
 
 // ── Weekly milestones computation ─────────────────────────────────────────────
 
@@ -118,7 +226,7 @@ export interface WeekMilestone {
   isPast: boolean;
 }
 
-function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
+export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
   if (goal.targetAmount <= 0) return [];
   const now = new Date();
   const createdAt = new Date(goal.createdAt);
@@ -155,13 +263,25 @@ function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>):
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
     // For past weeks with a logged confirmation, compare that actual figure
     // against the expected — not the goal's running currentAmount total.
-    // Weeks without a confirmed entry fall back to currentAmount as a proxy.
-    const referenceAmount = isPast
-      ? (confirmedMap.get(i) ?? goal.currentAmount)
-      : 0;
-    const status: WeekMilestone['status'] = isPast
-      ? referenceAmount >= expectedAmount ? 'reached' : 'behind'
-      : 'upcoming';
+    // Weeks without a confirmed entry fall back to currentAmount as a proxy,
+    // but only allow a positive ('reached') inference from that proxy.
+    // 'behind' is only asserted when there is explicit confirmed evidence that
+    // the user fell short — never inferred from an absent/unlogged entry.
+    // This prevents brand-new goals (currentAmount ≈ 0) from immediately
+    // showing amber 'behind' markers that contradict an on_track status banner.
+    const confirmedAmount = confirmedMap.get(i);
+    let status: WeekMilestone['status'];
+    if (!isPast) {
+      status = 'upcoming';
+    } else if (confirmedAmount !== undefined) {
+      // Explicit progress log: trust it fully.
+      status = confirmedAmount >= expectedAmount ? 'reached' : 'behind';
+    } else {
+      // No explicit log: use currentAmount as a positive proxy only.
+      // If currentAmount already meets the bar, mark 'reached'; otherwise
+      // stay neutral ('upcoming') — we cannot claim 'behind' without evidence.
+      status = goal.currentAmount >= expectedAmount ? 'reached' : 'upcoming';
+    }
 
     milestones.push({
       weekIndex: i,
@@ -178,13 +298,12 @@ function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>):
 // ── Status banner ─────────────────────────────────────────────────────────────
 
 function StatusBanner({
-  status, onAdjust, dismissed, onDismiss, contributionShortfall,
+  status, onAdjust, dismissed, onDismiss,
 }: {
   status: OverallStatus;
   onAdjust: () => void;
   dismissed: boolean;
   onDismiss: () => void;
-  contributionShortfall: number | null;
 }) {
   if (dismissed || status === 'no_data') return null;
 
@@ -210,14 +329,11 @@ function StatusBanner({
   }
 
   if (status === 'behind') {
-    const behindMsg = contributionShortfall !== null && contributionShortfall > 0
-      ? `Behind schedule — add ~$${Math.round(contributionShortfall).toLocaleString()} this month to get back on pace`
-      : 'Behind schedule — consider adjusting your plan';
     return (
       <div className="flex flex-col gap-3 bg-[#451a03] border border-[#F59E0B]/30 rounded-2xl px-5 py-4">
         <div className="flex items-center gap-3">
           <AlertTriangle size={18} className="text-[#F59E0B] flex-shrink-0" />
-          <span className="text-[#F59E0B] font-bold text-sm">{behindMsg}</span>
+          <span className="text-[#F59E0B] font-bold text-sm">Behind schedule — consider adjusting your plan</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -853,7 +969,6 @@ export default function GoalDetailScreen() {
           onAdjust={startAdjusting}
           dismissed={bannerDismissed}
           onDismiss={() => setBannerDismissed(true)}
-          contributionShortfall={roadmap.contributionShortfall}
         />
 
         {/* ── Progress card ──────────────────────────────────────────────── */}

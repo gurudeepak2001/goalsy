@@ -1,0 +1,131 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+[Goalsy:native] cold-start — NO dev_browser token in UserDefaults (first launch or cleared)
+[Goalsy:native] restoreClerkCookies — no saved cookies (first launch or cleared)
+Reading from public effective user settings.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/288AD97A-35D5-4DD3-8873-5E7686E7E73B/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+[Goalsy:native] goalsyAuthState + goalsyDbJwt message handlers registered
+Networking process (0x110064190) took 1.138506 seconds to launch
+WebContent[3504] Unable to hide query parameters from script (missing data)
+⚡️  To Native ->  Preferences set 98456653
+⚡️  To Native ->  Preferences get 98456654
+⚡️  To Native ->  Preferences set 98456655
+⚡️  [log] - [Goalsy] App.tsx module loading
+⚡️  [log] - [Goalsy] imports done
+⚡️  [log] - [Goalsy] isCapacitor: true
+⚡️  [log] - [Goalsy] nativeApiHost: goalsy-finance-ui.replit.app
+⚡️  [log] - [Goalsy:jwt] layer1 — no localStorage token
+⚡️  [log] - [Goalsy] clerkPubKey (initial): pk_test_YnVyc3Rpbmct …
+⚡️  [log] - [Goalsy] FAPI_ORIGIN (dev-only interceptor): https://bursting-hedgehog-64.clerk.accounts.dev
+⚡️  [log] - [Goalsy:jwt] fetch interceptor installed
+⚡️  [log] - [Goalsy] module setup complete
+⚡️  TO JS undefined
+⚡️  TO JS {"value":null}
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:jwt] layer2 — no Preferences token (empty)
+⚡️  To Native ->  Preferences set 98456656
+⚡️  TO JS undefined
+⚡️  WebView loaded
+⚡️  [warn] - Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview
+⚡️  [log] - [Goalsy:fapi] /v1/dev_browser → status: 200 | keys: id,instance_id,token,client_id,created_at,updated_at,home_origin
+⚡️  To Native ->  Preferences set 98456657
+⚡️  To Native ->  Preferences set 98456658
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 98456659
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/environment → status: 200 | keys: auth_config,display_config,user_settings,organization_settings,fraud_settings,commerce_settings,api_keys_settings,maintenance_mode,client_debug_mode,partitioned_cookies
+⚡️  To Native ->  Preferences set 98456660
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences ⚡️  [log] - [Goalsy:fapi] /v1/client → client_id: client_3HvwywnUoUxZPPplVrpqsCWGfap | sessions: 0 | last_active: none
+set 98456661
+⚡️  TO JS undefined
+[Goalsy:native] goalsyAuthState — set accessibilityIdentifier to 'goalsy.screen.signin'
+WebContent[3504] xpc_user_sessions_get_foreground_uid() failed with error 1 - Operation not permitted
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 3369E41A-65AD-4B9B-8ABF-3337C3375CEA
+The variant selector cell index number could not be found.
+The variant selector cell index number could not be found.
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 3369E41A-65AD-4B9B-8ABF-3337C3375CEA
+⚡️  To Native ->  Preferences set 98456662
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 98456663
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/client/sign_ins → status: 200 | keys: response,client
+⚡️  [log] - [Goalsy SignIn] status: needs_client_trust
+⚡️  [log] - [Goalsy SignIn] firstFactors: [{"strategy":"password"},{"strategy":"email_code","primary":true,"safeIdentifier":"gurudeepak2001@gmail.com","emailAddressId":"idn_3GTbTjxIjWOEdY7IQqcFJ1k4ZV6"},{"strategy":"reset_password_email_code","primary":true,"safeIdentifier":"gurudeepak2001@gmail.com","emailAddressId":"idn_3GTbTjxIjWOEdY7IQqcFJ1k4ZV6"}]
+⚡️  [log] - [Goalsy SignIn] secondFactors: [{"strategy":"email_code","primary":true,"safeIdentifier":"gurudeepak2001@gmail.com","emailAddressId":"idn_3GTbTjxIjWOEdY7IQqcFJ1k4ZV6"}]
+⚡️  To Native ->  Preferences set 98456664
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 98456665
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/client/sign_ins/sia_3Hvx27nk9wN7TByZufBjzjtk40D/prepare_second_factor → status: 200 | keys: response,client
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = <null selector>, customInfoType = UIEmojiSearchOperations
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<NSLayoutConstraint:0x132f2b110 UILayoutGuide:0x132e7ef40'TUIKeyplane.right'.width == - 1.5   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x132f2b110 UILayoutGuide:0x132e7ef40'TUIKeyplane.right'.width == - 1.5   (active)>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want. 
+	Try this: 
+		(1) look at each constraint and try to figure out which you don't expect; 
+		(2) find the code that added the unwanted constraint or constraints and fix it. 
+(
+    "<NSLayoutConstraint:0x132f2b110 UILayoutGuide:0x132e7ef40'TUIKeyplane.right'.width == - 1.5   (active)>"
+)
+
+Will attempt to recover by breaking constraint 
+<NSLayoutConstraint:0x132f2b110 UILayoutGuide:0x132e7ef40'TUIKeyplane.right'.width == - 1.5   (active)>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+-[RTIInputSystemClient remoteTextInputSessionWithID:textSuggestionsChanged:]  Can only set suggestions for an active session. sessionID = 3369E41A-65AD-4B9B-8ABF-3337C3375CEA
+⚡️  To Native ->  Preferences set 98456666
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 98456667
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/client/sign_ins/sia_3Hvx27nk9wN7TByZufBjzjtk40D/attempt_second_factor → status: 200 | keys: response,client
+⚡️  To Native ->  Preferences set 98456668
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences set 98456669
+⚡️  TO JS undefined
+⚡️  [log] - [Goalsy:fapi] /v1/client/sessions/sess_3Hvx2uo3XEep177CVOHpsS01WCe/touch → status: 200 | keys: response,client
+[Goalsy:native] goalsyAuthState — set accessibilityIdentifier to 'goalsy.screen.dashboard'
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = dismissAutoFillPanel, customInfoType = UIUserInteractionRemoteInputOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = dismissAutoFillPanel, customInfoType = UIUserInteractionRemoteInputOperations
+-[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]  perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation = dismissAutoFillPanel, customInfoType = UIUserInteractionRemoteInputOperations
+[C:4] Error received: Connection interrupted.
+[C:4-1] Error received: Connection interrupted.
+-[RTIInputSystemClient _configureConnection:withMachName:]_block_invoke  Client connection to service was interrupted: <NSXPCConnection: 0x132ce72a0> connection to service with pid -1 named (null)
+[Goalsy:native] saveClerkCookies — reading from live WKWebView cookie store
+Snapshotting a view (0x132ceb000, UIKeyboardImpl) that is not in a visible window requires afterScreenUpdates:YES.
+[Goalsy:native] ClerkCookiePersistence.save — found 0 Clerk cookies (total: 0)
+[Goalsy:native] Saved 0 Clerk cookies to UserDefaults
+[Goalsy:native] saveClerkCookies — reading from live WKWebView cookie store

@@ -1,7 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { verifyClerkJwt } from "./middlewares/verifyClerkJwt";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -37,10 +36,6 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Verify Clerk JWTs via JWKS — no CLERK_SECRET_KEY needed.
-// verifyClerkJwt derives the JWKS URL from VITE_CLERK_PUBLISHABLE_KEY,
-// verifies the Bearer token signature + expiry, and sets res.locals.userId.
-app.use(verifyClerkJwt);
 
 app.use("/api", router);
 
