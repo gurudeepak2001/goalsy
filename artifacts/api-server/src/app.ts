@@ -38,13 +38,16 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Use the baked-in CLERK_PUBLISHABLE_KEY directly.
-// Previously this derived a key from the request host via publishableKeyFromHost,
-// which turned goalsy-finance-ui.replit.app into a pk_live_ key whose JWKS lives
-// behind Replit's mTLS proxy (self-signed cert → JWKS fetch fails → 401 on every
-// request from the Capacitor app).  Using the env var directly lets Clerk fetch
-// JWKS from the real Clerk accounts domain (trusted cert).
-app.use(clerkMiddleware());
+// Use the dev-instance publishable key explicitly so Clerk fetches JWKS from
+// bursting-hedgehog-64.clerk.accounts.dev (trusted cert) instead of the
+// Replit-proxy FAPI (self-signed cert → JWKS fetch fails → 401).
+// VITE_CLERK_PUBLISHABLE_KEY is the dev pk_test_ key baked into the frontend
+// build; it is also available as a server-side env var in the Replit environment.
+// Fall back to CLERK_PUBLISHABLE_KEY if the VITE_ var is absent.
+app.use(clerkMiddleware({
+  publishableKey:
+    process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY,
+}));
 
 app.use("/api", router);
 
