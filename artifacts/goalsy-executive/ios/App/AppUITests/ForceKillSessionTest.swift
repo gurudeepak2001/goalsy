@@ -65,6 +65,12 @@ final class ForceKillSessionTest: XCTestCase {
     /// If the session does NOT survive the kill, the root view's
     /// `accessibilityIdentifier` will be `goalsy.screen.signin` on relaunch and
     /// this test will fail — catching the regression before it ships.
+    ///
+    /// ## Mutation-test validation (confirmed 2026-08-15)
+    /// Temporarily commenting out `clerkPersistence.restore()` on line 168 of
+    /// AppDelegate.swift causes this test to fail with:
+    ///   "Sign-in screen appeared after force-kill — session was NOT restored."
+    /// Restoring the call returns the test to green.  The test is a real guard.
     func testSessionSurvivesForceKill() {
 
         // ── Step 1: initial launch ────────────────────────────────────────────
