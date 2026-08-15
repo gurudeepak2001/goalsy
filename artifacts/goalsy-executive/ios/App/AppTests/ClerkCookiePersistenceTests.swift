@@ -26,7 +26,7 @@ final class ClerkCookiePersistenceTests: XCTestCase {
     private var testDefaults: UserDefaults!
     private var cookieStore: WKHTTPCookieStore!
 
-    private let testSuite  = "com.goalsy.executive.tests.cookie-round-trip"
+    private let testSuite  = "com.myui.goalsyexecutive.tests.cookie-round-trip"
     private let testKey    = "cm_clerk_cookies_v2_test"
     private let clerkDomain = ".clerk.goalsy.accounts.dev"
 

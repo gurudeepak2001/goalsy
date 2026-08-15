@@ -118,7 +118,7 @@ final class CookieRotationTest: XCTestCase {
 
         // ── 6. Terminate — cookies are now in UserDefaults ───────────────────
         // The CI shell step reads them via:
-        //   xcrun simctl get_app_container booted com.goalsy.executive data
+        //   xcrun simctl get_app_container booted com.myui.goalsyexecutive data
         //   plutil -convert json … | python3 -c "…['cm_clerk_cookies_v2']…"
         app.terminate()
     }

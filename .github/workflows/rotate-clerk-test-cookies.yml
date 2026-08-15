@@ -55,7 +55,7 @@ jobs:
     env:
       CLERK_ROTATE_EMAIL:    ${{ github.event.inputs.clerk_rotate_email }}
       CLERK_ROTATE_PASSWORD: ${{ secrets.CLERK_ROTATE_PASSWORD }}
-      BUNDLE_ID:             com.goalsy.executive
+      BUNDLE_ID:             com.myui.goalsyexecutive
       PLIST_KEY:             cm_clerk_cookies_v2
 
     steps:
