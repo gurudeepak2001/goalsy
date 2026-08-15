@@ -30,7 +30,11 @@ function fapiHostFromPublishableKey(pk: string): string {
 }
 
 // Build the JWKS URI and a cached remote JWKS set (jose caches internally).
-const PK = process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY ?? "";
+// Prefer CLERK_PUBLISHABLE_KEY (explicitly updated to pk_test_ dev key).
+// VITE_CLERK_PUBLISHABLE_KEY may be pk_live_ in the production deployment
+// environment (different from the dev workspace value), so we do NOT use it
+// as the primary source here.
+const PK = process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
 const FAPI_HOST = PK ? fapiHostFromPublishableKey(PK) : "";
 const JWKS_URL = FAPI_HOST ? `https://${FAPI_HOST}/.well-known/jwks.json` : "";
 const EXPECTED_ISSUER = FAPI_HOST ? `https://${FAPI_HOST}` : "";
