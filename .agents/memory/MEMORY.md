@@ -4,3 +4,4 @@
 - [Clerk FAPI session detection](clerk-fapi-session-detection.md) — sign-in/touch responses put sessions under data.client.sessions, not data.response.sessions; check both.
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
+- [Clerk API server auth](clerk-api-auth.md) — use jose JWKS, never @clerk/express; CLERK_SECRET_KEY is an invalid placeholder.
