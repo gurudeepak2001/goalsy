@@ -466,18 +466,28 @@ if (isDevClerkInstance && FAPI_ORIGIN) {
             const path = (input instanceof Request ? input.url : String(input))
               .replace(FAPI_ORIGIN, '').split('?')[0];
             // Different FAPI endpoints return different shapes:
-            //   /v1/client, /v1/environment  → { response: { id, sessions, ... } }
+            //   /v1/client               → { response: { id, sessions:[...], ... } }
+            //   /v1/client/sign_ins/*    → { response: { ...sign_in }, client: { sessions:[...] } }
+            //   /v1/client/sessions/*/touch → { response: { id }, client: { sessions:[...] } }
             //   /v1/client/sessions/*/tokens → { jwt: '...' }  (not a client object)
-            //   /v1/client/sessions/*/touch  → { response: { id } }
-            const isClientShape = data?.response?.id !== undefined && Array.isArray(data?.response?.sessions);
+            //
+            // Always check BOTH data.response.sessions AND data.client.sessions so
+            // that sign-in / MFA / touch responses correctly unlock token persistence.
+            const responseSessions: unknown[] = Array.isArray(data?.response?.sessions)
+              ? data.response.sessions
+              : Array.isArray(data?.client?.sessions)
+                ? data.client.sessions
+                : [];
+            const isClientShape = (data?.response?.id !== undefined || data?.client?.id !== undefined)
+              && responseSessions !== null; // true for any client-envelope response
             const isTokenShape  = typeof data?.jwt === 'string';
-            if (isClientShape) {
-              const clientId = data.response.id;
-              const sessions = (data.response.sessions ?? []).length;
+            if (isClientShape && !isTokenShape) {
+              const clientId = data?.response?.id ?? data?.client?.id ?? '?';
+              const sessions = responseSessions.length;
               console.log(`[Goalsy:fapi] ${path}`,
                 '→ client_id:', clientId,
                 '| sessions:', sessions,
-                '| last_active:', data.response.last_active_session_id ?? 'none');
+                '| last_active:', data?.response?.last_active_session_id ?? data?.client?.last_active_session_id ?? 'none');
               // Unlock token persistence once FAPI confirms an active session.
               if (sessions > 0 && !hasActiveSession) {
                 hasActiveSession = true;
