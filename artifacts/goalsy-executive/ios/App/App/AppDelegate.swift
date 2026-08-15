@@ -2,6 +2,47 @@ import UIKit
 import Capacitor
 import WebKit
 
+// ── GoalsyDbJwtHandler ───────────────────────────────────────────────────────
+// Receives the Clerk dev-browser token (__clerk_db_jwt) from JS and writes it
+// directly to UserDefaults while the app is in the foreground — bypassing the
+// async Capacitor Preferences bridge and the frozen-JS background problem.
+//
+// WKWebView pauses JavaScript when the app backgrounds, so any JS-side save
+// (Preferences.set / localStorage.setItem) triggered by a visibilitychange
+// event may never complete.  By posting to this handler from JS the moment the
+// token is confirmed (inside flushPendingDbJwt / persistDbJwt — both in the
+// foreground), we guarantee a synchronous disk write via UserDefaults.synchronize()
+// before the user can even reach the app switcher.
+//
+// Key: "CapacitorStorage.cm_clerk_db_jwt" — Capacitor Preferences uses the
+// "CapacitorStorage." prefix, so Preferences.get({ key: "cm_clerk_db_jwt" })
+// in JS reads the same UserDefaults entry this handler writes.
+private final class GoalsyDbJwtHandler: NSObject, WKScriptMessageHandler {
+    static let userDefaultsKey = "CapacitorStorage.cm_clerk_db_jwt"
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        guard let token = message.body as? String, token.count >= 10 else {
+            NSLog("[Goalsy:native] goalsyDbJwt — ignored (empty or too short)")
+            return
+        }
+        UserDefaults.standard.set(token, forKey: GoalsyDbJwtHandler.userDefaultsKey)
+        UserDefaults.standard.synchronize()
+        NSLog("[Goalsy:native] goalsyDbJwt — saved dev_browser token (len: %d)", token.count)
+    }
+}
+
+private final class GoalsyDbJwtHandlerProxy: NSObject, WKScriptMessageHandler {
+    weak var target: GoalsyDbJwtHandler?
+    init(_ target: GoalsyDbJwtHandler) { self.target = target }
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) { target?.userContentController(userContentController, didReceive: message) }
+}
+
 // ── GoalsyAuthStateHandler ────────────────────────────────────────────────────
 // WKScriptMessageHandler that receives auth-state messages posted by the web
 // layer (App.tsx → postAuthScreenToNative) and sets a stable
@@ -56,6 +97,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // Auth-state bridge: set up once when Capacitor's WKWebView is available.
     private let authStateHandler = GoalsyAuthStateHandler()
+    private let dbJwtHandler = GoalsyDbJwtHandler()
     private var authHandlerRegistered = false
 
     /// Handles the Clerk cookie backup/restore round-trip.
@@ -169,8 +211,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // back to authStateHandler, letting both be deallocated normally.
         let proxy = GoalsyAuthStateHandlerProxy(authStateHandler)
         webView.configuration.userContentController.add(proxy, name: "goalsyAuthState")
+
+        // Dev-browser token handler: JS posts the token here the instant it is
+        // confirmed (flushPendingDbJwt / persistDbJwt), while still in the
+        // foreground.  We write it to UserDefaults and synchronize immediately.
+        let dbJwtProxy = GoalsyDbJwtHandlerProxy(dbJwtHandler)
+        webView.configuration.userContentController.add(dbJwtProxy, name: "goalsyDbJwt")
+
         authHandlerRegistered = true
-        NSLog("[Goalsy:native] goalsyAuthState message handler registered")
+        NSLog("[Goalsy:native] goalsyAuthState + goalsyDbJwt message handlers registered")
     }
 
     func application(_ app: UIApplication, open url: URL,

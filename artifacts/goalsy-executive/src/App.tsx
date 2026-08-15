@@ -160,7 +160,8 @@ function flushPendingDbJwt(): void {
   if (!token || token.length < MIN_JWT_LENGTH) return;
   if (token === cachedDbJwt && hadSavedToken) return; // already have it from last launch
   cachedDbJwt = token;
-  saveDbJwtToLs(token); // best-effort fast path; reliable path fires on background event
+  notifyNativeDbJwt(token); // primary: synchronous UserDefaults write via native handler
+  saveDbJwtToLs(token);     // secondary: localStorage best-effort
   console.log('[Goalsy:jwt] flushed __clerk_db_jwt on session confirm (len:', token.length, ')');
   debugRecord({ step: 'flush', tokenLen: token.length });
 }
@@ -289,9 +290,22 @@ function restoreDbJwtIntoUrl(): void {
   restoreDone = true;
 }
 
+// Post the token to the native GoalsyDbJwtHandler while in the foreground.
+// The handler writes it to UserDefaults.standard with synchronize() immediately —
+// a synchronous disk write that survives any subsequent kill.
+// This is the primary reliable save path; background/localStorage are belt-and-suspenders.
+function notifyNativeDbJwt(token: string): void {
+  try {
+    const wk = (window as any).webkit;
+    if (wk?.messageHandlers?.goalsyDbJwt) {
+      wk.messageHandlers.goalsyDbJwt.postMessage(token);
+    }
+  } catch { /* never fatal */ }
+}
+
 // Called from ApiClientBootstrap's visibilitychange handler (background event).
-// iOS calls UserDefaults.synchronize() before suspending, so this write survives
-// a subsequent force-kill from the app switcher.
+// Belt-and-suspenders: saves cachedDbJwt to Preferences in case the native
+// message handler hasn't fired yet (e.g. first launch before handler registers).
 export function saveDbJwtToPrefsOnBackground(): void {
   if (!isDevClerkInstance || !cachedDbJwt) return;
   Preferences.set({ key: DB_JWT_PREF_KEY, value: cachedDbJwt }).catch(() => {});
@@ -317,7 +331,8 @@ function persistDbJwt(token: string, source: string): void {
       return;
     }
     cachedDbJwt = token;
-    saveDbJwtToLs(token); // best-effort fast path; reliable path is bg-save
+    notifyNativeDbJwt(token); // primary: synchronous UserDefaults write via native handler
+    saveDbJwtToLs(token);     // secondary: localStorage best-effort
     console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
     debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
