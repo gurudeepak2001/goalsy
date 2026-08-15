@@ -226,7 +226,7 @@ export interface WeekMilestone {
   isPast: boolean;
 }
 
-function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
+export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
   if (goal.targetAmount <= 0) return [];
   const now = new Date();
   const createdAt = new Date(goal.createdAt);
@@ -263,13 +263,25 @@ function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>):
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
     // For past weeks with a logged confirmation, compare that actual figure
     // against the expected — not the goal's running currentAmount total.
-    // Weeks without a confirmed entry fall back to currentAmount as a proxy.
-    const referenceAmount = isPast
-      ? (confirmedMap.get(i) ?? goal.currentAmount)
-      : 0;
-    const status: WeekMilestone['status'] = isPast
-      ? referenceAmount >= expectedAmount ? 'reached' : 'behind'
-      : 'upcoming';
+    // Weeks without a confirmed entry fall back to currentAmount as a proxy,
+    // but only allow a positive ('reached') inference from that proxy.
+    // 'behind' is only asserted when there is explicit confirmed evidence that
+    // the user fell short — never inferred from an absent/unlogged entry.
+    // This prevents brand-new goals (currentAmount ≈ 0) from immediately
+    // showing amber 'behind' markers that contradict an on_track status banner.
+    const confirmedAmount = confirmedMap.get(i);
+    let status: WeekMilestone['status'];
+    if (!isPast) {
+      status = 'upcoming';
+    } else if (confirmedAmount !== undefined) {
+      // Explicit progress log: trust it fully.
+      status = confirmedAmount >= expectedAmount ? 'reached' : 'behind';
+    } else {
+      // No explicit log: use currentAmount as a positive proxy only.
+      // If currentAmount already meets the bar, mark 'reached'; otherwise
+      // stay neutral ('upcoming') — we cannot claim 'behind' without evidence.
+      status = goal.currentAmount >= expectedAmount ? 'reached' : 'upcoming';
+    }
 
     milestones.push({
       weekIndex: i,
