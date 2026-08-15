@@ -15,6 +15,12 @@ description: CLERK_SECRET_KEY is set to invalid placeholder text; JWT auth bypas
 But the real post-sign-in `__clerk_db_jwt` is ALSO ~31 chars → `persistDbJwt` never saves anything → session lost on every force-kill.
 **Fix**: Lower to 10 and gate saves on `hasActiveSession` flag (set when `/v1/client` FAPI response shows `sessions > 0`).
 
+## CLERK_JWKS_URL env var (the real fix)
+Setting `CLERK_JWKS_URL=https://bursting-hedgehog-64.clerk.accounts.dev/.well-known/jwks.json` as a shared env var bypasses all key-derivation logic. The production deployment had a different publishable key value than the dev workspace, making key derivation unreliable. `verifyClerkJwt.ts` now reads `CLERK_JWKS_URL` first; if set, it uses it directly without touching any publishable key.
+Also set `CLERK_ISSUER=https://bursting-hedgehog-64.clerk.accounts.dev` for the JWT issuer check.
+
+**Rule: never derive JWKS URL from a publishable key in a deployed server.** Set `CLERK_JWKS_URL` explicitly.
+
 ## The fix (in place)
 Replaced `clerkMiddleware` entirely with a custom `verifyClerkJwt` middleware (`artifacts/api-server/src/middlewares/verifyClerkJwt.ts`) that:
 - Uses `jose`'s `createRemoteJWKSet` + `jwtVerify` to verify tokens
