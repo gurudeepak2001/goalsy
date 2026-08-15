@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
+import { verifyClerkJwt } from "./middlewares/verifyClerkJwt";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -37,16 +37,10 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Use the dev-instance publishable key explicitly so Clerk fetches JWKS from
-// bursting-hedgehog-64.clerk.accounts.dev (trusted cert) instead of the
-// Replit-proxy FAPI (self-signed cert → JWKS fetch fails → 401).
-// VITE_CLERK_PUBLISHABLE_KEY is the dev pk_test_ key baked into the frontend
-// build; it is also available as a server-side env var in the Replit environment.
-// Fall back to CLERK_PUBLISHABLE_KEY if the VITE_ var is absent.
-app.use(clerkMiddleware({
-  publishableKey:
-    process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY,
-}));
+// Verify Clerk JWTs via JWKS — no CLERK_SECRET_KEY needed.
+// verifyClerkJwt derives the JWKS URL from VITE_CLERK_PUBLISHABLE_KEY,
+// verifies the Bearer token signature + expiry, and sets res.locals.userId.
+app.use(verifyClerkJwt);
 
 app.use("/api", router);
 
