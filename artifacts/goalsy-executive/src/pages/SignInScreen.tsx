@@ -71,7 +71,8 @@ export default function SignInScreen() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
-        navigate('/financial-connection');
+        // Defer by one frame so Clerk's isSignedIn propagates before AuthGate renders.
+        requestAnimationFrame(() => navigate('/financial-connection'));
         return;
       }
 
@@ -159,7 +160,7 @@ export default function SignInScreen() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
-        navigate('/financial-connection');
+        requestAnimationFrame(() => navigate('/financial-connection'));
       } else {
         setMfaError('Verification incomplete. Please try again.');
       }
@@ -286,7 +287,7 @@ export default function SignInScreen() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Password Updated', description: 'Signed in with your new password.' });
-        navigate('/financial-connection');
+        requestAnimationFrame(() => navigate('/financial-connection'));
       } else {
         setResetError('Additional verification is required to finish resetting your password.');
       }

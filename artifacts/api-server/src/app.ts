@@ -2,22 +2,9 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
 import type { IncomingHttpHeaders } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-
-/**
- * Returns the first effective public hostname for the given request,
- * preferring x-forwarded-host over the Host header so callers behind a
- * proxy see the original client-facing host.
- */
-function getClerkProxyHost(req: { headers: IncomingHttpHeaders }): string | undefined {
-  const forwarded = req.headers["x-forwarded-host"];
-  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  const firstHop = raw?.split(",")[0]?.trim();
-  return firstHop || req.headers.host?.trim() || undefined;
-}
 
 const app: Express = express();
 
@@ -51,14 +38,13 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+// Use the baked-in CLERK_PUBLISHABLE_KEY directly.
+// Previously this derived a key from the request host via publishableKeyFromHost,
+// which turned goalsy-finance-ui.replit.app into a pk_live_ key whose JWKS lives
+// behind Replit's mTLS proxy (self-signed cert → JWKS fetch fails → 401 on every
+// request from the Capacitor app).  Using the env var directly lets Clerk fetch
+// JWKS from the real Clerk accounts domain (trusted cert).
+app.use(clerkMiddleware());
 
 app.use("/api", router);
 

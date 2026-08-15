@@ -87,7 +87,10 @@ export default function CreateAccountScreen() {
         await setActive({ session: result.createdSessionId });
         toast({ title: 'Account Created', description: 'Your executive account is ready.' });
         setVerifyOpen(false);
-        setLocation('/financial-connection');
+        // Defer navigation by one frame so Clerk's React auth state (isSignedIn)
+        // has time to propagate before AuthGate renders the new route.
+        // Without this, AuthGate sees isSignedIn=false and redirects to /welcome.
+        requestAnimationFrame(() => setLocation('/financial-connection'));
       } else {
         setVerifyError('Verification incomplete. Please try again.');
       }
