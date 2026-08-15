@@ -119,7 +119,7 @@ interface RoadmapResult {
   requiredMonthly: number | null;
 }
 
-function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): RoadmapResult {
+export function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): RoadmapResult {
   const gap = Math.max(0, goal.targetAmount - goal.currentAmount);
   const monthly = goal.monthlyContribution ?? 0;
   const now = new Date();
@@ -153,6 +153,14 @@ function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefined): Ro
       if (goal.currentAmount >= expectedByNow * 1.05) overallStatus = 'ahead';
       else if (goal.currentAmount < expectedByNow * 0.9) overallStatus = 'behind';
       else overallStatus = 'on_track';
+      // Grace window: a brand-new deadline goal (created <3 days ago) has had
+      // almost no time to accumulate savings. The interpolated expectedByNow is
+      // a tiny positive number and currentAmount=0 would immediately trip the
+      // 'behind' threshold. Clamp to 'on_track' for the first 3 days.
+      const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+      if (overallStatus === 'behind' && elapsedMs < GRACE_MS) {
+        overallStatus = 'on_track';
+      }
     }
   } else if (monthly > 0) {
     overallStatus = 'on_track';
