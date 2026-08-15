@@ -54,19 +54,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Patch CapApp-SPM package name for @capacitor/preferences
+      - name: Dereference @capacitor/preferences symlink for SPM
         working-directory: artifacts/goalsy-executive
         run: |
-          INSTALLED_NAME=$(grep '^    name:' \
-            node_modules/@capacitor/preferences/Package.swift \
-            | sed 's/.*"\(.*\)".*/\1/')
-          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
-          sed -i '' \
-            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
-            ios/App/CapApp-SPM/Package.swift || \
-          sed -i \
-            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
-            ios/App/CapApp-SPM/Package.swift
+          LINK="node_modules/@capacitor/preferences"
+          REAL=$(python3 -c "import os; print(os.path.realpath('$LINK'))")
+          echo "Symlink → $REAL"
+          rm -rf "$LINK"
+          cp -r "$REAL" "$LINK"
+          echo "Package name in resolved copy: $(grep '^    name:' $LINK/Package.swift)"
 
       - name: Run unit tests
         working-directory: artifacts/goalsy-executive/ios/App
@@ -122,19 +118,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Patch CapApp-SPM package name for @capacitor/preferences
+      - name: Dereference @capacitor/preferences symlink for SPM
         working-directory: artifacts/goalsy-executive
         run: |
-          INSTALLED_NAME=$(grep '^    name:' \
-            node_modules/@capacitor/preferences/Package.swift \
-            | sed 's/.*"\(.*\)".*/\1/')
-          echo "Installed @capacitor/preferences package name: $INSTALLED_NAME"
-          sed -i '' \
-            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
-            ios/App/CapApp-SPM/Package.swift || \
-          sed -i \
-            "s/package: \"CapacitorPreferences\"/package: \"$INSTALLED_NAME\"/g" \
-            ios/App/CapApp-SPM/Package.swift
+          LINK="node_modules/@capacitor/preferences"
+          REAL=$(python3 -c "import os; print(os.path.realpath('$LINK'))")
+          echo "Symlink → $REAL"
+          rm -rf "$LINK"
+          cp -r "$REAL" "$LINK"
+          echo "Package name in resolved copy: $(grep '^    name:' $LINK/Package.swift)"
 
       - name: Boot simulator
         run: |
