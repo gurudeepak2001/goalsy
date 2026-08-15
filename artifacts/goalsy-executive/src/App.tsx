@@ -134,10 +134,17 @@ let hadSavedToken = false;   // a token existed in Preferences at launch
 let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 
 // The __clerk_db_jwt is a dev-browser device token — it is NOT a session JWT.
-// Clerk dev instances generate these as short base64 strings (~31 chars), so
-// the minimum is intentionally low. We only discard truly empty/whitespace
-// values that would be useless to pass to Clerk.
-const MIN_JWT_LENGTH = 100;
+// Clerk dev instances generate these as short base64 strings (~31 chars).
+// We accept any non-trivial token length, but ONLY persist after we have
+// confirmed an active session from FAPI (hasActiveSession guard below) —
+// this prevents saving the pre-sign-in token which, when restored, causes
+// Clerk to start a fresh session-less browser on next launch.
+const MIN_JWT_LENGTH = 10;
+
+// Set to true the first time a /v1/client FAPI response confirms ≥1 active
+// session.  persistDbJwt refuses to write until this flag is true so a
+// pre-sign-in dev_browser token never overwrites a good saved token.
+let hasActiveSession = false;
 
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
 // Every entry is written to Preferences immediately, so it survives force-kill
@@ -209,15 +216,21 @@ function restoreDbJwtIntoUrl(): void {
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
-    // Never persist a value too short to be a real JWT — a truncated or bogus
-    // URL param would overwrite the good saved token and sign the user out
-    // on next launch.
     if (token.length < MIN_JWT_LENGTH) return;
     // Clobber guard: until the preload+restore sequence has settled we cannot
     // know whether a saved token exists — refuse ALL writes so a freshly minted
     // (session-less) token can never overwrite an unread saved one.
     if (!restoreDone) {
       debugRecord({ step: 'persist-refused', source, reason: 'restore not settled — refusing write' });
+      return;
+    }
+    // Session guard: only persist once FAPI has confirmed an active session.
+    // A pre-sign-in dev_browser token, if restored on next launch, causes
+    // Clerk to start a fresh session-less browser — exactly what we are trying
+    // to avoid.  We wait until /v1/client confirms ≥1 session before trusting
+    // any token worth saving.
+    if (!hasActiveSession) {
+      debugRecord({ step: 'persist-refused', source, reason: 'no active session yet — refusing write' });
       return;
     }
     cachedDbJwt = token;
@@ -360,6 +373,12 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
                 '→ client_id:', clientId,
                 '| sessions:', sessions,
                 '| last_active:', data.response.last_active_session_id ?? 'none');
+              // Unlock token persistence once FAPI confirms an active session.
+              if (sessions > 0 && !hasActiveSession) {
+                hasActiveSession = true;
+                console.log('[Goalsy:jwt] active session confirmed — __clerk_db_jwt persistence enabled');
+                debugRecord({ step: 'hasActiveSession', sessions });
+              }
               if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
                 debugRecord({ step: 'fapi', path, status: response.status,
                   clientId, sessions,

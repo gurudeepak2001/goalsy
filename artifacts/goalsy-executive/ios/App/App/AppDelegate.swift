@@ -136,7 +136,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         registerAuthStateHandlerIfNeeded()
     }
 
-    func applicationWillTerminate(_ application: UIApplication) {}
+    func applicationWillTerminate(_ application: UIApplication) {
+        // applicationDidEnterBackground fires when the user opens the app switcher,
+        // so cookies are usually already saved by the time they swipe the card.
+        // This is a belt-and-suspenders save for the rare case where the process
+        // is terminated without a prior background transition (e.g. force-kill
+        // directly from the foreground on older iOS versions).
+        // We block the main thread for up to 4 s so getAllCookies() — which is
+        // async — has time to complete before iOS sends SIGKILL (~5 s budget).
+        let sema = DispatchSemaphore(value: 0)
+        clerkPersistence.save { sema.signal() }
+        _ = sema.wait(timeout: .now() + 4)
+    }
 
     // MARK: - Auth-state accessibility bridge
 

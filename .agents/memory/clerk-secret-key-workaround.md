@@ -10,6 +10,11 @@ description: CLERK_SECRET_KEY is set to invalid placeholder text; JWT auth bypas
 
 **Why:** Clerk's `clerkMiddleware` from `@clerk/express` uses the secret key internally when authenticating backend API calls to Clerk. With an invalid secret key, JWT verification via the middleware fails → every authenticated API call returns 401.
 
+## MIN_JWT_LENGTH gotcha
+`MIN_JWT_LENGTH` was raised to 100 to block a bogus 31-char pre-sign-in dev_browser token.
+But the real post-sign-in `__clerk_db_jwt` is ALSO ~31 chars → `persistDbJwt` never saves anything → session lost on every force-kill.
+**Fix**: Lower to 10 and gate saves on `hasActiveSession` flag (set when `/v1/client` FAPI response shows `sessions > 0`).
+
 ## The fix (in place)
 Replaced `clerkMiddleware` entirely with a custom `verifyClerkJwt` middleware (`artifacts/api-server/src/middlewares/verifyClerkJwt.ts`) that:
 - Uses `jose`'s `createRemoteJWKSet` + `jwtVerify` to verify tokens
