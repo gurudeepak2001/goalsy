@@ -30,5 +30,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Build api-client-react declarations so the project reference resolves.
+      # The lib uses composite: true + emitDeclarationOnly; without this step
+      # tsc errors with TS6305 on every file that imports from it.
+      - name: Build @workspace/api-client-react declarations
+        run: pnpm --filter @workspace/api-client-react exec tsc -p tsconfig.json
+
       - name: Run frontend typecheck
         run: pnpm --filter @workspace/goalsy-executive run typecheck
