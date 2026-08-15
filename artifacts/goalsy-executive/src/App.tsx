@@ -158,9 +158,9 @@ function flushPendingDbJwt(): void {
   const token = pendingDbJwt ?? cachedDbJwt;
   pendingDbJwt = null;
   if (!token || token.length < MIN_JWT_LENGTH) return;
-  if (token === cachedDbJwt && hadSavedToken) return; // already in Preferences from last launch
+  if (token === cachedDbJwt && hadSavedToken) return; // already saved from last launch
   cachedDbJwt = token;
-  Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
+  saveDbJwt(token); // synchronous — survives force-kill
   console.log('[Goalsy:jwt] flushed __clerk_db_jwt on session confirm (len:', token.length, ')');
   debugRecord({ step: 'flush', tokenLen: token.length });
 }
@@ -185,86 +185,87 @@ function debugRecord(entry: Record<string, unknown>): void {
 // internal testing.
 const isDevClerkInstance = isCapacitor && clerkPubKey.startsWith('pk_test_');
 
-async function preloadDbJwt(): Promise<void> {
-  if (!isDevClerkInstance) return;
+// ── localStorage-backed __clerk_db_jwt persistence ───────────────────────────
+//
+// WHY localStorage AND NOT Capacitor Preferences:
+//   Preferences.set() routes through the WKWebView message bridge (JS → Swift →
+//   UserDefaults).  That bridge call is async (~10-50 ms).  If the user force-
+//   kills the app before the native side processes the message, the write is
+//   silently lost.  This made every prior fix unreliable under instant force-kill.
+//
+//   WKWebView's localStorage is DISK-BACKED and SYNCHRONOUS.  Writes complete in
+//   the same JS turn with no native round-trip, so they survive force-kill with
+//   no timing dependency.  iOS only clears it on explicit "Clear Website Data" in
+//   Settings — not on normal app restarts, updates, or kills.
+//
+// RESTORE STRATEGY:
+//   We read from localStorage synchronously at module-evaluation time (before
+//   React or Clerk loads) and immediately patch window.location so Clerk's
+//   devBrowser.setup() finds the token in the URL — the earliest possible moment.
+//   This replaces the async preloadDbJwt()+restoreDbJwtIntoUrl() chain entirely.
+
+function saveDbJwt(token: string): void {
+  try { localStorage.setItem(DB_JWT_PREF_KEY, token); } catch { /* quota or private */ }
+}
+function loadDbJwt(): string | null {
+  try { return localStorage.getItem(DB_JWT_PREF_KEY); } catch { return null; }
+}
+function clearDbJwt(): void {
+  try { localStorage.removeItem(DB_JWT_PREF_KEY); } catch { /* ignore */ }
+}
+
+// ── Synchronous early restore (runs at module level, before React) ────────────
+if (isDevClerkInstance) {
   try {
-    const { value } = await Preferences.get({ key: DB_JWT_PREF_KEY });
-    if (value && value.length >= MIN_JWT_LENGTH) {
-      cachedDbJwt = value;
+    const saved = loadDbJwt();
+    if (saved && saved.length >= MIN_JWT_LENGTH) {
+      cachedDbJwt = saved;
       hadSavedToken = true;
-      console.log('[Goalsy:jwt] preloaded __clerk_db_jwt (len:', value.length, ')');
-      debugRecord({ step: 'preload', found: true, tokenLen: value.length });
-    } else if (value) {
-      // Too short to be a real JWT — discard so we don't poison Clerk's session.
-      Preferences.remove({ key: DB_JWT_PREF_KEY }).catch(() => {});
-      console.log('[Goalsy:jwt] discarded corrupt stored JWT (len:', value.length, ')');
-      debugRecord({ step: 'preload', found: true, discarded: true, tokenLen: value.length });
+      // Patch the URL immediately so Clerk picks it up from window.location.
+      const url = new URL(window.location.href);
+      if (!url.searchParams.get('__clerk_db_jwt')) {
+        url.searchParams.set('__clerk_db_jwt', saved);
+        window.history.replaceState(null, '', url.toString());
+      }
+      restoreDone = true;
+      console.log('[Goalsy:jwt] ✓ restored __clerk_db_jwt from localStorage (len:', saved.length, ')');
+      debugRecord({ step: 'restore-sync', found: true, tokenLen: saved.length });
     } else {
+      if (saved) clearDbJwt(); // discard corrupt/short value
+      restoreDone = true;
       console.log('[Goalsy:jwt] no saved __clerk_db_jwt — first launch');
-      debugRecord({ step: 'preload', found: false });
+      debugRecord({ step: 'restore-sync', found: false });
     }
   } catch (err) {
-    console.log('[Goalsy:jwt] preload skipped:', err);
-    debugRecord({ step: 'preload', error: String(err) });
+    restoreDone = true;
+    debugRecord({ step: 'restore-sync', error: String(err) });
   }
 }
 
-// ── The actual restore: hand the token to Clerk through its own front door ───
-// clerk-js's devBrowser.setup() looks for __clerk_db_jwt in the page URL's
-// search params FIRST (extractDevBrowserFromURL), before checking its own
-// storage or minting a new token via POST /v1/dev_browser.  If we put the
-// saved token in the URL before Clerk initializes, Clerk adopts it natively,
-// decorates every FAPI request itself (onBeforeRequest), and cleans the URL.
-// No fetch-level injection needed — that approach fought Clerk's own layer.
-function restoreDbJwtIntoUrl(): void {
-  if (!isDevClerkInstance) return;
-  try {
-    if (!cachedDbJwt) {
-      restoreDone = true;
-      debugRecord({ step: 'restore', skipped: 'no saved token' });
-      return;
-    }
-    const url = new URL(window.location.href);
-    if (!url.searchParams.get('__clerk_db_jwt')) {
-      url.searchParams.set('__clerk_db_jwt', cachedDbJwt);
-      window.history.replaceState(null, '', url.toString());
-    }
-    restoreDone = true;
-    console.log('[Goalsy:jwt] restored __clerk_db_jwt into URL for Clerk pickup');
-    debugRecord({ step: 'restore', ok: true, tokenLen: cachedDbJwt.length });
-  } catch (err) {
-    restoreDone = true;
-    debugRecord({ step: 'restore', error: String(err) });
-  }
-}
+// Keep preloadDbJwt as a no-op so the existing _preloadPromise chain still
+// works without changes downstream.  Restore already happened synchronously above.
+async function preloadDbJwt(): Promise<void> { /* restore done synchronously above */ }
+function restoreDbJwtIntoUrl(): void { /* restore done synchronously above */ }
 
 function persistDbJwt(token: string, source: string): void {
   try {
     if (!token || token === cachedDbJwt) return;
     if (token.length < MIN_JWT_LENGTH) return;
-    // Clobber guard: until the preload+restore sequence has settled we cannot
-    // know whether a saved token exists — refuse ALL writes so a freshly minted
-    // (session-less) token can never overwrite an unread saved one.
+    // Clobber guard: refuse writes before the restore has settled.
     if (!restoreDone) {
-      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled — refusing write' });
+      debugRecord({ step: 'persist-refused', source, reason: 'restore not settled' });
       return;
     }
     // Session guard: only persist once FAPI has confirmed an active session.
-    // A pre-sign-in dev_browser token, if restored on next launch, causes
-    // Clerk to start a fresh session-less browser — exactly what we are trying
-    // to avoid.  We wait until /v1/client confirms ≥1 session before trusting
-    // any token worth saving.
+    // A pre-sign-in dev_browser token restored on next launch causes Clerk to
+    // open a fresh session-less browser — exactly what we must avoid.
     if (!hasActiveSession) {
-      // Buffer the token so flushPendingDbJwt() can save it the instant
-      // the /v1/client response confirms sessions > 0.  This closes the race
-      // where the request URL carries __clerk_db_jwt BEFORE the response that
-      // sets hasActiveSession arrives.
-      pendingDbJwt = token;
+      pendingDbJwt = token; // buffered; flushed when session is confirmed
       debugRecord({ step: 'persist-buffered', source, tokenLen: token.length });
       return;
     }
     cachedDbJwt = token;
-    Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
+    saveDbJwt(token); // synchronous localStorage write — survives force-kill
     console.log('[Goalsy:jwt] persisted __clerk_db_jwt (len:', token.length, ', source:', source, ')');
     debugRecord({ step: 'persist', source, tokenLen: token.length });
   } catch { /* never crash the fetch call */ }
