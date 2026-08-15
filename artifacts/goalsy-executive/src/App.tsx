@@ -137,7 +137,7 @@ let restoreDone = false;     // restoreDbJwtIntoUrl() has run
 // Clerk dev instances generate these as short base64 strings (~31 chars), so
 // the minimum is intentionally low. We only discard truly empty/whitespace
 // values that would be useless to pass to Clerk.
-const MIN_JWT_LENGTH = 8;
+const MIN_JWT_LENGTH = 100;
 
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
 // Every entry is written to Preferences immediately, so it survives force-kill
