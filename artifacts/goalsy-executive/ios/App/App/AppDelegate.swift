@@ -147,6 +147,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             NSLog("[Goalsy:native] XCUITest seed — wrote GOALSY_UITEST_CLERK_COOKIES to UserDefaults (%d bytes)", data.count)
         }
 
+        // ── Dev-browser token diagnostic ─────────────────────────────────────
+        // Log the saved __clerk_db_jwt token on every cold start so the Xcode
+        // console confirms whether the native-handler save path is working.
+        // Key format: "CapacitorStorage.<key>" — matches Capacitor Preferences.
+        let dbJwtKey = GoalsyDbJwtHandler.userDefaultsKey
+        if let saved = UserDefaults.standard.string(forKey: dbJwtKey) {
+            NSLog("[Goalsy:native] cold-start — found dev_browser token in UserDefaults (len: %d)", saved.count)
+        } else {
+            NSLog("[Goalsy:native] cold-start — NO dev_browser token in UserDefaults (first launch or cleared)")
+        }
+
         // ── Normal restore ────────────────────────────────────────────────────
         // Restore Clerk session cookies into WKHTTPCookieStore BEFORE the WebView
         // makes its first network request.  Force-kill wipes WKHTTPCookieStore

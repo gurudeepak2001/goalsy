@@ -158,12 +158,19 @@ function flushPendingDbJwt(): void {
   const token = pendingDbJwt ?? cachedDbJwt;
   pendingDbJwt = null;
   if (!token || token.length < MIN_JWT_LENGTH) return;
-  if (token === cachedDbJwt && hadSavedToken) return; // already have it from last launch
-  cachedDbJwt = token;
-  notifyNativeDbJwt(token); // primary: synchronous UserDefaults write via native handler
-  saveDbJwtToLs(token);     // secondary: localStorage best-effort
-  console.log('[Goalsy:jwt] flushed __clerk_db_jwt on session confirm (len:', token.length, ')');
-  debugRecord({ step: 'flush', tokenLen: token.length });
+  const alreadyHave = token === cachedDbJwt && hadSavedToken;
+  if (!alreadyHave) {
+    cachedDbJwt = token;
+    saveDbJwtToLs(token); // secondary: localStorage best-effort
+  }
+  // Always notify native regardless of alreadyHave: this is the first
+  // opportunity to write to UserDefaults via the native WKScriptMessageHandler
+  // (the handler may not have existed in the prior build that saved to Preferences).
+  // Writing the same token again is idempotent and costs ~1 ms.
+  notifyNativeDbJwt(token); // primary: synchronous UserDefaults.synchronize() in Swift
+  console.log('[Goalsy:jwt] flushed __clerk_db_jwt (len:', token.length,
+    alreadyHave ? '— already in storage, re-notifying native' : '— new token saved', ')');
+  debugRecord({ step: 'flush', tokenLen: token.length, alreadyHave });
 }
 
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
