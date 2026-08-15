@@ -146,6 +146,25 @@ const MIN_JWT_LENGTH = 10;
 // pre-sign-in dev_browser token never overwrites a good saved token.
 let hasActiveSession = false;
 
+// Buffer for tokens seen in FAPI requests BEFORE hasActiveSession is confirmed.
+// The race: the /v1/client request carries __clerk_db_jwt in its URL, but
+// hasActiveSession only flips true when the *response* comes back.  persistDbJwt
+// refuses to save while hasActiveSession is false, so the token passes through
+// unsaved.  We capture it here and flush it to Preferences the instant we know
+// a session exists.
+let pendingDbJwt: string | null = null;
+
+function flushPendingDbJwt(): void {
+  const token = pendingDbJwt ?? cachedDbJwt;
+  pendingDbJwt = null;
+  if (!token || token.length < MIN_JWT_LENGTH) return;
+  if (token === cachedDbJwt && hadSavedToken) return; // already in Preferences from last launch
+  cachedDbJwt = token;
+  Preferences.set({ key: DB_JWT_PREF_KEY, value: token }).catch(() => {});
+  console.log('[Goalsy:jwt] flushed __clerk_db_jwt on session confirm (len:', token.length, ')');
+  debugRecord({ step: 'flush', tokenLen: token.length });
+}
+
 // ── Persistent, console-free diagnostics ─────────────────────────────────────
 // Every entry is written to Preferences immediately, so it survives force-kill
 // and can be read later without Web Inspector (5-tap the Welcome header).
@@ -230,7 +249,12 @@ function persistDbJwt(token: string, source: string): void {
     // to avoid.  We wait until /v1/client confirms ≥1 session before trusting
     // any token worth saving.
     if (!hasActiveSession) {
-      debugRecord({ step: 'persist-refused', source, reason: 'no active session yet — refusing write' });
+      // Buffer the token so flushPendingDbJwt() can save it the instant
+      // the /v1/client response confirms sessions > 0.  This closes the race
+      // where the request URL carries __clerk_db_jwt BEFORE the response that
+      // sets hasActiveSession arrives.
+      pendingDbJwt = token;
+      debugRecord({ step: 'persist-buffered', source, tokenLen: token.length });
       return;
     }
     cachedDbJwt = token;
@@ -378,6 +402,9 @@ if (isCapacitor && !nativeApiHost && FAPI_ORIGIN) {
                 hasActiveSession = true;
                 console.log('[Goalsy:jwt] active session confirmed — __clerk_db_jwt persistence enabled');
                 debugRecord({ step: 'hasActiveSession', sessions });
+                // Flush any token that arrived in the request URL before this
+                // response came back (closes the hasActiveSession race condition).
+                flushPendingDbJwt();
               }
               if (path === '/v1/client' || path === '/v1/environment' || path === '/v1/dev_browser') {
                 debugRecord({ step: 'fapi', path, status: response.status,
