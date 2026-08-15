@@ -33,6 +33,20 @@ jobs:
       - name: Install xcpretty
         run: gem install xcpretty --no-document
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
+
       - name: Show available simulators
         run: xcrun simctl list devices available | grep -E "iPhone 1[5-9]|iPhone 16" || true
 
@@ -121,6 +135,20 @@ jobs:
 
       - name: Install xcpretty
         run: gem install xcpretty --no-document
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
 
       # ── Preflight: fail fast if the secret is missing or expired ─────────────
       # The smoke test uses XCTSkip when CLERK_TEST_COOKIES is absent, which
