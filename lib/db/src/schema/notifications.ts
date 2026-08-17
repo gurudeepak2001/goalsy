@@ -2,7 +2,7 @@ import { pgTable, text, boolean, uuid, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-// type: mission | goal | goal_deadline | weekly_confirm | score | bill | system
+// type: mission | goal | goal_deadline | weekly_confirm | goal_payment | score | bill | system
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),

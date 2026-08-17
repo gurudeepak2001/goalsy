@@ -2,7 +2,7 @@ import { pgTable, text, boolean, uuid, timestamp, uniqueIndex } from "drizzle-or
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-// Known types: goal_reminders | goal_updates | market_alerts | weekly_summary | ai_insights | mission_reminders
+// Known types: goal_reminders | goal_updates | market_alerts | weekly_summary | ai_insights | mission_reminders | payment_reminders
 export const notificationPreferences = pgTable(
   "notification_preferences",
   {

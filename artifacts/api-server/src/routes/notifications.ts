@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gte } from "drizzle-orm";
 import {
   db,
   notifications,
@@ -40,9 +40,12 @@ function pushToUser(
     .catch(() => {});
 }
 
-/** Look up which preference types are explicitly disabled for a user.
+/** Return the set of preference types the user has explicitly disabled.
  *  Missing rows → default enabled. */
-async function disabledPrefs(userId: string, types: string[]): Promise<Set<string>> {
+async function disabledPrefs(
+  userId: string,
+  types: string[],
+): Promise<Set<string>> {
   const rows = await db
     .select()
     .from(notificationPreferences)
@@ -52,16 +55,15 @@ async function disabledPrefs(userId: string, types: string[]): Promise<Set<strin
         inArray(notificationPreferences.type, types),
       ),
     );
-  return new Set(
-    rows.filter((r) => !r.enabled).map((r) => r.type),
-  );
+  return new Set(rows.filter((r) => !r.enabled).map((r) => r.type));
 }
 
 // ── GET /api/notifications ─────────────────────────────────────────────────────
-// Returns all non-dismissed notifications and auto-generates three kinds:
-//   1. Behind-goal alerts        (pref: goal_reminders)
-//   2. 7-day deadline warnings   (pref: goal_updates)
-//   3. Weekly confirmation nudge (pref: weekly_summary)
+// Returns all non-dismissed notifications and auto-generates four kinds:
+//   1. Behind-goal alerts              (pref: goal_reminders)
+//   2. 7-day deadline warnings         (pref: goal_updates)
+//   3. Weekly confirmation nudge       (pref: weekly_summary)
+//   4. Day-before contribution payment (pref: payment_reminders)
 router.get("/notifications", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   try {
@@ -69,16 +71,17 @@ router.get("/notifications", requireAuth, async (req, res) => {
       "goal_reminders",
       "goal_updates",
       "weekly_summary",
+      "payment_reminders",
     ]);
 
-    // ── Load active goals (shared by all three generators) ─────────────────
+    // ── Load active goals (shared by all four generators) ──────────────────
     const userGoals = await db
       .select()
       .from(goals)
       .where(and(eq(goals.userId, userId), eq(goals.status, "active")));
 
     if (userGoals.length > 0) {
-      // ── Fetch all undismissed notifications for this user at once ─────────
+      // Fetch all undismissed notifications at once for dedup checks
       const existingNotifs = await db
         .select({ type: notifications.type, targetId: notifications.targetId })
         .from(notifications)
@@ -89,14 +92,14 @@ router.get("/notifications", requireAuth, async (req, res) => {
           ),
         );
 
-      // Build lookup sets keyed by "type::targetId" for O(1) dedup checks
+      // O(1) dedup: "type::targetId"
       const notifKeys = new Set(
         existingNotifs.map((n) => `${n.type}::${n.targetId ?? ""}`),
       );
       const hasNotif = (type: string, targetId: string) =>
         notifKeys.has(`${type}::${targetId}`);
 
-      // ── 1. Behind-goal alerts ────────────────────────────────────────────
+      // ── 1. Behind-goal alerts ──────────────────────────────────────────────
       if (!disabled.has("goal_reminders")) {
         for (const goal of userGoals) {
           const { behind, expectedByNow, contributionShortfall } =
@@ -123,20 +126,17 @@ router.get("/notifications", requireAuth, async (req, res) => {
         }
       }
 
-      // ── 2. 7-day deadline warnings ──────────────────────────────────────
+      // ── 2. 7-day deadline warnings ─────────────────────────────────────────
       if (!disabled.has("goal_updates")) {
         const todayStr = new Date().toISOString().split("T")[0]!;
-        // "7 days from now" — compare as YYYY-MM-DD strings (lexicographic = chronological)
         const in7DaysStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0]!;
 
         for (const goal of userGoals) {
           if (!goal.targetDate) continue;
-          // Only fire when the date is between today and 7 days away
           if (goal.targetDate < todayStr || goal.targetDate > in7DaysStr)
             continue;
-          // Skip if already notified (undismissed deadline warning for this goal)
           if (hasNotif("goal_deadline", goal.id)) continue;
 
           const daysLeft = Math.max(
@@ -174,16 +174,10 @@ router.get("/notifications", requireAuth, async (req, res) => {
         }
       }
 
-      // ── 3. Weekly confirmation nudge ────────────────────────────────────
-      // Fires for goals that:
-      //   a) were created more than 7 days ago (there's a past week to confirm)
-      //   b) have no progress entry in the last 7 days
-      //   c) have no existing undismissed weekly_confirm notification
+      // ── 3. Weekly confirmation nudge ───────────────────────────────────────
       if (!disabled.has("weekly_summary")) {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0]!;
 
-        // Goals old enough to have a past week
         const eligibleGoals = userGoals.filter(
           (g) => new Date(g.createdAt) < sevenDaysAgo,
         );
@@ -191,7 +185,6 @@ router.get("/notifications", requireAuth, async (req, res) => {
         if (eligibleGoals.length > 0) {
           const eligibleIds = eligibleGoals.map((g) => g.id);
 
-          // Most recent progress entry per goal (confirmedAt > 7 days ago means up-to-date)
           const recentEntries = await db
             .select({
               goalId: goalProgressEntries.goalId,
@@ -205,7 +198,6 @@ router.get("/notifications", requireAuth, async (req, res) => {
               ),
             );
 
-          // Map goalId → most recent confirmedAt
           const lastConfirmed = new Map<string, Date>();
           for (const entry of recentEntries) {
             const existing = lastConfirmed.get(entry.goalId);
@@ -214,10 +206,9 @@ router.get("/notifications", requireAuth, async (req, res) => {
             }
           }
 
-          // Goals needing a nudge: last confirmation was >7 days ago (or never confirmed)
           const staleGoals = eligibleGoals.filter((g) => {
             const last = lastConfirmed.get(g.id);
-            if (!last) return true; // never confirmed
+            if (!last) return true;
             return last < sevenDaysAgo;
           });
 
@@ -246,6 +237,74 @@ router.get("/notifications", requireAuth, async (req, res) => {
             });
             pushToUser(userId, title, body, `/goals/${goal.id}`);
           }
+        }
+      }
+
+      // ── 4. Day-before contribution payment reminder ────────────────────────
+      // Each goal uses the day-of-month from its createdAt as its "payment due
+      // day" (e.g. created on the 15th → contribution due on the 15th every
+      // month). We fire one reminder notification the day before that date.
+      //
+      // Example: goal created Feb 15 → payment due on the 15th of every month
+      //          → notification fires on the 14th of every month.
+      //
+      // Dedup key: "goal_payment::<goalId>" — one undismissed notification per
+      // goal at a time so the user won't get spammed after dismissal.
+      if (!disabled.has("payment_reminders")) {
+        const now = new Date();
+        const todayDayOfMonth = now.getDate();
+        // "Tomorrow" in terms of day-of-month (wraps: day 31/30/29/28 → 1)
+        const tomorrowDate = new Date(now);
+        tomorrowDate.setDate(todayDayOfMonth + 1);
+        const tomorrowDayOfMonth = tomorrowDate.getDate();
+
+        // Also check if this month's payment notif was already sent (dismissed
+        // or not) so we don't re-fire once the user dismisses and opens the
+        // app again on the same day.
+        const monthStart = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+        );
+
+        const sentThisMonth = await db
+          .select({ targetId: notifications.targetId })
+          .from(notifications)
+          .where(
+            and(
+              eq(notifications.userId, userId),
+              eq(notifications.type, "goal_payment"),
+              gte(notifications.createdAt, monthStart),
+            ),
+          );
+        const alreadySentIds = new Set(
+          sentThisMonth.map((r) => r.targetId ?? ""),
+        );
+
+        for (const goal of userGoals) {
+          if (goal.monthlyContribution <= 0) continue;
+          if (alreadySentIds.has(goal.id)) continue;
+
+          // Payment due day = day goal was created (capped at 28 to avoid
+          // month-end edge cases on shorter months)
+          const paymentDueDay = Math.min(
+            new Date(goal.createdAt).getDate(),
+            28,
+          );
+
+          // Fire when today is the day BEFORE the payment due day
+          if (tomorrowDayOfMonth !== paymentDueDay) continue;
+
+          const title = `${goal.name} contribution due tomorrow`;
+          const body = `Your ${fmt(goal.monthlyContribution)} monthly contribution is due tomorrow. Tap to review your goal and mark it paid.`;
+
+          await db.insert(notifications).values({
+            userId,
+            type: "goal_payment",
+            title,
+            body,
+            targetScreen: "/goals/" + goal.id,
+            targetId: goal.id,
+          });
+          pushToUser(userId, title, body, `/goals/${goal.id}`);
         }
       }
     }
