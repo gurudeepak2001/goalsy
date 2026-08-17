@@ -1,4 +1,4 @@
-package com.goalsy.executive;
+package com.myui.goalsyexecutive;
 
 import android.webkit.CookieManager;
 import android.util.Log;
