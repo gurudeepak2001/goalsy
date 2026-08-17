@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, notifications, goals, notificationPreferences } from "@workspace/db";
+import { db, notifications, goals, notificationPreferences, pushTokens } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { checkGoalBehind } from "../lib/checkGoalBehind";
+import { sendPushToMany } from "../lib/sendPush";
 
 const router = Router();
 
@@ -69,6 +70,24 @@ router.get("/notifications", requireAuth, async (req, res) => {
             targetScreen: "/goals/" + goal.id,
             targetId: goal.id,
           });
+
+          // ── Push notification (fire-and-forget) ─────────────────────────
+          // Runs in background; any error is caught inside sendPushToMany so
+          // it never blocks the GET response.
+          db.select({ token: pushTokens.token })
+            .from(pushTokens)
+            .where(eq(pushTokens.userId, userId))
+            .then((rows) => {
+              const tokens = rows.map((r) => r.token);
+              if (tokens.length > 0) {
+                sendPushToMany(tokens, {
+                  title: `${goal.name} is falling behind`,
+                  body,
+                  data: { targetScreen: `/goals/${goal.id}` },
+                }).catch(() => {/* already logged inside sendPushToMany */});
+              }
+            })
+            .catch(() => {/* db error — skip push silently */});
         }
       }
     }

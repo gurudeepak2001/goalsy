@@ -504,6 +504,11 @@ export default function GoalsOverviewScreen() {
                 <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] text-[#2563EB] font-bold pointer-events-none">auto</span>
               )}
             </div>
+            {dateAutoFilled && (
+              <p className="text-[#808BA4] text-[10px] mt-1 leading-tight">
+                Estimated from your monthly contribution — tap to set a different date
+              </p>
+            )}
           </div>
 
           {/* Feasibility note */}

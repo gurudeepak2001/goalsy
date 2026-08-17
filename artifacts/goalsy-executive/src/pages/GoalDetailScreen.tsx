@@ -1076,9 +1076,14 @@ export default function GoalDetailScreen() {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <span className="text-[#CBD5E1] font-semibold text-xs">Est. Completion</span>
-            <span className="text-white font-bold text-sm">{roadmap.estimatedCompletionDate ?? 'TBD'}</span>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="text-[#CBD5E1] font-semibold text-xs">Est. Completion</span>
+              <p className="text-[#808BA4] text-[10px] mt-0.5 leading-tight">
+                Estimated from monthly contribution
+              </p>
+            </div>
+            <span className="text-white font-bold text-sm shrink-0">{roadmap.estimatedCompletionDate ?? 'TBD'}</span>
           </div>
         </div>
 

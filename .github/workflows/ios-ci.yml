@@ -58,10 +58,14 @@ jobs:
         working-directory: artifacts/goalsy-executive
         run: |
           LINK="node_modules/@capacitor/preferences"
+          LINK2="node_modules/@capacitor/push-notifications"
           REAL=$(python3 -c "import os; print(os.path.realpath('$LINK'))")
           echo "Symlink → $REAL"
           rm -rf "$LINK"
           cp -r "$REAL" "$LINK"
+          REAL2=$(python3 -c "import os; print(os.path.realpath('"$LINK2"'))")
+          rm -rf "$LINK2"
+          cp -r "$REAL2" "$LINK2"
           echo "Package name in resolved copy: $(grep '^    name:' $LINK/Package.swift)"
 
       - name: Run unit tests
@@ -122,10 +126,14 @@ jobs:
         working-directory: artifacts/goalsy-executive
         run: |
           LINK="node_modules/@capacitor/preferences"
+          LINK2="node_modules/@capacitor/push-notifications"
           REAL=$(python3 -c "import os; print(os.path.realpath('$LINK'))")
           echo "Symlink → $REAL"
           rm -rf "$LINK"
           cp -r "$REAL" "$LINK"
+          REAL2=$(python3 -c "import os; print(os.path.realpath('"$LINK2"'))")
+          rm -rf "$LINK2"
+          cp -r "$REAL2" "$LINK2"
           echo "Package name in resolved copy: $(grep '^    name:' $LINK/Package.swift)"
 
       - name: Boot simulator

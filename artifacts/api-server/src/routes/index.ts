@@ -10,6 +10,7 @@ import notificationPreferencesRouter from "./notificationPreferences";
 import billsRouter from "./bills";
 import briefingsRouter from "./briefings";
 import notificationsRouter from "./notifications";
+import pushTokensRouter from "./pushTokens";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(notificationPreferencesRouter);
 router.use(billsRouter);
 router.use(briefingsRouter);
 router.use(notificationsRouter);
+router.use(pushTokensRouter);
 
 export default router;

@@ -609,6 +609,18 @@ export function ApiClientBootstrap() {
   const { getToken, isSignedIn } = useAuth();
   const { toast } = useToast();
 
+  // Register for push notifications the first time the user is signed in.
+  // Runs only on Capacitor native builds; no-ops silently on web.
+  useEffect(() => {
+    if (isSignedIn !== true) return;
+    import('@/lib/pushNotifications').then(({ registerPushNotifications }) => {
+      registerPushNotifications(getToken).catch((err) => {
+        console.warn('[Goalsy:push] Registration failed:', err);
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]); // getToken is stable per sign-in; re-register on new sign-in
+
   // Track whether Clerk considered the user signed-in at the last foreground
   // check.  Used to distinguish "session expired while idle" (was signed-in →
   // now null) from "user is simply on the welcome/sign-in screen" (never had a
