@@ -37,3 +37,10 @@ uri = "file://KNOWLEDGE_TRANSFER.md"
 type = "text"
 title = "Goalsy Executive — Knowledge Transfer Document (Updated)"
 description = "Now includes Section 11: What's Still To Be Built — all 8 mocked/incomplete features with exact file references, what needs building, and a priority summary table."
+
+[[outputs]]
+id = "8_4dQET69Ugz6b_wIAbCa"
+uri = "file://GOALSY_KT.md"
+type = "text"
+title = "Goalsy Executive — Knowledge Transfer"
+description = "Full KT doc covering architecture, screens, API routes, push notifications, auth, CI, live vs. hardcoded features, tester feedback, and next steps."
