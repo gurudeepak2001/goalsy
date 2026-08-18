@@ -27,6 +27,8 @@ tags:
     description: Financial briefings
   - name: notifications
     description: In-app notifications
+  - name: expenses
+    description: Expense tracking
 
 paths:
   /healthz:
@@ -476,6 +478,70 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      summary: List expenses for the current user, optionally filtered by month
+      parameters:
+        - name: month
+          in: query
+          required: false
+          description: "Filter by month in YYYY-MM format (e.g. 2026-08)"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Expenses list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      summary: Create a new expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseBody"
+      responses:
+        "201":
+          description: Created expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /expenses/{id}:
+    delete:
+      operationId: deleteExpense
+      tags: [expenses]
+      summary: Delete an expense by ID
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /notifications/{id}/dismiss:
     post:
       operationId: dismissNotification
@@ -657,6 +723,9 @@ components:
           type: string
         priority:
           type: integer
+        paymentFrequency:
+          type: string
+          description: "monthly | weekly"
         createdAt:
           type: string
         updatedAt:
@@ -682,6 +751,9 @@ components:
           type: string
         priority:
           type: integer
+        paymentFrequency:
+          type: string
+          description: "monthly | weekly"
       required: [name, type, targetAmount]
 
     UpdateGoalBody:
@@ -703,6 +775,9 @@ components:
           type: string
         priority:
           type: integer
+        paymentFrequency:
+          type: string
+          description: "monthly | weekly"
 
     Mission:
       type: object
@@ -842,6 +917,50 @@ components:
         createdAt:
           type: string
       required: [id, userId, title, scheduledDate, createdAt]
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        category:
+          type: string
+          description: "Food | Entertainment | Travel | Rent/Housing | Subscriptions | Shopping | Utilities | Other"
+        amount:
+          type: integer
+          description: "Whole-dollar integer — per-period amount as entered by the user"
+        frequency:
+          type: string
+          description: "monthly | weekly"
+        expenseDate:
+          type: string
+          description: "ISO YYYY-MM-DD; day is always 01, used for month filtering"
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, userId, category, amount, frequency, expenseDate, createdAt]
+
+    CreateExpenseBody:
+      type: object
+      properties:
+        category:
+          type: string
+          description: "Food | Entertainment | Travel | Rent/Housing | Subscriptions | Shopping | Utilities | Other"
+        amount:
+          type: integer
+          description: "Whole-dollar integer — per-period amount"
+        frequency:
+          type: string
+          description: "monthly | weekly — defaults to monthly"
+        expenseDate:
+          type: string
+          description: "ISO YYYY-MM-DD"
+        note:
+          type: ["string", "null"]
+      required: [category, amount, expenseDate]
 
     AppNotification:
       type: object

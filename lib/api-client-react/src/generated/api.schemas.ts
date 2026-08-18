@@ -91,12 +91,12 @@ export interface Goal {
   targetAmount: number;
   currentAmount: number;
   monthlyContribution: number;
-  /** monthly | weekly — monthlyContribution always stores the monthly equivalent */
-  paymentFrequency: string;
   /** @nullable */
   targetDate?: string | null;
   status: string;
   priority: number;
+  /** monthly | weekly */
+  paymentFrequency?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,12 +107,12 @@ export interface CreateGoalBody {
   targetAmount: number;
   currentAmount?: number;
   monthlyContribution?: number;
-  /** monthly | weekly */
-  paymentFrequency?: string;
   /** @nullable */
   targetDate?: string | null;
   status?: string;
   priority?: number;
+  /** monthly | weekly */
+  paymentFrequency?: string;
 }
 
 export interface UpdateGoalBody {
@@ -121,12 +121,12 @@ export interface UpdateGoalBody {
   targetAmount?: number;
   currentAmount?: number;
   monthlyContribution?: number;
-  /** monthly | weekly */
-  paymentFrequency?: string;
   /** @nullable */
   targetDate?: string | null;
   status?: string;
   priority?: number;
+  /** monthly | weekly */
+  paymentFrequency?: string;
 }
 
 export interface Mission {
@@ -211,6 +211,35 @@ export interface Briefing {
   createdAt: string;
 }
 
+export interface Expense {
+  id: string;
+  userId: string;
+  /** Food | Entertainment | Travel | Rent/Housing | Subscriptions | Shopping | Utilities | Other */
+  category: string;
+  /** Whole-dollar integer — per-period amount as entered by the user */
+  amount: number;
+  /** monthly | weekly */
+  frequency: string;
+  /** ISO YYYY-MM-DD; day is always 01, used for month filtering */
+  expenseDate: string;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface CreateExpenseBody {
+  /** Food | Entertainment | Travel | Rent/Housing | Subscriptions | Shopping | Utilities | Other */
+  category: string;
+  /** Whole-dollar integer — per-period amount */
+  amount: number;
+  /** monthly | weekly — defaults to monthly */
+  frequency?: string;
+  /** ISO YYYY-MM-DD */
+  expenseDate: string;
+  /** @nullable */
+  note?: string | null;
+}
+
 export interface AppNotification {
   id: string;
   userId: string;
@@ -232,38 +261,15 @@ export interface AppNotification {
  */
 export type UnauthorizedResponse = ErrorResponse;
 
-export interface Expense {
-  id: string;
-  userId: string;
-  /** Food | Entertainment | Travel | Rent/Housing | Subscriptions | Shopping | Utilities | Other */
-  category: string;
-  /** Whole-dollar integer — per-period amount as entered by the user */
-  amount: number;
-  /** monthly | weekly */
-  frequency: string;
-  /** ISO YYYY-MM-DD — day is always 01; used for month filtering */
-  expenseDate: string;
-  note?: string | null;
-  createdAt: string;
-}
-
-export interface CreateExpenseBody {
-  category: string;
-  amount: number;
-  /** monthly | weekly — defaults to monthly */
-  frequency?: string;
-  /** ISO YYYY-MM-DD */
-  expenseDate: string;
-  note?: string | null;
-}
-
-export interface ListExpensesParams {
-  /** YYYY-MM  e.g. "2026-08" */
-  month?: string;
-}
-
 /**
  * Resource not found
  */
 export type NotFoundResponse = ErrorResponse;
+
+export type ListExpensesParams = {
+/**
+ * Filter by month in YYYY-MM format (e.g. 2026-08)
+ */
+month?: string;
+};
 

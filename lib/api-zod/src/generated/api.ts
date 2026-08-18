@@ -107,6 +107,7 @@ export const ListGoalsResponseItem = zod.object({
   "targetDate": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.number(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -124,7 +125,8 @@ export const CreateGoalBody = zod.object({
   "monthlyContribution": zod.number().optional(),
   "targetDate": zod.string().nullish(),
   "status": zod.string().optional(),
-  "priority": zod.number().optional()
+  "priority": zod.number().optional(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly')
 })
 
 export const CreateGoalResponse = zod.object({
@@ -138,6 +140,7 @@ export const CreateGoalResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.number(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -161,6 +164,7 @@ export const GetGoalResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.number(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -181,7 +185,8 @@ export const UpdateGoalBody = zod.object({
   "monthlyContribution": zod.number().optional(),
   "targetDate": zod.string().nullish(),
   "status": zod.string().optional(),
-  "priority": zod.number().optional()
+  "priority": zod.number().optional(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly')
 })
 
 export const UpdateGoalResponse = zod.object({
@@ -195,6 +200,7 @@ export const UpdateGoalResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "status": zod.string(),
   "priority": zod.number(),
+  "paymentFrequency": zod.string().optional().describe('monthly | weekly'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -469,6 +475,59 @@ export const MarkNotificationReadResponse = zod.object({
   "isDismissed": zod.boolean(),
   "createdAt": zod.string()
 })
+
+
+/**
+ * @summary List expenses for the current user, optionally filtered by month
+ */
+export const ListExpensesQueryParams = zod.object({
+  "month": zod.coerce.string().optional().describe('Filter by month in YYYY-MM format (e.g. 2026-08)')
+})
+
+export const ListExpensesResponseItem = zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "category": zod.string().describe('Food | Entertainment | Travel | Rent\/Housing | Subscriptions | Shopping | Utilities | Other'),
+  "amount": zod.number().describe('Whole-dollar integer — per-period amount as entered by the user'),
+  "frequency": zod.string().describe('monthly | weekly'),
+  "expenseDate": zod.string().describe('ISO YYYY-MM-DD; day is always 01, used for month filtering'),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListExpensesResponse = zod.array(ListExpensesResponseItem)
+
+
+/**
+ * @summary Create a new expense
+ */
+export const CreateExpenseBody = zod.object({
+  "category": zod.string().describe('Food | Entertainment | Travel | Rent\/Housing | Subscriptions | Shopping | Utilities | Other'),
+  "amount": zod.number().describe('Whole-dollar integer — per-period amount'),
+  "frequency": zod.string().optional().describe('monthly | weekly — defaults to monthly'),
+  "expenseDate": zod.string().describe('ISO YYYY-MM-DD'),
+  "note": zod.string().nullish()
+})
+
+export const CreateExpenseResponse = zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "category": zod.string().describe('Food | Entertainment | Travel | Rent\/Housing | Subscriptions | Shopping | Utilities | Other'),
+  "amount": zod.number().describe('Whole-dollar integer — per-period amount as entered by the user'),
+  "frequency": zod.string().describe('monthly | weekly'),
+  "expenseDate": zod.string().describe('ISO YYYY-MM-DD; day is always 01, used for month filtering'),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an expense by ID
+ */
+export const DeleteExpenseParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteExpenseResponse = zod.void()
 
 
 /**

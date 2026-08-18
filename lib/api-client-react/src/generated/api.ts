@@ -26,6 +26,7 @@ import type {
   CreateExpenseBody,
   CreateGoalBody,
   CreateGoalProgressBody,
+  ErrorResponse,
   Expense,
   FinancialProfile,
   FinancialProfileResponse,
@@ -1931,6 +1932,232 @@ export const useMarkNotificationRead = <TError = ErrorType<UnauthorizedResponse 
       return useMutation(getMarkNotificationReadMutationOptions(options));
     }
 
+export const getListExpensesUrl = (params?: ListExpensesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/expenses?${stringifiedParams}` : `/api/expenses`
+}
+
+/**
+ * @summary List expenses for the current user, optionally filtered by month
+ */
+export const listExpenses = async (params?: ListExpensesParams, options?: RequestInit): Promise<Expense[]> => {
+
+  return customFetch<Expense[]>(getListExpensesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListExpensesQueryKey = (params?: ListExpensesParams,) => {
+    return [
+    `/api/expenses`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListExpensesQueryOptions = <TData = Awaited<ReturnType<typeof listExpenses>>, TError = ErrorType<UnauthorizedResponse>>(params?: ListExpensesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListExpensesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listExpenses>>> = ({ signal }) => listExpenses(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListExpensesQueryResult = NonNullable<Awaited<ReturnType<typeof listExpenses>>>
+export type ListExpensesQueryError = ErrorType<UnauthorizedResponse>
+
+
+/**
+ * @summary List expenses for the current user, optionally filtered by month
+ */
+
+export function useListExpenses<TData = Awaited<ReturnType<typeof listExpenses>>, TError = ErrorType<UnauthorizedResponse>>(
+ params?: ListExpensesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListExpensesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateExpenseUrl = () => {
+
+
+
+
+  return `/api/expenses`
+}
+
+/**
+ * @summary Create a new expense
+ */
+export const createExpense = async (createExpenseBody: CreateExpenseBody, options?: RequestInit): Promise<Expense> => {
+
+  return customFetch<Expense>(getCreateExpenseUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createExpenseBody)
+  }
+);}
+
+
+
+
+
+export const getCreateExpenseMutationOptions = <TError = ErrorType<ErrorResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError,{data: BodyType<CreateExpenseBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError,{data: BodyType<CreateExpenseBody>}, TContext> => {
+
+const mutationKey = ['createExpense'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createExpense>>, {data: BodyType<CreateExpenseBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createExpense(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateExpenseMutationResult = NonNullable<Awaited<ReturnType<typeof createExpense>>>
+    export type CreateExpenseMutationBody = BodyType<CreateExpenseBody>
+    export type CreateExpenseMutationError = ErrorType<ErrorResponse | UnauthorizedResponse>
+
+    /**
+ * @summary Create a new expense
+ */
+export const useCreateExpense = <TError = ErrorType<ErrorResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError,{data: BodyType<CreateExpenseBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createExpense>>,
+        TError,
+        {data: BodyType<CreateExpenseBody>},
+        TContext
+      > => {
+      return useMutation(getCreateExpenseMutationOptions(options));
+    }
+
+export const getDeleteExpenseUrl = (id: string,) => {
+
+
+
+
+  return `/api/expenses/${id}`
+}
+
+/**
+ * @summary Delete an expense by ID
+ */
+export const deleteExpense = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteExpenseUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteExpenseMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteExpense'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteExpense>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteExpense(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteExpenseMutationResult = NonNullable<Awaited<ReturnType<typeof deleteExpense>>>
+
+    export type DeleteExpenseMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+    /**
+ * @summary Delete an expense by ID
+ */
+export const useDeleteExpense = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteExpense>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteExpenseMutationOptions(options));
+    }
+
 export const getDismissNotificationUrl = (id: string,) => {
 
 
@@ -2001,117 +2228,4 @@ export const useDismissNotification = <TError = ErrorType<UnauthorizedResponse |
       > => {
       return useMutation(getDismissNotificationMutationOptions(options));
     }
-
-
-
-// ── Expenses ──────────────────────────────────────────────────────────────────
-
-export const getListExpensesUrl = (params?: ListExpensesParams) => {
-  const base = `/api/expenses`;
-  if (!params?.month) return base;
-  return `${base}?month=${encodeURIComponent(params.month)}`;
-};
-
-export const listExpenses = async (params?: ListExpensesParams, options?: RequestInit): Promise<Expense[]> => {
-  return customFetch<Expense[]>(getListExpensesUrl(params), { ...options, method: 'GET' });
-};
-
-export const getListExpensesQueryKey = (params?: ListExpensesParams) => {
-  return [`/api/expenses`, ...(params ? [params] : [])] as const;
-};
-
-export const getListExpensesQueryOptions = <TData = Awaited<ReturnType<typeof listExpenses>>, TError = ErrorType<UnauthorizedResponse>>(
-  params?: ListExpensesParams,
-  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData>, request?: SecondParameter<typeof customFetch> }
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getListExpensesQueryKey(params);
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listExpenses>>> = ({ signal }) =>
-    listExpenses(params, { signal, ...requestOptions });
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData> & { queryKey: QueryKey };
-};
-
-export type ListExpensesQueryResult = NonNullable<Awaited<ReturnType<typeof listExpenses>>>;
-export type ListExpensesQueryError = ErrorType<UnauthorizedResponse>;
-
-export function useListExpenses<TData = Awaited<ReturnType<typeof listExpenses>>, TError = ErrorType<UnauthorizedResponse>>(
-  params?: ListExpensesParams,
-  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listExpenses>>, TError, TData>, request?: SecondParameter<typeof customFetch> }
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListExpensesQueryOptions(params, options);
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-// ── Create expense ────────────────────────────────────────────────────────────
-
-export const getCreateExpenseUrl = () => `/api/expenses`;
-
-export const createExpense = async (body: CreateExpenseBody, options?: RequestInit): Promise<Expense> => {
-  return customFetch<Expense>(getCreateExpenseUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(body),
-  });
-};
-
-export const getCreateExpenseMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError, { data: BodyType<CreateExpenseBody> }, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError, { data: BodyType<CreateExpenseBody> }, TContext> => {
-  const mutationKey = ['createExpense'];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-  const mutationFn: MutationFunction<Awaited<ReturnType<typeof createExpense>>, { data: BodyType<CreateExpenseBody> }> = (props) => {
-    const { data } = props ?? {};
-    return createExpense(data, requestOptions);
-  };
-  return { mutationFn, ...mutationOptions };
-};
-
-export type CreateExpenseMutationResult = NonNullable<Awaited<ReturnType<typeof createExpense>>>;
-export type CreateExpenseMutationBody = BodyType<CreateExpenseBody>;
-export type CreateExpenseMutationError = ErrorType<unknown>;
-
-export function useCreateExpense<TError = ErrorType<unknown>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof createExpense>>, TError, { data: BodyType<CreateExpenseBody> }, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationResult<Awaited<ReturnType<typeof createExpense>>, TError, { data: BodyType<CreateExpenseBody> }, TContext> {
-  return useMutation(getCreateExpenseMutationOptions(options));
-}
-
-// ── Delete expense ────────────────────────────────────────────────────────────
-
-export const getDeleteExpenseUrl = (id: string) => `/api/expenses/${id}`;
-
-export const deleteExpense = async (id: string, options?: RequestInit): Promise<void> => {
-  return customFetch<void>(getDeleteExpenseUrl(id), { ...options, method: 'DELETE' });
-};
-
-export const getDeleteExpenseMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError, { id: string }, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError, { id: string }, TContext> => {
-  const mutationKey = ['deleteExpense'];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-  const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteExpense>>, { id: string }> = (props) => {
-    const { id } = props ?? {};
-    return deleteExpense(id, requestOptions);
-  };
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeleteExpenseMutationResult = NonNullable<Awaited<ReturnType<typeof deleteExpense>>>;
-export type DeleteExpenseMutationError = ErrorType<unknown>;
-
-export function useDeleteExpense<TError = ErrorType<unknown>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteExpense>>, TError, { id: string }, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationResult<Awaited<ReturnType<typeof deleteExpense>>, TError, { id: string }, TContext> {
-  return useMutation(getDeleteExpenseMutationOptions(options));
-}
 
