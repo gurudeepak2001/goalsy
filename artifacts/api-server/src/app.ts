@@ -6,6 +6,15 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// ── Startup health probe ──────────────────────────────────────────────────────
+// Registered before all other middleware so the deployment sidecar's readiness
+// check succeeds the instant the server binds to its port.  The sidecar probes
+// the service path prefix GET /api (not the deeper /api/healthz path configured
+// in artifact.toml) so we need a handler here that returns 200 immediately.
+app.get(["/api", "/api/healthz"], (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 // Disable ETags and cache so the browser never replays stale JSON after a data change
 app.set("etag", false);
 app.use((_req, res, next) => {
