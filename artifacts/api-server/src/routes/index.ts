@@ -11,6 +11,7 @@ import billsRouter from "./bills";
 import briefingsRouter from "./briefings";
 import notificationsRouter from "./notifications";
 import pushTokensRouter from "./pushTokens";
+import expensesRouter from "./expenses";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(billsRouter);
 router.use(briefingsRouter);
 router.use(notificationsRouter);
 router.use(pushTokensRouter);
+router.use(expensesRouter);
 
 export default router;

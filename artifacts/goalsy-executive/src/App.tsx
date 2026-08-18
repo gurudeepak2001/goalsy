@@ -39,6 +39,7 @@ import GoalsOverviewScreen from '@/pages/GoalsOverviewScreen';
 import GoalDetailScreen from '@/pages/GoalDetailScreen';
 import ProfileScreen from '@/pages/ProfileScreen';
 import ScoreScreen from '@/pages/ScoreScreen';
+import ExpensesScreen from '@/pages/ExpensesScreen';
 
 console.log('[Goalsy] imports done');
 
@@ -578,6 +579,7 @@ function Router() {
       <Route path="/goals/:id"            component={() => <AuthGate component={GoalDetailScreen} />} />
       <Route path="/profile"              component={() => <AuthGate component={ProfileScreen} />} />
       <Route path="/score"                component={() => <AuthGate component={ScoreScreen} />} />
+      <Route path="/expenses"            component={() => <AuthGate component={ExpensesScreen} />} />
       <Route component={NotFound} />
     </Switch>
   );

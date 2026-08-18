@@ -9,3 +9,4 @@ export * from "./bills";
 export * from "./briefings";
 export * from "./notifications";
 export * from "./pushTokens";
+export * from "./expenses";

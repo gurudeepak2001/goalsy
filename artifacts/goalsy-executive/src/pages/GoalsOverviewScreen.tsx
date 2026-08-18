@@ -285,17 +285,31 @@ export default function GoalsOverviewScreen() {
           </h1>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/financial-health')}
-          className="w-full bg-[#111827] border border-white/5 rounded-2xl p-4 flex items-center justify-between text-left active:scale-95 transition-transform"
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Financial Health</span>
-            <span className="text-white font-semibold text-sm">Review your financial status</span>
-          </div>
-          <ArrowRight size={18} className="text-[#94A3B8]" />
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/financial-health')}
+            className="w-full bg-[#111827] border border-white/5 rounded-2xl p-4 flex items-center justify-between text-left active:scale-95 transition-transform"
+          >
+            <div className="flex flex-col gap-1">
+              <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Financial Health</span>
+              <span className="text-white font-semibold text-sm">Review your financial status</span>
+            </div>
+            <ArrowRight size={18} className="text-[#94A3B8]" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/expenses')}
+            className="w-full bg-[#111827] border border-white/5 rounded-2xl p-4 flex items-center justify-between text-left active:scale-95 transition-transform"
+          >
+            <div className="flex flex-col gap-1">
+              <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Expenses</span>
+              <span className="text-white font-semibold text-sm">Track your monthly spending</span>
+            </div>
+            <ArrowRight size={18} className="text-[#94A3B8]" />
+          </button>
+        </div>
 
         <div className="flex flex-col gap-8 pb-24">
           {isLoading ? (
