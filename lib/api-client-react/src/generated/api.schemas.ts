@@ -91,6 +91,8 @@ export interface Goal {
   targetAmount: number;
   currentAmount: number;
   monthlyContribution: number;
+  /** monthly | weekly — monthlyContribution always stores the monthly equivalent */
+  paymentFrequency: string;
   /** @nullable */
   targetDate?: string | null;
   status: string;
@@ -105,6 +107,8 @@ export interface CreateGoalBody {
   targetAmount: number;
   currentAmount?: number;
   monthlyContribution?: number;
+  /** monthly | weekly */
+  paymentFrequency?: string;
   /** @nullable */
   targetDate?: string | null;
   status?: string;
@@ -117,6 +121,8 @@ export interface UpdateGoalBody {
   targetAmount?: number;
   currentAmount?: number;
   monthlyContribution?: number;
+  /** monthly | weekly */
+  paymentFrequency?: string;
   /** @nullable */
   targetDate?: string | null;
   status?: string;

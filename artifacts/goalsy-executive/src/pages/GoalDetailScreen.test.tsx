@@ -83,6 +83,7 @@ function makeDeadlineGoal(overrides: Partial<Goal> = {}): Goal {
     targetAmount: 50_000,
     currentAmount: 0,
     monthlyContribution: 0,
+    paymentFrequency: 'monthly',
     targetDate: null,
     status: 'active',
     priority: 1,

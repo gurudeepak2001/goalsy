@@ -24,13 +24,14 @@ router.get("/goals", requireAuth, async (req, res) => {
 router.post("/goals", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const {
-    name, type, targetAmount, currentAmount, monthlyContribution, targetDate, status, priority,
+    name, type, targetAmount, currentAmount, monthlyContribution, paymentFrequency, targetDate, status, priority,
   } = req.body as {
     name: string;
     type: string;
     targetAmount: number;
     currentAmount?: number;
     monthlyContribution?: number;
+    paymentFrequency?: string;
     targetDate?: string | null;
     status?: string;
     priority?: number;
@@ -51,6 +52,7 @@ router.post("/goals", requireAuth, async (req, res) => {
         targetAmount,
         currentAmount: currentAmount ?? 0,
         monthlyContribution: monthlyContribution ?? 0,
+        paymentFrequency: paymentFrequency ?? "monthly",
         targetDate: targetDate ?? null,
         status: status ?? "active",
         priority: priority ?? 1,
@@ -83,13 +85,14 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const id = req.params.id as string;
   const {
-    name, type, targetAmount, currentAmount, monthlyContribution, targetDate, status, priority,
+    name, type, targetAmount, currentAmount, monthlyContribution, paymentFrequency, targetDate, status, priority,
   } = req.body as Partial<{
     name: string;
     type: string;
     targetAmount: number;
     currentAmount: number;
     monthlyContribution: number;
+    paymentFrequency: string;
     targetDate: string | null;
     status: string;
     priority: number;
@@ -104,6 +107,7 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
         ...(targetAmount !== undefined && { targetAmount }),
         ...(currentAmount !== undefined && { currentAmount }),
         ...(monthlyContribution !== undefined && { monthlyContribution }),
+        ...(paymentFrequency !== undefined && { paymentFrequency }),
         ...(targetDate !== undefined && { targetDate }),
         ...(status !== undefined && { status }),
         ...(priority !== undefined && { priority }),

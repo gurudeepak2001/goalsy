@@ -152,6 +152,7 @@ export default function GoalsOverviewScreen() {
   const [newGoalTarget, setNewGoalTarget] = useState('');
   const [newGoalCurrent, setNewGoalCurrent] = useState('');
   const [newGoalContrib, setNewGoalContrib] = useState('');
+  const [newGoalFrequency, setNewGoalFrequency] = useState<'monthly' | 'weekly'>('monthly');
   const [newGoalTargetDate, setNewGoalTargetDate] = useState('');
   // Auto-fill state
   const [contribAutoFilled, setContribAutoFilled] = useState(false);
@@ -229,7 +230,12 @@ export default function GoalsOverviewScreen() {
       return;
     }
     const currentAmount = newGoalCurrent ? parseInt(newGoalCurrent.replace(/[^0-9]/g, ''), 10) : 0;
-    const monthlyContribution = newGoalContrib ? parseInt(newGoalContrib.replace(/[^0-9]/g, ''), 10) : 0;
+    const contribInput = newGoalContrib ? parseInt(newGoalContrib.replace(/[^0-9]/g, ''), 10) : 0;
+    // Always store monthly equivalent so all roadmap math stays consistent.
+    // Weekly input × 52 / 12 → monthly equivalent.
+    const monthlyContribution = isNaN(contribInput) ? 0
+      : newGoalFrequency === 'weekly' ? Math.round(contribInput * 52 / 12)
+      : contribInput;
 
     try {
       await createGoal({
@@ -238,7 +244,8 @@ export default function GoalsOverviewScreen() {
           type: newGoalType,
           targetAmount: target,
           currentAmount: isNaN(currentAmount) ? 0 : currentAmount,
-          monthlyContribution: isNaN(monthlyContribution) ? 0 : monthlyContribution,
+          monthlyContribution,
+          paymentFrequency: newGoalFrequency,
           targetDate: newGoalTargetDate || null,
           status: 'active',
           priority: 1,
@@ -250,6 +257,7 @@ export default function GoalsOverviewScreen() {
       setNewGoalTarget('');
       setNewGoalCurrent('');
       setNewGoalContrib('');
+      setNewGoalFrequency('monthly');
       setNewGoalTargetDate('');
       setContribAutoFilled(false);
       setDateAutoFilled(false);
@@ -445,6 +453,32 @@ export default function GoalsOverviewScreen() {
             onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); setNewGoalTarget(raw); }}
           />
 
+          {/* Payment frequency toggle */}
+          <div>
+            <label className={labelCls}>Payment Frequency</label>
+            <div className="flex gap-2">
+              {(['monthly', 'weekly'] as const).map((freq) => (
+                <button
+                  key={freq}
+                  type="button"
+                  onClick={() => {
+                    setNewGoalFrequency(freq);
+                    setNewGoalContrib('');
+                    setContribAutoFilled(false);
+                    setCreateFeasibility(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
+                    newGoalFrequency === freq
+                      ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                      : 'bg-[#111827] border-[#2D3748] text-[#808BA4]'
+                  }`}
+                >
+                  {freq === 'monthly' ? 'Monthly' : 'Weekly'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <div className="flex-1">
               <ExecutiveInput
@@ -458,7 +492,7 @@ export default function GoalsOverviewScreen() {
             </div>
             <div className="flex-1 relative">
               <ExecutiveInput
-                label="Monthly Contribution Towards Goal"
+                label={newGoalFrequency === 'weekly' ? 'Weekly Contribution' : 'Monthly Contribution'}
                 leftIcon={<span className="font-bold">$</span>}
                 inputMode="decimal"
                 placeholder="0"

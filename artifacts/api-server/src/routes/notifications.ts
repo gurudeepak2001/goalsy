@@ -241,30 +241,29 @@ router.get("/notifications", requireAuth, async (req, res) => {
       }
 
       // ── 4. Day-before contribution payment reminder ────────────────────────
-      // Each goal uses the day-of-month from its createdAt as its "payment due
-      // day" (e.g. created on the 15th → contribution due on the 15th every
-      // month). We fire one reminder notification the day before that date.
+      // Supports two frequencies:
       //
-      // Example: goal created Feb 15 → payment due on the 15th of every month
-      //          → notification fires on the 14th of every month.
+      // MONTHLY (paymentFrequency = "monthly"):
+      //   Payment due day = day-of-month goal was created (capped at 28).
+      //   Reminder fires the day before. Dedup: one notif per goal per
+      //   calendar month.
       //
-      // Dedup key: "goal_payment::<goalId>" — one undismissed notification per
-      // goal at a time so the user won't get spammed after dismissal.
+      // WEEKLY (paymentFrequency = "weekly"):
+      //   Payment due day-of-week = day-of-week goal was created (0=Sun…6=Sat).
+      //   Reminder fires the day before each week. Dedup: one notif per goal
+      //   per calendar week (Mon–Sun ISO week).
       if (!disabled.has("payment_reminders")) {
         const now = new Date();
-        const todayDayOfMonth = now.getDate();
-        // "Tomorrow" in terms of day-of-month (wraps: day 31/30/29/28 → 1)
+        const todayDow = now.getDay(); // 0=Sun…6=Sat
         const tomorrowDate = new Date(now);
-        tomorrowDate.setDate(todayDayOfMonth + 1);
+        tomorrowDate.setDate(now.getDate() + 1);
+        const tomorrowDow = tomorrowDate.getDay();
         const tomorrowDayOfMonth = tomorrowDate.getDate();
 
-        // Also check if this month's payment notif was already sent (dismissed
-        // or not) so we don't re-fire once the user dismisses and opens the
-        // app again on the same day.
+        // ── Monthly dedup: already sent this calendar month ──
         const monthStart = new Date(
           Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
         );
-
         const sentThisMonth = await db
           .select({ targetId: notifications.targetId })
           .from(notifications)
@@ -275,36 +274,72 @@ router.get("/notifications", requireAuth, async (req, res) => {
               gte(notifications.createdAt, monthStart),
             ),
           );
-        const alreadySentIds = new Set(
+        const alreadySentMonthIds = new Set(
           sentThisMonth.map((r) => r.targetId ?? ""),
+        );
+
+        // ── Weekly dedup: already sent this ISO week (Mon–Sun) ──
+        const daysSinceMonday = (todayDow + 6) % 7; // Mon=0…Sun=6
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - daysSinceMonday);
+        weekStart.setHours(0, 0, 0, 0);
+        const sentThisWeek = await db
+          .select({ targetId: notifications.targetId })
+          .from(notifications)
+          .where(
+            and(
+              eq(notifications.userId, userId),
+              eq(notifications.type, "goal_payment"),
+              gte(notifications.createdAt, weekStart),
+            ),
+          );
+        const alreadySentWeekIds = new Set(
+          sentThisWeek.map((r) => r.targetId ?? ""),
         );
 
         for (const goal of userGoals) {
           if (goal.monthlyContribution <= 0) continue;
-          if (alreadySentIds.has(goal.id)) continue;
 
-          // Payment due day = day goal was created (capped at 28 to avoid
-          // month-end edge cases on shorter months)
-          const paymentDueDay = Math.min(
-            new Date(goal.createdAt).getDate(),
-            28,
-          );
+          const isWeekly = (goal as { paymentFrequency?: string }).paymentFrequency === "weekly";
 
-          // Fire when today is the day BEFORE the payment due day
-          if (tomorrowDayOfMonth !== paymentDueDay) continue;
+          if (isWeekly) {
+            // Weekly: fire the day before the goal's payment day-of-week
+            if (alreadySentWeekIds.has(goal.id)) continue;
+            const paymentDow = new Date(goal.createdAt).getDay(); // 0=Sun…6=Sat
+            if (tomorrowDow !== paymentDow) continue;
 
-          const title = `${goal.name} contribution due tomorrow`;
-          const body = `Your ${fmt(goal.monthlyContribution)} monthly contribution is due tomorrow. Tap to review your goal and mark it paid.`;
+            const weeklyAmt = Math.round(goal.monthlyContribution * 12 / 52);
+            const title = `${goal.name} weekly contribution due tomorrow`;
+            const body = `Your ${fmt(weeklyAmt)} weekly contribution is due tomorrow. Tap to review and confirm your progress.`;
 
-          await db.insert(notifications).values({
-            userId,
-            type: "goal_payment",
-            title,
-            body,
-            targetScreen: "/goals/" + goal.id,
-            targetId: goal.id,
-          });
-          pushToUser(userId, title, body, `/goals/${goal.id}`);
+            await db.insert(notifications).values({
+              userId,
+              type: "goal_payment",
+              title,
+              body,
+              targetScreen: "/goals/" + goal.id,
+              targetId: goal.id,
+            });
+            pushToUser(userId, title, body, `/goals/${goal.id}`);
+          } else {
+            // Monthly: fire the day before the goal's payment day-of-month
+            if (alreadySentMonthIds.has(goal.id)) continue;
+            const paymentDueDay = Math.min(new Date(goal.createdAt).getDate(), 28);
+            if (tomorrowDayOfMonth !== paymentDueDay) continue;
+
+            const title = `${goal.name} contribution due tomorrow`;
+            const body = `Your ${fmt(goal.monthlyContribution)} monthly contribution is due tomorrow. Tap to review your goal and confirm progress.`;
+
+            await db.insert(notifications).values({
+              userId,
+              type: "goal_payment",
+              title,
+              body,
+              targetScreen: "/goals/" + goal.id,
+              targetId: goal.id,
+            });
+            pushToUser(userId, title, body, `/goals/${goal.id}`);
+          }
         }
       }
     }

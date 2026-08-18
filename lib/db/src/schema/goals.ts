@@ -13,6 +13,10 @@ export const goals = pgTable("goals", {
   targetAmount: integer("target_amount").notNull(),
   currentAmount: integer("current_amount").notNull().default(0),
   monthlyContribution: integer("monthly_contribution").notNull().default(0),
+  // payment_frequency: monthly | weekly
+  // monthlyContribution always stores the MONTHLY equivalent regardless of frequency.
+  // For weekly goals: display = round(monthlyContribution * 12 / 52) per week.
+  paymentFrequency: text("payment_frequency").notNull().default("monthly"),
   // ISO date string YYYY-MM-DD
   targetDate: text("target_date"),
   status: text("status").notNull().default("active"),

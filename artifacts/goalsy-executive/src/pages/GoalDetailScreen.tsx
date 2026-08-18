@@ -673,6 +673,7 @@ export default function GoalDetailScreen() {
   // Adjust plan form
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustContrib, setAdjustContrib] = useState('');
+  const [adjustFrequency, setAdjustFrequency] = useState<'monthly' | 'weekly'>('monthly');
   const [adjustDate, setAdjustDate] = useState('');
   const [contribAutoFilled, setContribAutoFilled] = useState(false);
   const [dateAutoFilled, setDateAutoFilled] = useState(false);
@@ -700,6 +701,7 @@ export default function GoalDetailScreen() {
           targetAmount: newTarget,
           currentAmount: goal.currentAmount,
           monthlyContribution: goal.monthlyContribution,
+          paymentFrequency: (goal as { paymentFrequency?: string }).paymentFrequency ?? 'monthly',
           targetDate: goal.targetDate ?? null,
           status: goal.status,
           priority: goal.priority,
@@ -809,7 +811,13 @@ export default function GoalDetailScreen() {
   // ── Adjust plan handlers ──────────────────────────────────────────────────
 
   const startAdjusting = () => {
-    setAdjustContrib(goal.monthlyContribution > 0 ? String(goal.monthlyContribution) : '');
+    const freq = ((goal as { paymentFrequency?: string }).paymentFrequency ?? 'monthly') as 'monthly' | 'weekly';
+    setAdjustFrequency(freq);
+    // Show the amount in the unit matching current frequency (weekly goals → show weekly amount)
+    const displayContrib = goal.monthlyContribution > 0
+      ? String(freq === 'weekly' ? Math.round(goal.monthlyContribution * 12 / 52) : goal.monthlyContribution)
+      : '';
+    setAdjustContrib(displayContrib);
     setAdjustDate(goal.targetDate ?? '');
     setContribAutoFilled(false);
     setDateAutoFilled(false);
@@ -848,20 +856,24 @@ export default function GoalDetailScreen() {
   };
 
   const handleSavePlan = async () => {
-    const contrib = parseInt(adjustContrib, 10);
-    if (!adjustContrib.trim() || isNaN(contrib) || contrib <= 0) {
-      toast({ title: 'Enter a monthly contribution', variant: 'destructive' });
+    const contribInput = parseInt(adjustContrib, 10);
+    if (!adjustContrib.trim() || isNaN(contribInput) || contribInput <= 0) {
+      toast({ title: `Enter a ${adjustFrequency} contribution`, variant: 'destructive' });
       return;
     }
+    // Always persist monthly equivalent; weekly input × 52/12 → monthly
+    const contrib = adjustFrequency === 'weekly'
+      ? Math.round(contribInput * 52 / 12)
+      : contribInput;
     try {
-      await updateGoal({ id: goal.id, data: { monthlyContribution: contrib, targetDate: adjustDate || null } });
+      await updateGoal({ id: goal.id, data: { monthlyContribution: contrib, paymentFrequency: adjustFrequency, targetDate: adjustDate || null } });
       // Patch caches immediately so the summary card on Goals Overview updates without waiting for refetch
       const patchedDate = adjustDate || null;
       queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
-        old?.map((g) => g.id === goal.id ? { ...g, monthlyContribution: contrib, targetDate: patchedDate } : g),
+        old?.map((g) => g.id === goal.id ? { ...g, monthlyContribution: contrib, paymentFrequency: adjustFrequency, targetDate: patchedDate } : g),
       );
       queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
-        old ? { ...old, monthlyContribution: contrib, targetDate: patchedDate } : old,
+        old ? { ...old, monthlyContribution: contrib, paymentFrequency: adjustFrequency, targetDate: patchedDate } : old,
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
@@ -1057,10 +1069,16 @@ export default function GoalDetailScreen() {
           <div className="flex items-center justify-between pt-1 border-t border-white/5">
             <div className="flex items-center gap-2">
               <TrendingUp size={14} className="text-[#22C55E]" />
-              <span className="text-[#CBD5E1] font-semibold text-xs">Monthly</span>
+              <span className="text-[#CBD5E1] font-semibold text-xs">
+                {(goal as { paymentFrequency?: string }).paymentFrequency === 'weekly' ? 'Weekly' : 'Monthly'}
+              </span>
             </div>
             <span className="text-white font-bold text-sm">
-              {goal.monthlyContribution > 0 ? `$${goal.monthlyContribution.toLocaleString()}/mo` : 'None set'}
+              {goal.monthlyContribution > 0
+                ? (goal as { paymentFrequency?: string }).paymentFrequency === 'weekly'
+                  ? `$${Math.round(goal.monthlyContribution * 12 / 52).toLocaleString()}/wk`
+                  : `$${goal.monthlyContribution.toLocaleString()}/mo`
+                : 'None set'}
             </span>
           </div>
 
@@ -1275,16 +1293,44 @@ export default function GoalDetailScreen() {
           <span className={labelCls}>Plan</span>
           {isAdjusting ? (
             <div className="flex flex-col gap-3">
+              {/* Payment frequency toggle */}
               <div>
                 <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 block">
-                  Monthly Contribution
+                  Payment Frequency
+                </label>
+                <div className="flex gap-2">
+                  {(['monthly', 'weekly'] as const).map((freq) => (
+                    <button
+                      key={freq}
+                      type="button"
+                      onClick={() => {
+                        setAdjustFrequency(freq);
+                        setAdjustContrib('');
+                        setContribAutoFilled(false);
+                        setAdjustFeasibility(null);
+                      }}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
+                        adjustFrequency === freq
+                          ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                          : 'bg-[#0A0F1E] border-[#2D3748] text-[#808BA4]'
+                      }`}
+                    >
+                      {freq === 'monthly' ? 'Monthly' : 'Weekly'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 block">
+                  {adjustFrequency === 'weekly' ? 'Weekly Contribution' : 'Monthly Contribution'}
                 </label>
                 <div className="relative">
                   <ExecutiveInput
                     label=""
                     leftIcon={<span className="font-bold">$</span>}
                     inputMode="decimal"
-                    placeholder="e.g. 1500"
+                    placeholder={adjustFrequency === 'weekly' ? 'e.g. 375' : 'e.g. 1500'}
                     value={adjustContrib}
                     onChange={(e) => {
                       setAdjustContrib(e.target.value.replace(/[^0-9.]/g, ''));
