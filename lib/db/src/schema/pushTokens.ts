@@ -14,6 +14,14 @@ export const pushTokens = pgTable(
     token: text("token").notNull(),
     /** 'ios' | 'android' */
     platform: text("platform").notNull(),
+    /**
+     * The app bundle ID this token was registered under (e.g.
+     * 'com.myui.goalsyexecutive' or 'com.enteraxion.goalsy').
+     * Used to select the correct APNs signing credentials when
+     * delivering pushes.  Null for tokens registered before this
+     * column existed — those fall back to the MyUI credential set.
+     */
+    bundleId: text("bundle_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

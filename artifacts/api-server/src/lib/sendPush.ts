@@ -1,28 +1,33 @@
 /**
  * sendPush — lightweight APNs HTTP/2 push dispatch.
  *
- * Uses Node's built-in `http2` module + `jose` (already a project dependency)
- * to sign APNs provider JWTs (ES256) and deliver pushes over a persistent
- * HTTP/2 session.  No additional packages needed.
+ * Supports two independent APNs credential sets so the same server can
+ * deliver pushes to devices registered under different bundle IDs (apps
+ * owned by different Apple Developer accounts):
  *
- * Required environment variables (set via Replit Secrets):
- *   APNS_KEY_P8    — contents of the .p8 file downloaded from developer.apple.com,
- *                    including the -----BEGIN PRIVATE KEY----- / END lines.
- *   APNS_KEY_ID    — 10-character Key ID shown in Apple Developer → Certificates → Keys
- *   APNS_TEAM_ID   — 10-character Team ID from Apple Developer → Account → Membership
+ *   MyUI app  (com.myui.goalsyexecutive)
+ *     APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID
  *
- * Bundle ID is read from APNS_BUNDLE_ID (defaults to 'com.myui.goalsyexecutive').
+ *   Enteraxion app  (com.enteraxion.goalsy — value of APNS_BUNDLE_ID)
+ *     APNS_KEY_P8_ENTERAXION, APNS_KEY_ID_ENTERAXION, APNS_TEAM_ID_ENTERAXION,
+ *     APNS_BUNDLE_ID
+ *
+ * The credential set is chosen at send time by matching the bundle ID stored
+ * alongside each push token.  Tokens with no bundle ID (registered before
+ * this column existed) fall back to the MyUI set.
+ *
+ * Each credential set maintains its own provider JWT cache and HTTP/2 session.
  *
  * ⚠️  REQUIRES USER SETUP (cannot be automated):
  *   1. In developer.apple.com → Certificates, Identifiers & Profiles → Keys
- *      create a new key with "Apple Push Notifications service (APNs)" enabled.
+ *      create a key with "Apple Push Notifications service (APNs)" enabled.
  *   2. Download the .p8 file — it can only be downloaded once.
- *   3. Add APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID to Replit Secrets.
+ *   3. Add the relevant secrets to Replit.
  *   4. In Xcode → Signing & Capabilities → add "Push Notifications" capability.
  *   5. Test on a real device (simulators cannot receive APNs pushes).
  *
  * When credentials are absent the function logs a warning and returns without
- * throwing — goal notification logic degrades gracefully to in-app-only.
+ * throwing — notification logic degrades gracefully to in-app-only.
  */
 
 import * as http2 from "node:http2";
@@ -32,31 +37,87 @@ import { logger } from "./logger";
 const APNS_SANDBOX_HOST = "api.sandbox.push.apple.com";
 const APNS_PROD_HOST = "api.push.apple.com";
 
-// Use sandbox in development, production otherwise.
 const apnsHost =
   process.env["NODE_ENV"] === "production" ? APNS_PROD_HOST : APNS_SANDBOX_HOST;
 
-const BUNDLE_ID =
-  process.env["APNS_BUNDLE_ID"] ?? "com.myui.goalsyexecutive";
+// ── Bundle ID constants ────────────────────────────────────────────────────────
 
-// ── Provider JWT cache ────────────────────────────────────────────────────────
+/** Legacy MyUI bundle ID — used as default for tokens with no bundleId recorded. */
+const MYUI_BUNDLE_ID = "com.myui.goalsyexecutive";
+
+/**
+ * Enteraxion bundle ID — read from APNS_BUNDLE_ID secret (set to
+ * com.enteraxion.goalsy).  Any token stored with this bundle ID uses the
+ * _ENTERAXION credential set.
+ */
+const ENTERAXION_BUNDLE_ID =
+  process.env["APNS_BUNDLE_ID"] ?? "com.enteraxion.goalsy";
+
+// ── Credential set definition ─────────────────────────────────────────────────
+
+interface CredentialSet {
+  /** Human-readable label used only in log messages */
+  label: string;
+  bundleId: string;
+  keyP8Env: string;
+  keyIdEnv: string;
+  teamIdEnv: string;
+  /** Cached provider JWT */
+  cachedToken: string | null;
+  tokenIat: number;
+  /** Persistent HTTP/2 session for this credential set */
+  session: http2.ClientHttp2Session | null;
+}
+
+const MYUI_CREDS: CredentialSet = {
+  label: "MyUI",
+  bundleId: MYUI_BUNDLE_ID,
+  keyP8Env: "APNS_KEY_P8",
+  keyIdEnv: "APNS_KEY_ID",
+  teamIdEnv: "APNS_TEAM_ID",
+  cachedToken: null,
+  tokenIat: 0,
+  session: null,
+};
+
+const ENTERAXION_CREDS: CredentialSet = {
+  label: "Enteraxion",
+  bundleId: ENTERAXION_BUNDLE_ID,
+  keyP8Env: "APNS_KEY_P8_ENTERAXION",
+  keyIdEnv: "APNS_KEY_ID_ENTERAXION",
+  teamIdEnv: "APNS_TEAM_ID_ENTERAXION",
+  cachedToken: null,
+  tokenIat: 0,
+  session: null,
+};
+
+/**
+ * Select the correct credential set for a given bundle ID.
+ * Null / missing bundle ID falls back to MyUI (preserves pre-migration
+ * behaviour for existing tokens).
+ */
+function credentialsFor(bundleId: string | null | undefined): CredentialSet {
+  if (bundleId === ENTERAXION_BUNDLE_ID) return ENTERAXION_CREDS;
+  return MYUI_CREDS;
+}
+
+// ── Provider JWT ──────────────────────────────────────────────────────────────
 // APNs provider JWTs are valid for 1 hour; regenerate every 50 minutes.
-let cachedProviderToken: string | null = null;
-let providerTokenIat = 0;
 
-async function getProviderToken(): Promise<string> {
+async function getProviderToken(creds: CredentialSet): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  if (cachedProviderToken && now - providerTokenIat < 50 * 60) {
-    return cachedProviderToken;
+  if (creds.cachedToken && now - creds.tokenIat < 50 * 60) {
+    return creds.cachedToken;
   }
 
-  const keyP8 = process.env["APNS_KEY_P8"];
-  const keyId = process.env["APNS_KEY_ID"];
-  const teamId = process.env["APNS_TEAM_ID"];
+  const keyP8 = process.env[creds.keyP8Env];
+  const keyId = process.env[creds.keyIdEnv];
+  const teamId = process.env[creds.teamIdEnv];
 
   if (!keyP8 || !keyId || !teamId) {
     throw new Error(
-      "APNs credentials missing — set APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID in Replit Secrets",
+      `[sendPush/${creds.label}] APNs credentials missing — set ` +
+        `${creds.keyP8Env}, ${creds.keyIdEnv}, ${creds.teamIdEnv} in Replit Secrets`,
     );
   }
 
@@ -67,31 +128,36 @@ async function getProviderToken(): Promise<string> {
     .setIssuedAt()
     .sign(privateKey);
 
-  cachedProviderToken = token;
-  providerTokenIat = now;
+  creds.cachedToken = token;
+  creds.tokenIat = now;
   return token;
 }
 
 // ── HTTP/2 session pool ───────────────────────────────────────────────────────
-// Reuse a single HTTP/2 session per process lifetime; reconnect on error.
-let h2Session: http2.ClientHttp2Session | null = null;
+// Each credential set keeps its own session so connections are not shared
+// across Apple Developer accounts.
 
-function getSession(): http2.ClientHttp2Session {
-  if (h2Session && !h2Session.destroyed && !h2Session.closed) {
-    return h2Session;
+function getSession(creds: CredentialSet): http2.ClientHttp2Session {
+  if (creds.session && !creds.session.destroyed && !creds.session.closed) {
+    return creds.session;
   }
-  h2Session = http2.connect(`https://${apnsHost}`);
-  h2Session.on("error", (err) => {
-    logger.warn({ err }, "[sendPush] HTTP/2 session error — will reconnect");
-    h2Session = null;
+  const session = http2.connect(`https://${apnsHost}`);
+  session.on("error", (err) => {
+    logger.warn(
+      { err, label: creds.label },
+      "[sendPush] HTTP/2 session error — will reconnect",
+    );
+    creds.session = null;
   });
-  h2Session.on("close", () => {
-    h2Session = null;
+  session.on("close", () => {
+    creds.session = null;
   });
-  return h2Session;
+  creds.session = session;
+  return session;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -100,30 +166,45 @@ export interface PushPayload {
 }
 
 /**
+ * A device token paired with the bundle ID it was registered under.
+ * bundleId may be null for tokens registered before the column was added —
+ * they will use the MyUI credential set.
+ */
+export interface TokenWithBundle {
+  token: string;
+  bundleId: string | null;
+}
+
+/**
  * Send a push notification to a single APNs device token.
- * Resolves silently if credentials are not yet configured.
+ * bundleId is used to select the correct signing credentials.
+ * Resolves silently if the relevant credentials are not configured.
  */
 export async function sendPush(
   deviceToken: string,
+  bundleId: string | null | undefined,
   payload: PushPayload,
 ): Promise<void> {
+  const creds = credentialsFor(bundleId);
+
   // Graceful no-op when credentials are absent
-  const keyP8 = process.env["APNS_KEY_P8"];
-  const keyId = process.env["APNS_KEY_ID"];
-  const teamId = process.env["APNS_TEAM_ID"];
+  const keyP8 = process.env[creds.keyP8Env];
+  const keyId = process.env[creds.keyIdEnv];
+  const teamId = process.env[creds.teamIdEnv];
   if (!keyP8 || !keyId || !teamId) {
     logger.warn(
-      "[sendPush] APNs credentials not configured — push skipped. " +
-        "Add APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID to Replit Secrets to enable push.",
+      { label: creds.label },
+      `[sendPush] APNs credentials not configured — push skipped. ` +
+        `Add ${creds.keyP8Env}, ${creds.keyIdEnv}, ${creds.teamIdEnv} to Replit Secrets to enable push.`,
     );
     return;
   }
 
   let providerToken: string;
   try {
-    providerToken = await getProviderToken();
+    providerToken = await getProviderToken(creds);
   } catch (err) {
-    logger.error({ err }, "[sendPush] Failed to generate provider JWT");
+    logger.error({ err, label: creds.label }, "[sendPush] Failed to generate provider JWT");
     return;
   }
 
@@ -138,11 +219,11 @@ export async function sendPush(
 
   return new Promise((resolve) => {
     try {
-      const session = getSession();
+      const session = getSession(creds);
       const req = session.request({
         ":method": "POST",
         ":path": `/3/device/${deviceToken}`,
-        "apns-topic": BUNDLE_ID,
+        "apns-topic": creds.bundleId,
         "apns-push-type": "alert",
         "apns-priority": "10",
         authorization: `bearer ${providerToken}`,
@@ -156,16 +237,15 @@ export async function sendPush(
         const status = headers[":status"] as number | undefined;
         if (status === 200) {
           logger.info(
-            { tokenPrefix: deviceToken.slice(0, 8) },
+            { tokenPrefix: deviceToken.slice(0, 8), label: creds.label },
             "[sendPush] Push delivered",
           );
         } else {
-          // Collect body for error detail
           let body = "";
           req.on("data", (chunk: Buffer) => { body += chunk.toString(); });
           req.on("end", () => {
             logger.warn(
-              { status, body, tokenPrefix: deviceToken.slice(0, 8) },
+              { status, body, tokenPrefix: deviceToken.slice(0, 8), label: creds.label },
               "[sendPush] APNs rejected push",
             );
           });
@@ -174,11 +254,11 @@ export async function sendPush(
       });
 
       req.on("error", (err) => {
-        logger.error({ err }, "[sendPush] Request error");
+        logger.error({ err, label: creds.label }, "[sendPush] Request error");
         resolve();
       });
     } catch (err) {
-      logger.error({ err }, "[sendPush] Unexpected error sending push");
+      logger.error({ err, label: creds.label }, "[sendPush] Unexpected error sending push");
       resolve();
     }
   });
@@ -186,12 +266,15 @@ export async function sendPush(
 
 /**
  * Fan-out: send the same notification to multiple device tokens.
- * Failures are logged but do not throw.
+ * Each token carries its bundle ID so the correct credentials are selected
+ * per-delivery.  Failures are logged but do not throw.
  */
 export async function sendPushToMany(
-  deviceTokens: string[],
+  tokens: TokenWithBundle[],
   payload: PushPayload,
 ): Promise<void> {
-  if (deviceTokens.length === 0) return;
-  await Promise.allSettled(deviceTokens.map((t) => sendPush(t, payload)));
+  if (tokens.length === 0) return;
+  await Promise.allSettled(
+    tokens.map(({ token, bundleId }) => sendPush(token, bundleId, payload)),
+  );
 }

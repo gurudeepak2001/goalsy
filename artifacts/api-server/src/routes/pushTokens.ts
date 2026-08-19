@@ -14,7 +14,11 @@ const router = Router();
 // POST /api/push-tokens
 router.post("/push-tokens", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
-  const { token, platform } = req.body as { token?: string; platform?: string };
+  const { token, platform, bundleId } = req.body as {
+    token?: string;
+    platform?: string;
+    bundleId?: string;
+  };
 
   if (!token || typeof token !== "string" || token.length < 8) {
     res.status(400).json({ message: "token (string) is required" });
@@ -26,13 +30,22 @@ router.post("/push-tokens", requireAuth, async (req, res) => {
   }
 
   try {
-    // Upsert: update timestamp if token already registered for this user.
+    // Upsert: update timestamp (and bundleId if provided) if token already
+    // registered for this user.
     const [row] = await db
       .insert(pushTokens)
-      .values({ userId, token, platform })
+      .values({
+        userId,
+        token,
+        platform,
+        bundleId: bundleId ?? null,
+      })
       .onConflictDoUpdate({
         target: [pushTokens.userId, pushTokens.token],
-        set: { updatedAt: new Date() },
+        set: {
+          updatedAt: new Date(),
+          ...(bundleId !== undefined ? { bundleId } : {}),
+        },
       })
       .returning();
 

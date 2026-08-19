@@ -26,15 +26,15 @@ function pushToUser(
   body: string,
   targetScreen: string,
 ) {
-  db.select({ token: pushTokens.token })
+  db.select({ token: pushTokens.token, bundleId: pushTokens.bundleId })
     .from(pushTokens)
     .where(eq(pushTokens.userId, userId))
     .then((rows) => {
-      const tokens = rows.map((r) => r.token);
-      if (tokens.length > 0) {
-        sendPushToMany(tokens, { title, body, data: { targetScreen } }).catch(
-          () => {},
-        );
+      if (rows.length > 0) {
+        sendPushToMany(
+          rows.map((r) => ({ token: r.token, bundleId: r.bundleId })),
+          { title, body, data: { targetScreen } },
+        ).catch(() => {});
       }
     })
     .catch(() => {});
