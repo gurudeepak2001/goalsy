@@ -5,3 +5,4 @@
 - [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
 - [Clerk API server auth](clerk-api-auth.md) — use jose JWKS, never @clerk/express; CLERK_SECRET_KEY is an invalid placeholder.
+- [Enteraxion LLC app migration](enteraxion-migration.md) — new App Store entry under Enteraxion LLC; two hard blockers (APNs key + Clerk bundle ID) must be done before any upload/TestFlight work.
