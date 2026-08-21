@@ -47,6 +47,7 @@ function parseDollar(raw: string): number | null {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function FinancialConnectionScreen() {
   const [, navigate] = useLocation();
+  const isEditMode = new URLSearchParams(window.location.search).get('mode') === 'edit';
 
   // Step: 'profile' first, then 'connection'
   const [step, setStep] = useState<'profile' | 'connection'>('profile');
@@ -91,7 +92,12 @@ export default function FinancialConnectionScreen() {
           primaryGoalType: primaryGoalType || null,
         },
       });
-      setStep('connection');
+      if (isEditMode) {
+        toast({ title: 'Profile Updated', description: 'Your financial picture has been saved.' });
+        navigate('/ai-home');
+      } else {
+        setStep('connection');
+      }
     } catch (err) {
       const detail = err instanceof Error ? err.message
         : typeof err === 'string' ? err
@@ -137,10 +143,14 @@ export default function FinancialConnectionScreen() {
               <div className="w-1 bg-[#2563EB] rounded-full flex-shrink-0" />
               <div className="pl-6 flex flex-col gap-[6.8px]">
                 <span className="text-[#2563EB] text-xs font-bold uppercase tracking-[2px]">
-                  Step 02: Financial Profile
+                  {isEditMode ? 'Update Profile' : 'Step 02: Financial Profile'}
                 </span>
-                <h1 className="text-white font-bold text-[36px] leading-[40px]" style={{ letterSpacing: '-1.5px' }}>
-                  Your Financial<br />Picture.
+                <h1
+                  aria-label={isEditMode ? 'Update Your Financial Picture' : 'Your Financial Picture'}
+                  className="text-white font-bold text-[36px] leading-[40px]"
+                  style={{ letterSpacing: '-1.5px' }}
+                >
+                  {isEditMode ? <>Update Your Financial<br />Picture.</> : <>Your Financial<br />Picture.</>}
                 </h1>
                 <p className="text-[#CBD5E1] font-semibold text-base leading-[26px] opacity-90 pt-2">
                   This helps Goalsy calibrate your score, missions, and strategy to your actual situation. All fields are optional.
@@ -270,7 +280,7 @@ export default function FinancialConnectionScreen() {
             {/* Actions */}
             <div className="flex flex-col gap-4 mt-auto pb-2">
               <ExecutiveButton
-                text={saving ? 'Saving…' : 'Continue'}
+                text={saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Continue'}
                 icon={saving ? <Loader2 size={18} className="animate-spin" /> : undefined}
                 disabled={saving || fpLoading}
                 style={{ letterSpacing: '-0.000976562em', boxShadow: '0 0 30px rgba(37,99,235,0.2)' }}
@@ -278,10 +288,10 @@ export default function FinancialConnectionScreen() {
               />
               <ExecutiveButton
                 variant="outline"
-                text="Skip for Now"
+                text={isEditMode ? 'Cancel' : 'Skip for Now'}
                 className="border border-white/20 text-[#CBD5E1] text-base"
                 disabled={saving}
-                onClick={() => setStep('connection')}
+                onClick={() => isEditMode ? navigate('/ai-home') : setStep('connection')}
               />
               {profileSaveError && (
                 <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">

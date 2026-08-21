@@ -474,7 +474,7 @@ export default function AIHomeScreen() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => navigate('/connect')}
+                  onClick={() => navigate('/financial-connection?mode=edit')}
                   className="self-start text-[#2563EB] font-bold text-sm underline"
                 >
                   Update Profile →
