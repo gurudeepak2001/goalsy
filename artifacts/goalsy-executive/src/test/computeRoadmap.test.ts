@@ -127,3 +127,23 @@ describe('computeRoadmap – contribution-rate goal catch-up amount', () => {
     expect(result.contributionShortfall).toBeGreaterThan(0);
   });
 });
+
+describe('computeRoadmap – buffered remaining-balance estimate', () => {
+  it('uses the saved balance and a forward-only buffer in its completion label', () => {
+    const result = computeRoadmap(
+      makeGoal({
+        targetAmount: 2_591,
+        currentAmount: 500,
+        monthlyContribution: 25 * 52 / 12,
+        createdAt: NOW.toISOString(),
+      }),
+      null,
+      new Date('2026-08-20T12:00:00Z'),
+    );
+
+    // The exact date is March 30, 2028; the user-facing estimate must include
+    // the 21-day cushion and must not regress to a full-target calculation.
+    expect(result.estimatedCompletionDate).toBe('Apr 2028');
+    expect(result.plan[0]?.description).toContain('20 months');
+  });
+});

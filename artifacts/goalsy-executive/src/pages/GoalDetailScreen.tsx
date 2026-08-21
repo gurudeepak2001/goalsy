@@ -16,12 +16,15 @@ import ExecutiveInput from '@/components/ExecutiveInput';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  estimatedCompletionDate,
+  estimatedCompletionMonths,
   MS_PER_MONTH,
   completionDateIso,
   fromMonthlyContribution,
   requiredMonthlyContribution,
   toMonthlyContribution,
 } from '@/lib/goalMath';
+import { computeGoalSchedule } from '@/lib/goalSchedule';
 import {
   useGetGoal,
   useUpdateGoal,
@@ -71,8 +74,6 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 // ── Auto-fill helpers ─────────────────────────────────────────────────────────
-
-const WEEKS_PER_MONTH = 52 / 12; // ~4.333 — used for contribution-rate milestone pacing
 
 function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
   return completionDateIso(target, current, contrib);
@@ -126,14 +127,23 @@ export function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefin
   const msToTarget = targetDate ? targetDate.getTime() - now.getTime() : null;
   const monthsToTarget = msToTarget && msToTarget > 0 ? msToTarget / MS_PER_MONTH : null;
   const requiredMonthly = monthsToTarget && gap > 0 ? Math.ceil(gap / monthsToTarget) : null;
-  const estimatedMonths = monthly > 0 && gap > 0 ? gap / monthly : null;
+  const estimatedMonths = estimatedCompletionMonths(
+    goal.targetAmount,
+    goal.currentAmount,
+    monthly,
+  );
+  const estimatedDate = estimatedCompletionDate(
+    goal.targetAmount,
+    goal.currentAmount,
+    monthly,
+    now,
+  );
 
-  let estimatedCompletionDate: string | null = null;
+  let estimatedCompletionLabel: string | null = null;
   if (goal.currentAmount >= goal.targetAmount) {
-    estimatedCompletionDate = 'Complete';
-  } else if (estimatedMonths) {
-    const d = new Date(now.getTime() + estimatedMonths * MS_PER_MONTH);
-    estimatedCompletionDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    estimatedCompletionLabel = 'Complete';
+  } else if (estimatedDate) {
+    estimatedCompletionLabel = estimatedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
   let overallStatus: OverallStatus = 'no_data';
@@ -210,7 +220,13 @@ export function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefin
     });
   }
 
-  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly };
+  return {
+    overallStatus,
+    expectedByNow,
+    plan,
+    estimatedCompletionDate: estimatedCompletionLabel,
+    requiredMonthly,
+  };
 }
 
 // ── Weekly milestones computation ─────────────────────────────────────────────
@@ -225,40 +241,7 @@ export interface WeekMilestone {
 }
 
 export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
-  if (goal.targetAmount <= 0) return [];
-  const now = new Date();
-  const createdAt = new Date(goal.createdAt);
-  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-
-  // ── Determine the end date (controls how many weeks to generate) ──────────
-  let endDate: Date | null = null;
-  if (goal.targetDate) {
-    endDate = new Date(goal.targetDate);
-  } else if (goal.monthlyContribution > 0 && goal.currentAmount < goal.targetAmount) {
-    const remaining = goal.targetAmount - goal.currentAmount;
-    const months = remaining / goal.monthlyContribution;
-    endDate = new Date(now.getTime() + months * MS_PER_MONTH);
-  }
-  if (!endDate || endDate <= createdAt) return [];
-
-  const totalMs = endDate.getTime() - createdAt.getTime();
-  const totalWeeks = Math.ceil(totalMs / msPerWeek);
-
-  const milestones: WeekMilestone[] = [];
-  for (let i = 1; i <= totalWeeks; i++) {
-    const weekDate = new Date(createdAt.getTime() + i * msPerWeek);
-    const isPast = weekDate <= now;
-
-    // ── Root Cause 1 fix: contribution-rate-based expected amounts ────────
-    // expectedAmount = cumulative savings at the stated monthly pace by week i,
-    // capped at the target. When monthlyContribution changes, ALL expected
-    // amounts recalculate immediately — even when a targetDate is also set.
-    // Falls back to linear interpolation only when monthlyContribution is zero.
-    const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
-    const expectedAmount = goal.monthlyContribution > 0
-      ? Math.round(Math.min(goal.targetAmount, goal.currentAmount + i * goal.monthlyContribution / WEEKS_PER_MONTH))
-      : Math.round(Math.min(goal.targetAmount, goal.currentAmount + remaining * (i / totalWeeks)));
-
+  return computeGoalSchedule(goal).map((milestone) => {
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
     // For past weeks with a logged confirmation, compare that actual figure
     // against the expected — not the goal's running currentAmount total.
@@ -268,30 +251,25 @@ export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, nu
     // the user fell short — never inferred from an absent/unlogged entry.
     // This prevents brand-new goals (currentAmount ≈ 0) from immediately
     // showing amber 'behind' markers that contradict an on_track status banner.
-    const confirmedAmount = confirmedMap.get(i);
+    const confirmedAmount = confirmedMap.get(milestone.weekIndex);
     let status: WeekMilestone['status'];
-    if (!isPast) {
+    if (!milestone.isPast) {
       status = 'upcoming';
     } else if (confirmedAmount !== undefined) {
       // Explicit progress log: trust it fully.
-      status = confirmedAmount >= expectedAmount ? 'reached' : 'behind';
+      status = confirmedAmount >= milestone.expectedAmount ? 'reached' : 'behind';
     } else {
       // No explicit log: use currentAmount as a positive proxy only.
       // If currentAmount already meets the bar, mark 'reached'; otherwise
       // stay neutral ('upcoming') — we cannot claim 'behind' without evidence.
-      status = goal.currentAmount >= expectedAmount ? 'reached' : 'upcoming';
+      status = goal.currentAmount >= milestone.expectedAmount ? 'reached' : 'upcoming';
     }
 
-    milestones.push({
-      weekIndex: i,
-      weekDate,
-      dateLabel: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
-      expectedAmount,
+    return {
+      ...milestone,
       status,
-      isPast,
-    });
-  }
-  return milestones;
+    };
+  });
 }
 
 // ── Status banner ─────────────────────────────────────────────────────────────

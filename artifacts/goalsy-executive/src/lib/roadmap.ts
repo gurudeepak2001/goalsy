@@ -4,11 +4,17 @@
  */
 
 import type { Goal, FinancialProfile } from '@workspace/api-client-react';
+import {
+  estimatedCompletionDate,
+  estimatedCompletionMonths,
+  MS_PER_MONTH,
+  remainingBalance,
+  WEEKS_PER_MONTH,
+} from './goalMath';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
-export const WEEKS_PER_MONTH = 52 / 12; // ~4.333
+export { MS_PER_MONTH, WEEKS_PER_MONTH };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +43,7 @@ export function computeRoadmap(
   fp: FinancialProfile | null | undefined,
   now = new Date(),
 ): RoadmapResult {
-  const gap = Math.max(0, goal.targetAmount - goal.currentAmount);
+  const gap = remainingBalance(goal.targetAmount, goal.currentAmount);
   const monthly = goal.monthlyContribution ?? 0;
   const createdAt = new Date(goal.createdAt);
   const targetDate = goal.targetDate ? new Date(goal.targetDate) : null;
@@ -45,14 +51,23 @@ export function computeRoadmap(
   const msToTarget = targetDate ? targetDate.getTime() - now.getTime() : null;
   const monthsToTarget = msToTarget && msToTarget > 0 ? msToTarget / MS_PER_MONTH : null;
   const requiredMonthly = monthsToTarget && gap > 0 ? Math.ceil(gap / monthsToTarget) : null;
-  const estimatedMonths = monthly > 0 && gap > 0 ? gap / monthly : null;
+  const estimatedMonths = estimatedCompletionMonths(
+    goal.targetAmount,
+    goal.currentAmount,
+    monthly,
+  );
+  const estimatedDate = estimatedCompletionDate(
+    goal.targetAmount,
+    goal.currentAmount,
+    monthly,
+    now,
+  );
 
-  let estimatedCompletionDate: string | null = null;
+  let estimatedCompletionLabel: string | null = null;
   if (goal.currentAmount >= goal.targetAmount) {
-    estimatedCompletionDate = 'Complete';
-  } else if (estimatedMonths) {
-    const d = new Date(now.getTime() + estimatedMonths * MS_PER_MONTH);
-    estimatedCompletionDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    estimatedCompletionLabel = 'Complete';
+  } else if (estimatedDate) {
+    estimatedCompletionLabel = estimatedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
   let overallStatus: OverallStatus = 'no_data';
@@ -139,5 +154,12 @@ export function computeRoadmap(
     });
   }
 
-  return { overallStatus, expectedByNow, plan, estimatedCompletionDate, requiredMonthly, contributionShortfall };
+  return {
+    overallStatus,
+    expectedByNow,
+    plan,
+    estimatedCompletionDate: estimatedCompletionLabel,
+    requiredMonthly,
+    contributionShortfall,
+  };
 }

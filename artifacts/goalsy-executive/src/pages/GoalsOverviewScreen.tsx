@@ -10,6 +10,7 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import {
+  estimatedCompletionDate,
   MS_PER_MONTH,
   completionDateIso,
   fromMonthlyContribution,
@@ -58,11 +59,8 @@ function computeRequiredMonthly(goal: Goal): number {
 
 function computeProjectedDate(current: number, target: number, monthly: number): string {
   if (current >= target) return 'Complete';
-  if (monthly <= 0) return 'TBD';
-  const months = Math.ceil((target - current) / monthly);
-  const date = new Date();
-  date.setMonth(date.getMonth() + months);
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const date = estimatedCompletionDate(target, current, monthly);
+  return date ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'TBD';
 }
 
 const TYPE_COLORS: Record<string, string> = {

@@ -188,3 +188,24 @@ describe('computeRoadmap – grace window for brand-new deadline-based goals', (
     expect(overallStatus).toBe('ahead');
   });
 });
+
+describe('computeRoadmap – displayed estimate', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('shows the buffered estimate based on the remaining balance', () => {
+    vi.setSystemTime(new Date('2026-08-20T12:00:00Z'));
+    const result = computeRoadmap(makeDeadlineGoal({
+      targetAmount: 2_591,
+      currentAmount: 500,
+      monthlyContribution: 25 * 52 / 12,
+    }), null);
+
+    expect(result.estimatedCompletionDate).toBe('Apr 2028');
+  });
+});

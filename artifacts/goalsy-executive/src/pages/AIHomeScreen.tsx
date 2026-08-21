@@ -16,7 +16,11 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import { simulateAsync } from '@/lib/mockData';
-import { MS_PER_MONTH, remainingBalance } from '@/lib/goalMath';
+import {
+  estimatedCompletionMonths,
+  MS_PER_MONTH,
+  remainingBalance,
+} from '@/lib/goalMath';
 import {
   useListGoals,
   useGetFinancialProfile,
@@ -73,6 +77,16 @@ type PriorityItem = {
   estimatedMonths: number | null;
 };
 
+function estimatedMonthsRemaining(goal: GoalRow): number | null {
+  const months = estimatedCompletionMonths(
+    goal.targetAmount,
+    goal.currentAmount,
+    goal.monthlyContribution,
+  );
+  if (months === null || months === 0 || remainingBalance(goal.targetAmount, goal.currentAmount) === 0) return null;
+  return Math.ceil(months);
+}
+
 function deadlineStatus(goal: GoalRow, now: Date): PriorityItem['status'] {
   if (!goal.targetDate) return 'no_data';
   const monthsLeft = (new Date(goal.targetDate).getTime() - now.getTime()) / MS_PER_MONTH;
@@ -94,11 +108,8 @@ function pickPriorityGoal(goals: GoalRow[] | undefined): PriorityItem | null {
   if (pinned.length > 0) {
     const g = pinned.reduce((best, cur) => (cur.priority ?? 1) > (best.priority ?? 1) ? cur : best);
     const progress = Math.min(1, g.currentAmount / g.targetAmount);
-    const estimatedMonths =
-      g.monthlyContribution > 0 && g.targetAmount > g.currentAmount
-        ? Math.ceil((g.targetAmount - g.currentAmount) / g.monthlyContribution)
-        : null;
     const nowP = new Date();
+    const estimatedMonths = estimatedMonthsRemaining(g);
     const status = deadlineStatus(g, nowP);
     return { goal: g, progress, status, estimatedMonths };
   }
@@ -125,10 +136,7 @@ function pickPriorityGoal(goals: GoalRow[] | undefined): PriorityItem | null {
       urgency = (1 - progress) * 10;
     }
 
-    const estimatedMonths =
-      g.monthlyContribution > 0 && g.targetAmount > g.currentAmount
-        ? Math.ceil((g.targetAmount - g.currentAmount) / g.monthlyContribution)
-        : null;
+    const estimatedMonths = estimatedMonthsRemaining(g);
 
     return { goal: g, progress, status, urgency, estimatedMonths };
   });
@@ -147,7 +155,7 @@ function computeStrategicRec(fp: FP, goals: GoalRow[], priorityItem: PriorityIte
   // 1. Behind on priority goal with a target date → show required boost
   if (priorityItem?.status === 'behind' && priorityItem.goal.monthlyContribution > 0 && priorityItem.goal.targetDate) {
     const g = priorityItem.goal;
-    const remaining = g.targetAmount - g.currentAmount;
+    const remaining = remainingBalance(g.targetAmount, g.currentAmount);
     const monthsLeft = (new Date(g.targetDate!).getTime() - Date.now()) / (30.44 * 24 * 60 * 60 * 1000);
     if (monthsLeft > 0) {
       const needed = Math.ceil(remaining / monthsLeft);

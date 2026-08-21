@@ -19,6 +19,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { computeWeeklyMilestones } from '../pages/GoalDetailScreen';
+import { estimatedCompletionDate } from '../lib/goalMath';
 import type { Goal } from '@workspace/api-client-react';
 
 // ---------------------------------------------------------------------------
@@ -212,5 +213,51 @@ describe('computeWeeklyMilestones – edge cases', () => {
     expect(week1).toBeDefined();
     expect(week1!.isPast).toBe(true);
     expect(week1!.status).not.toBe('behind');
+  });
+});
+
+describe('computeWeeklyMilestones – remaining balance and buffered end date', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('starts from the saved balance and keeps the contribution-only schedule through the buffered estimate', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-20T12:00:00Z');
+    vi.setSystemTime(now);
+    const monthlyContribution = 25 * 52 / 12;
+    const goal = makeGoal({
+      createdAt: now.toISOString(),
+      targetAmount: 2_591,
+      currentAmount: 500,
+      monthlyContribution,
+      targetDate: null,
+    });
+
+    const milestones = computeWeeklyMilestones(goal, new Map());
+    const bufferedEstimate = estimatedCompletionDate(2_591, 500, monthlyContribution, now)!;
+    const lastMilestone = milestones.at(-1)!;
+
+    expect(milestones[0]?.expectedAmount).toBe(525);
+    expect(lastMilestone.weekDate.getTime()).toBeGreaterThanOrEqual(bufferedEstimate.getTime());
+  });
+
+  it('rebases an older goal’s next milestone to the balance saved today', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-20T12:00:00Z');
+    vi.setSystemTime(now);
+    const monthlyContribution = 25 * 52 / 12;
+    const goal = makeGoal({
+      createdAt: new Date(now.getTime() - 180 * MS_PER_DAY).toISOString(),
+      targetAmount: 2_591,
+      currentAmount: 500,
+      monthlyContribution,
+      targetDate: null,
+    });
+
+    const nextMilestone = computeWeeklyMilestones(goal, new Map())
+      .find((milestone) => !milestone.isPast);
+
+    expect(nextMilestone?.expectedAmount).toBe(525);
   });
 });

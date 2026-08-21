@@ -18,6 +18,7 @@ import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import AppModal from '@/components/AppModal';
 import { Switch } from '@/components/ui/switch';
+import { computeGoalSchedule } from '@/lib/goalSchedule';
 import {
   useListBills,
   usePayBill,
@@ -55,9 +56,6 @@ interface GoalCheckpoint {
   status: 'behind' | 'upcoming';
 }
 
-const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
-const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
-
 function computeGoalCheckpoints(
   goals: Goal[] | undefined,
 ): GoalCheckpoint[] {
@@ -69,60 +67,29 @@ function computeGoalCheckpoints(
     if (g.status === 'deleted' || g.targetAmount <= 0) continue;
     if (g.currentAmount >= g.targetAmount) continue; // complete
 
-    const createdAt = new Date(g.createdAt);
+    const schedule = computeGoalSchedule(g, now);
+    const next = schedule.find((milestone) => !milestone.isPast && g.currentAmount < milestone.expectedAmount);
+    if (!next) continue;
 
-    // Determine end date
-    let endDate: Date | null = null;
+    // Status: compare the current balance to the previous shared milestone.
+    let status: GoalCheckpoint['status'] = 'upcoming';
     if (g.targetDate) {
-      endDate = new Date(g.targetDate);
-    } else if (g.monthlyContribution > 0) {
-      const remaining = g.targetAmount - g.currentAmount;
-      const months = remaining / g.monthlyContribution;
-      endDate = new Date(now.getTime() + months * MS_PER_MONTH);
-    }
-    if (!endDate || endDate <= createdAt) continue;
-
-    const totalMs = endDate.getTime() - createdAt.getTime();
-    const totalWeeks = Math.ceil(totalMs / MS_PER_WEEK);
-
-    // Find the next upcoming week (first week in the future)
-    let pushed = false;
-    for (let i = 1; i <= totalWeeks; i++) {
-      const weekDate = new Date(createdAt.getTime() + i * MS_PER_WEEK);
-      if (weekDate <= now) continue; // past week
-      const remaining = Math.max(0, g.targetAmount - g.currentAmount);
-      const expectedAmount = g.monthlyContribution > 0
-        ? Math.round(Math.min(g.targetAmount, g.currentAmount + i * g.monthlyContribution / (52 / 12)))
-        : Math.round(Math.min(g.targetAmount, g.currentAmount + remaining * (i / totalWeeks)));
-      if (g.currentAmount >= expectedAmount) continue; // already reached this week's target
-
-      // Status: compare to goal schedule
-      let status: GoalCheckpoint['status'] = 'upcoming';
-      if (g.targetDate) {
-        // Check if the PREVIOUS week was behind schedule
-        const prevWeekDate = new Date(createdAt.getTime() + (i - 1) * MS_PER_WEEK);
-        const prevExpected = g.monthlyContribution > 0
-          ? Math.round(Math.min(g.targetAmount, g.currentAmount + (i - 1) * g.monthlyContribution / (52 / 12)))
-          : Math.round(Math.min(g.targetAmount, g.currentAmount + remaining * ((i - 1) / totalWeeks)));
-        if (prevWeekDate <= now && g.currentAmount < prevExpected * 0.9) {
-          status = 'behind';
-        }
+      const previous = schedule.find((milestone) => milestone.weekIndex === next.weekIndex - 1);
+      if (previous?.isPast && g.currentAmount < previous.expectedAmount * 0.9) {
+        status = 'behind';
       }
-
-      items.push({
-        goalId: g.id,
-        goalName: g.name,
-        goalColor: GOAL_TYPE_COLORS[g.type] ?? '#6B7280',
-        weekIndex: i,
-        expectedAmount,
-        weekDate,
-        dateLabel: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        status,
-      });
-      pushed = true;
-      break; // one upcoming week per goal
     }
-    void pushed;
+
+    items.push({
+      goalId: g.id,
+      goalName: g.name,
+      goalColor: GOAL_TYPE_COLORS[g.type] ?? '#6B7280',
+      weekIndex: next.weekIndex,
+      expectedAmount: next.expectedAmount,
+      weekDate: next.weekDate,
+      dateLabel: next.weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      status,
+    });
   }
 
   return items
