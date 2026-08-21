@@ -66,9 +66,10 @@ export function computeRoadmap(
     const elapsedMs = now.getTime() - createdAt.getTime();
     if (totalMs > 0) {
       const fraction = Math.min(1, Math.max(0, elapsedMs / totalMs));
-      expectedByNow = Math.round(goal.targetAmount * fraction);
-      if (goal.currentAmount >= expectedByNow * 1.05) overallStatus = 'ahead';
-      else if (goal.currentAmount < expectedByNow * 0.9) overallStatus = 'behind';
+      expectedByNow = Math.round(goal.targetAmount - gap * (1 - fraction));
+      const requiredForDeadline = gap / Math.max(0.01, (targetDate.getTime() - now.getTime()) / MS_PER_MONTH);
+      if (monthly <= 0 || monthly < requiredForDeadline * 0.95) overallStatus = 'behind';
+      else if (monthly > requiredForDeadline * 1.05) overallStatus = 'ahead';
       else overallStatus = 'on_track';
     }
   } else if (monthly > 0) {

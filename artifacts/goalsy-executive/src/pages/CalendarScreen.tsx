@@ -90,7 +90,10 @@ function computeGoalCheckpoints(
     for (let i = 1; i <= totalWeeks; i++) {
       const weekDate = new Date(createdAt.getTime() + i * MS_PER_WEEK);
       if (weekDate <= now) continue; // past week
-      const expectedAmount = Math.round(g.targetAmount * (i / totalWeeks));
+      const remaining = Math.max(0, g.targetAmount - g.currentAmount);
+      const expectedAmount = g.monthlyContribution > 0
+        ? Math.round(Math.min(g.targetAmount, g.currentAmount + i * g.monthlyContribution / (52 / 12)))
+        : Math.round(Math.min(g.targetAmount, g.currentAmount + remaining * (i / totalWeeks)));
       if (g.currentAmount >= expectedAmount) continue; // already reached this week's target
 
       // Status: compare to goal schedule
@@ -98,7 +101,9 @@ function computeGoalCheckpoints(
       if (g.targetDate) {
         // Check if the PREVIOUS week was behind schedule
         const prevWeekDate = new Date(createdAt.getTime() + (i - 1) * MS_PER_WEEK);
-        const prevExpected = Math.round(g.targetAmount * ((i - 1) / totalWeeks));
+        const prevExpected = g.monthlyContribution > 0
+          ? Math.round(Math.min(g.targetAmount, g.currentAmount + (i - 1) * g.monthlyContribution / (52 / 12)))
+          : Math.round(Math.min(g.targetAmount, g.currentAmount + remaining * ((i - 1) / totalWeeks)));
         if (prevWeekDate <= now && g.currentAmount < prevExpected * 0.9) {
           status = 'behind';
         }

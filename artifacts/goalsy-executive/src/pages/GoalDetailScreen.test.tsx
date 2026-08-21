@@ -178,8 +178,9 @@ describe('computeRoadmap – grace window for brand-new deadline-based goals', (
     const goal = makeDeadlineGoal({
       createdAt: oneDayAgo,
       targetDate: oneYearOut,
-      // Way above the expected fraction (1/366 × 50 000 ≈ $137) — clearly ahead.
+      // $5,000/mo is well above the ~$3,300/mo required for the $40,000 remaining balance.
       currentAmount: 10_000,
+      monthlyContribution: 5_000,
     });
 
     const { overallStatus } = computeRoadmap(goal, null);

@@ -10,6 +10,13 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 import AppModal from '@/components/AppModal';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import {
+  MS_PER_MONTH,
+  completionDateIso,
+  fromMonthlyContribution,
+  requiredMonthlyContribution,
+  toMonthlyContribution,
+} from '@/lib/goalMath';
+import {
   useListGoals,
   useCreateGoal,
   getListGoalsQueryKey,
@@ -17,27 +24,6 @@ import {
 import type { Goal } from '@workspace/api-client-react';
 
 // ── Helper functions ─────────────────────────────────────────────────────────
-
-const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
-
-function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
-  const remaining = target - current;
-  if (remaining <= 0) return new Date().toISOString().split('T')[0];
-  if (contrib <= 0) return null;
-  const ms = (remaining / contrib) * MS_PER_MONTH;
-  // Don't auto-fill a date more than 30 years out — it's not useful and
-  // the iOS date picker will show an absurdly distant year.
-  if (ms > 30 * 365.25 * 24 * 60 * 60 * 1000) return null;
-  return new Date(Date.now() + ms).toISOString().split('T')[0];
-}
-
-function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
-  const remaining = target - current;
-  if (remaining <= 0) return 0;
-  const months = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
-  if (months <= 0) return null;
-  return Math.ceil(remaining / months);
-}
 
 function createFeasibilityNote(
   current: number, target: number, contrib: number, targetDateStr: string,
@@ -196,11 +182,12 @@ export default function GoalsOverviewScreen() {
   const handleCreateContribBlur = () => {
     const { target, current, contrib } = getCreateNumbers();
     if (!contrib || !target) return;
+    const monthlyContrib = toMonthlyContribution(contrib, newGoalFrequency);
     if (!newGoalTargetDate) {
-      const computed = calcCompletionDateStr(current, target, contrib);
+      const computed = completionDateIso(target, current, monthlyContrib);
       if (computed) { setNewGoalTargetDate(computed); setDateAutoFilled(true); }
     } else {
-      setCreateFeasibility(createFeasibilityNote(current, target, contrib, newGoalTargetDate));
+      setCreateFeasibility(createFeasibilityNote(current, target, monthlyContrib, newGoalTargetDate));
     }
   };
 
@@ -214,10 +201,15 @@ export default function GoalsOverviewScreen() {
     const { target, current, contrib } = getCreateNumbers();
     if (!target) return;
     if (!contrib) {
-      const computed = calcRequiredContrib(current, target, newGoalTargetDate);
-      if (computed !== null) { setNewGoalContrib(String(computed)); setContribAutoFilled(true); }
+      const monthlyRequired = requiredMonthlyContribution(target, current, newGoalTargetDate);
+      if (monthlyRequired !== null) {
+        const displayedRequired = fromMonthlyContribution(monthlyRequired, newGoalFrequency);
+        setNewGoalContrib(String(Math.ceil(displayedRequired)));
+        setContribAutoFilled(true);
+      }
     } else {
-      setCreateFeasibility(createFeasibilityNote(current, target, contrib, newGoalTargetDate));
+      const monthlyContrib = toMonthlyContribution(contrib, newGoalFrequency);
+      setCreateFeasibility(createFeasibilityNote(current, target, monthlyContrib, newGoalTargetDate));
     }
   };
 

@@ -31,9 +31,12 @@ export function checkGoalBehind(goal: {
 
     const elapsed = Math.max(0, now - created);
     const fraction = Math.min(1, elapsed / total);
-    const expectedByNow = goal.targetAmount * fraction;
+    const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
+    const monthsRemaining = Math.max(0.01, (target - now) / MS_PER_MONTH);
+    const requiredMonthly = remaining / monthsRemaining;
+    const expectedByNow = goal.targetAmount - remaining * (1 - fraction);
 
-    const behind = goal.currentAmount < expectedByNow * 0.9;
+    const behind = goal.monthlyContribution <= 0 || goal.monthlyContribution < requiredMonthly * 0.95;
     return { behind, expectedByNow, contributionShortfall: 0 };
   }
 

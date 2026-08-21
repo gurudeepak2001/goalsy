@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import { simulateAsync } from '@/lib/mockData';
+import { MS_PER_MONTH, remainingBalance } from '@/lib/goalMath';
 import {
   useListGoals,
   useGetFinancialProfile,
@@ -72,6 +73,19 @@ type PriorityItem = {
   estimatedMonths: number | null;
 };
 
+function deadlineStatus(goal: GoalRow, now: Date): PriorityItem['status'] {
+  if (!goal.targetDate) return 'no_data';
+  const monthsLeft = (new Date(goal.targetDate).getTime() - now.getTime()) / MS_PER_MONTH;
+  const remaining = remainingBalance(goal.targetAmount, goal.currentAmount);
+  if (remaining === 0) return 'on_track';
+  if (monthsLeft <= 0) return 'behind';
+
+  const requiredMonthly = remaining / monthsLeft;
+  return goal.monthlyContribution > 0 && goal.monthlyContribution >= requiredMonthly * 0.95
+    ? 'on_track'
+    : 'behind';
+}
+
 function pickPriorityGoal(goals: GoalRow[] | undefined): PriorityItem | null {
   const active = (goals ?? []).filter((g) => g.status !== 'deleted' && g.targetAmount > 0);
   if (!active.length) return null;
@@ -85,21 +99,11 @@ function pickPriorityGoal(goals: GoalRow[] | undefined): PriorityItem | null {
         ? Math.ceil((g.targetAmount - g.currentAmount) / g.monthlyContribution)
         : null;
     const nowP = new Date();
-    let status: PriorityItem['status'] = 'no_data';
-    if (g.targetDate) {
-      const totalMs = new Date(g.targetDate).getTime() - new Date(g.createdAt).getTime();
-      const elapsedMs = nowP.getTime() - new Date(g.createdAt).getTime();
-      if (totalMs > 0) {
-        const expectedAmount = g.targetAmount * Math.min(1, Math.max(0, elapsedMs / totalMs));
-        status = g.currentAmount < expectedAmount * 0.9 ? 'behind' : 'on_track';
-      }
-    }
+    const status = deadlineStatus(g, nowP);
     return { goal: g, progress, status, estimatedMonths };
   }
 
   const now = new Date();
-  const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
-
   const scored = active.map((g) => {
     const progress = Math.min(1, g.currentAmount / g.targetAmount);
     const targetDate = g.targetDate ? new Date(g.targetDate) : null;
@@ -107,16 +111,15 @@ function pickPriorityGoal(goals: GoalRow[] | undefined): PriorityItem | null {
     let urgency = 0;
 
     if (targetDate) {
-      const totalMs = targetDate.getTime() - new Date(g.createdAt).getTime();
-      const elapsedMs = now.getTime() - new Date(g.createdAt).getTime();
-      if (totalMs > 0) {
-        const expectedAmount = g.targetAmount * Math.min(1, Math.max(0, elapsedMs / totalMs));
-        if (g.currentAmount < expectedAmount * 0.9) {
-          status = 'behind';
-          urgency = 200 + (expectedAmount - g.currentAmount);
-        } else {
-          urgency = 100 - (targetDate.getTime() - now.getTime()) / MS_PER_MONTH;
-        }
+      status = deadlineStatus(g, now);
+      const monthsLeft = (targetDate.getTime() - now.getTime()) / MS_PER_MONTH;
+      const requiredMonthly = monthsLeft > 0
+        ? remainingBalance(g.targetAmount, g.currentAmount) / monthsLeft
+        : Infinity;
+      if (status === 'behind') {
+        urgency = 200 + Math.max(0, requiredMonthly - g.monthlyContribution);
+      } else {
+        urgency = 100 - monthsLeft;
       }
     } else {
       urgency = (1 - progress) * 10;

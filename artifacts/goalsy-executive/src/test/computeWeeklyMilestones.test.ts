@@ -97,14 +97,15 @@ describe('computeWeeklyMilestones – brand-new goal (8 days old, currentAmount 
     expect(week1!.status).toBe('reached');
   });
 
-  it('marks week 1 as "reached" when unconfirmed but currentAmount already meets expected', () => {
-    // currentAmount = 500 ≫ expectedAmount (~$115) and no confirmed entry.
-    // Positive inference from currentAmount is allowed.
+  it('keeps week 1 neutral when the current balance includes a starting amount but no new contribution is confirmed', () => {
+    // The $500 starting balance is the baseline, so the first weekly target is
+    // $500 + the week's planned contribution. Without a confirmation, we do
+    // not infer that the new weekly amount was contributed.
     const goal = makeGoal({ currentAmount: 500, monthlyContribution: 500 });
     const milestones = computeWeeklyMilestones(goal, new Map());
 
     const week1 = milestones.find(m => m.weekIndex === 1);
-    expect(week1!.status).toBe('reached');
+    expect(week1!.status).toBe('upcoming');
   });
 });
 

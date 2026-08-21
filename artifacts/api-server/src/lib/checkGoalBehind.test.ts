@@ -114,7 +114,7 @@ describe("checkGoalBehind — target-date mode", () => {
     const goal: Parameters<typeof checkGoalBehind>[0] = {
       targetAmount: 12_000,
       currentAmount: 6_000, // exactly on the linear midpoint
-      monthlyContribution: 0,
+      monthlyContribution: 1_000, // enough to cover the $6,000 remaining over 6 months
       targetDate: target,
       createdAt: created,
     };

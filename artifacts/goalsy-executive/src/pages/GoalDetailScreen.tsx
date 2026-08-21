@@ -16,6 +16,13 @@ import ExecutiveInput from '@/components/ExecutiveInput';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  MS_PER_MONTH,
+  completionDateIso,
+  fromMonthlyContribution,
+  requiredMonthlyContribution,
+  toMonthlyContribution,
+} from '@/lib/goalMath';
+import {
   useGetGoal,
   useUpdateGoal,
   useDeleteGoal,
@@ -65,24 +72,14 @@ const TYPE_COLORS: Record<string, string> = {
 
 // ── Auto-fill helpers ─────────────────────────────────────────────────────────
 
-const MS_PER_MONTH = 30.44 * 24 * 60 * 60 * 1000;
 const WEEKS_PER_MONTH = 52 / 12; // ~4.333 — used for contribution-rate milestone pacing
 
 function calcCompletionDateStr(current: number, target: number, contrib: number): string | null {
-  const remaining = target - current;
-  if (remaining <= 0) return new Date().toISOString().split('T')[0];
-  if (contrib <= 0) return null;
-  const ms = (remaining / contrib) * MS_PER_MONTH;
-  if (ms > 30 * 365.25 * 24 * 60 * 60 * 1000) return null;
-  return new Date(Date.now() + ms).toISOString().split('T')[0];
+  return completionDateIso(target, current, contrib);
 }
 
 function calcRequiredContrib(current: number, target: number, targetDateStr: string): number | null {
-  const remaining = target - current;
-  if (remaining <= 0) return 0;
-  const months = (new Date(targetDateStr).getTime() - Date.now()) / MS_PER_MONTH;
-  if (months <= 0) return null;
-  return Math.ceil(remaining / months);
+  return requiredMonthlyContribution(target, current, targetDateStr);
 }
 
 function feasibilityNote(
@@ -149,9 +146,10 @@ export function computeRoadmap(goal: Goal, fp: FinancialProfile | null | undefin
     const elapsedMs = now.getTime() - createdAt.getTime();
     if (totalMs > 0) {
       const fraction = Math.min(1, Math.max(0, elapsedMs / totalMs));
-      expectedByNow = Math.round(goal.targetAmount * fraction);
-      if (goal.currentAmount >= expectedByNow * 1.05) overallStatus = 'ahead';
-      else if (goal.currentAmount < expectedByNow * 0.9) overallStatus = 'behind';
+      expectedByNow = Math.round(goal.targetAmount - gap * (1 - fraction));
+      const requiredForDeadline = gap / Math.max(0.01, (targetDate.getTime() - now.getTime()) / MS_PER_MONTH);
+      if (monthly <= 0 || monthly < requiredForDeadline * 0.95) overallStatus = 'behind';
+      else if (monthly > requiredForDeadline * 1.05) overallStatus = 'ahead';
       else overallStatus = 'on_track';
       // Grace window: a brand-new deadline goal (created <3 days ago) has had
       // almost no time to accumulate savings. The interpolated expectedByNow is
@@ -256,9 +254,10 @@ export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, nu
     // capped at the target. When monthlyContribution changes, ALL expected
     // amounts recalculate immediately — even when a targetDate is also set.
     // Falls back to linear interpolation only when monthlyContribution is zero.
+    const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
     const expectedAmount = goal.monthlyContribution > 0
-      ? Math.round(Math.min(goal.targetAmount, i * goal.monthlyContribution / WEEKS_PER_MONTH))
-      : Math.round(goal.targetAmount * (i / totalWeeks)); // fallback: targetDate + no contribution
+      ? Math.round(Math.min(goal.targetAmount, goal.currentAmount + i * goal.monthlyContribution / WEEKS_PER_MONTH))
+      : Math.round(Math.min(goal.targetAmount, goal.currentAmount + remaining * (i / totalWeeks)));
 
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
     // For past weeks with a logged confirmation, compare that actual figure
@@ -828,13 +827,14 @@ export default function GoalDetailScreen() {
   const handleContribBlur = () => {
     const contrib = parseInt(adjustContrib, 10);
     if (isNaN(contrib) || contrib <= 0) return;
+    const monthlyContrib = toMonthlyContribution(contrib, adjustFrequency);
     if (!adjustDate) {
       // Auto-fill date
-      const computed = calcCompletionDateStr(goal.currentAmount, goal.targetAmount, contrib);
+      const computed = calcCompletionDateStr(goal.currentAmount, goal.targetAmount, monthlyContrib);
       if (computed) { setAdjustDate(computed); setDateAutoFilled(true); }
     } else {
       // Both filled — check feasibility
-      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, contrib, adjustDate));
+      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, monthlyContrib, adjustDate));
     }
   };
 
@@ -847,11 +847,15 @@ export default function GoalDetailScreen() {
     }
     if (!adjustContrib) {
       // Auto-fill contribution
-      const computed = calcRequiredContrib(goal.currentAmount, goal.targetAmount, adjustDate);
-      if (computed !== null) { setAdjustContrib(String(computed)); setContribAutoFilled(true); }
+      const monthlyRequired = calcRequiredContrib(goal.currentAmount, goal.targetAmount, adjustDate);
+      if (monthlyRequired !== null) {
+        setAdjustContrib(String(Math.ceil(fromMonthlyContribution(monthlyRequired, adjustFrequency))));
+        setContribAutoFilled(true);
+      }
     } else {
       const contrib = parseInt(adjustContrib, 10);
-      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, contrib || 0, adjustDate));
+      const monthlyContrib = toMonthlyContribution(contrib || 0, adjustFrequency);
+      setAdjustFeasibility(feasibilityNote(goal.currentAmount, goal.targetAmount, monthlyContrib, adjustDate));
     }
   };
 
