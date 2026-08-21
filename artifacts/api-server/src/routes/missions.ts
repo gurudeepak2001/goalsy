@@ -1,9 +1,11 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, dailyMissions } from "@workspace/db";
+import { asc, eq, and, sql } from "drizzle-orm";
+import { achievementAwards, db, dailyMissions } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { calculateMissionStreak } from "../lib/missionStreak";
 
 const router = Router();
+const MISSION_STREAK_ACHIEVEMENT_ID = "mission-streak-7-day";
 
 // Mission templates rotated daily (index by day-of-year mod length)
 const MISSION_TEMPLATES = [
@@ -37,7 +39,7 @@ function getMissionTemplateForDate(dateStr: string) {
 }
 
 // GET /api/missions/today
-router.get("/missions/today", requireAuth, async (req, res) => {
+router.get("/missions/today", requireAuth, async (req, res): Promise<void> => {
   const userId = res.locals.userId as string;
   const today = todayDateString();
 
@@ -51,7 +53,7 @@ router.get("/missions/today", requireAuth, async (req, res) => {
     if (!mission) {
       // Generate today's mission from the template rotation
       const template = getMissionTemplateForDate(today);
-      [mission] = await db
+      const createdMissions = await db
         .insert(dailyMissions)
         .values({
           userId,
@@ -61,36 +63,145 @@ router.get("/missions/today", requireAuth, async (req, res) => {
           category: template.category,
           status: "pending",
         })
+        .onConflictDoNothing()
         .returning();
+
+      mission = createdMissions[0];
+      if (!mission) {
+        [mission] = await db
+          .select()
+          .from(dailyMissions)
+          .where(and(eq(dailyMissions.userId, userId), eq(dailyMissions.missionDate, today)));
+      }
     }
 
     res.json(mission);
-  } catch {
+  } catch (error) {
+    req.log.error({ error }, "Failed to fetch today's mission");
     res.status(500).json({ message: "Failed to fetch today's mission" });
   }
 });
 
+// GET /api/missions/streak
+router.get("/missions/streak", requireAuth, async (req, res): Promise<void> => {
+  const userId = res.locals.userId as string;
+
+  try {
+    const missionHistory = await db
+      .select({
+        missionDate: dailyMissions.missionDate,
+        completedAt: dailyMissions.completedAt,
+        status: dailyMissions.status,
+      })
+      .from(dailyMissions)
+      .where(eq(dailyMissions.userId, userId))
+      .orderBy(asc(dailyMissions.missionDate));
+    const calculatedStreak = calculateMissionStreak(missionHistory, todayDateString());
+    let [award] = await db
+      .select()
+      .from(achievementAwards)
+      .where(and(
+        eq(achievementAwards.userId, userId),
+        eq(achievementAwards.achievementId, MISSION_STREAK_ACHIEVEMENT_ID),
+      ));
+
+    if (!award && calculatedStreak.firstSevenDayStreakAt) {
+      await db
+        .insert(achievementAwards)
+        .values({
+          userId,
+          achievementId: MISSION_STREAK_ACHIEVEMENT_ID,
+          earnedAt: new Date(calculatedStreak.firstSevenDayStreakAt),
+        })
+        .onConflictDoNothing();
+      [award] = await db
+        .select()
+        .from(achievementAwards)
+        .where(and(
+          eq(achievementAwards.userId, userId),
+          eq(achievementAwards.achievementId, MISSION_STREAK_ACHIEVEMENT_ID),
+        ));
+    }
+
+    res.json({
+      ...calculatedStreak,
+      firstSevenDayStreakAt: award?.earnedAt.toISOString() ?? null,
+    });
+  } catch (error) {
+    req.log.error({ error }, "Failed to calculate mission streak");
+    res.status(500).json({ message: "Failed to fetch mission streak" });
+  }
+});
+
 // POST /api/missions/:id/complete
-router.post("/missions/:id/complete", requireAuth, async (req, res) => {
+router.post("/missions/:id/complete", requireAuth, async (req, res): Promise<void> => {
   const userId = res.locals.userId as string;
   const id = req.params.id as string;
+  const today = todayDateString();
   try {
     const [mission] = await db
       .update(dailyMissions)
-      .set({ status: "completed", completedAt: new Date() })
-      .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)))
+      .set({
+        status: "completed",
+        completedAt: sql`coalesce(${dailyMissions.completedAt}, now())`,
+      })
+      .where(and(
+        eq(dailyMissions.id, id),
+        eq(dailyMissions.userId, userId),
+        eq(dailyMissions.missionDate, today),
+        eq(dailyMissions.status, "pending"),
+      ))
       .returning();
-    if (!mission) { res.status(404).json({ message: "Mission not found" }); return; }
+    if (!mission) {
+      const [existingMission] = await db
+        .select()
+        .from(dailyMissions)
+        .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)));
+      if (!existingMission) { res.status(404).json({ message: "Mission not found" }); return; }
+      if (existingMission.missionDate !== today) {
+        res.status(409).json({ message: "Only today's mission can be completed" });
+        return;
+      }
+      if (existingMission.status === "completed") {
+        res.json(existingMission);
+        return;
+      }
+      res.status(409).json({ message: "A skipped mission cannot be completed" });
+      return;
+    }
+
+    const completedMissions = await db
+      .select({
+        missionDate: dailyMissions.missionDate,
+        completedAt: dailyMissions.completedAt,
+        status: dailyMissions.status,
+      })
+      .from(dailyMissions)
+      .where(eq(dailyMissions.userId, userId));
+    const streak = calculateMissionStreak(completedMissions, today);
+    if (streak.firstSevenDayStreakAt) {
+      await db
+        .insert(achievementAwards)
+        .values({
+          userId,
+          achievementId: MISSION_STREAK_ACHIEVEMENT_ID,
+          earnedAt: new Date(streak.firstSevenDayStreakAt),
+        })
+        .onConflictDoNothing();
+    }
+
     res.json(mission);
-  } catch {
+  } catch (error) {
+    req.log.error({ error }, "Failed to complete mission");
     res.status(500).json({ message: "Failed to complete mission" });
   }
 });
 
 // POST /api/missions/:id/skip
-router.post("/missions/:id/skip", requireAuth, async (req, res) => {
+router.post("/missions/:id/skip", requireAuth, async (req, res): Promise<void> => {
   const userId = res.locals.userId as string;
   const id = req.params.id as string;
+  const today = todayDateString();
   const { reason } = req.body as { reason: string };
   if (!reason) { res.status(400).json({ message: "reason is required" }); return; }
 
@@ -98,11 +209,33 @@ router.post("/missions/:id/skip", requireAuth, async (req, res) => {
     const [mission] = await db
       .update(dailyMissions)
       .set({ status: "skipped", skipReason: reason })
-      .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)))
+      .where(and(
+        eq(dailyMissions.id, id),
+        eq(dailyMissions.userId, userId),
+        eq(dailyMissions.missionDate, today),
+        eq(dailyMissions.status, "pending"),
+      ))
       .returning();
-    if (!mission) { res.status(404).json({ message: "Mission not found" }); return; }
+    if (!mission) {
+      const [existingMission] = await db
+        .select()
+        .from(dailyMissions)
+        .where(and(eq(dailyMissions.id, id), eq(dailyMissions.userId, userId)));
+      if (!existingMission) { res.status(404).json({ message: "Mission not found" }); return; }
+      if (existingMission.missionDate !== today) {
+        res.status(409).json({ message: "Only today's mission can be skipped" });
+        return;
+      }
+      if (existingMission.status === "completed" || existingMission.status === "skipped") {
+        res.json(existingMission);
+        return;
+      }
+      res.status(409).json({ message: "Mission is no longer eligible to be skipped" });
+      return;
+    }
     res.json(mission);
-  } catch {
+  } catch (error) {
+    req.log.error({ error }, "Failed to skip mission");
     res.status(500).json({ message: "Failed to skip mission" });
   }
 });

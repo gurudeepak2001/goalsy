@@ -35,6 +35,7 @@ import type {
   HealthStatus,
   ListExpensesParams,
   Mission,
+  MissionStreak,
   NotFoundResponse,
   NotificationPreference,
   ScoreResult,
@@ -1042,6 +1043,83 @@ export function useGetTodayMission<TData = Awaited<ReturnType<typeof getTodayMis
 
 
 
+export const getGetMissionStreakUrl = () => {
+
+
+
+
+  return `/api/missions/streak`
+}
+
+/**
+ * @summary Get verified consecutive daily mission streak progress
+ */
+export const getMissionStreak = async ( options?: RequestInit): Promise<MissionStreak> => {
+
+  return customFetch<MissionStreak>(getGetMissionStreakUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMissionStreakQueryKey = () => {
+    return [
+    `/api/missions/streak`
+    ] as const;
+    }
+
+
+export const getGetMissionStreakQueryOptions = <TData = Awaited<ReturnType<typeof getMissionStreak>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMissionStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMissionStreakQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMissionStreak>>> = ({ signal }) => getMissionStreak({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMissionStreak>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMissionStreakQueryResult = NonNullable<Awaited<ReturnType<typeof getMissionStreak>>>
+export type GetMissionStreakQueryError = ErrorType<UnauthorizedResponse>
+
+
+/**
+ * @summary Get verified consecutive daily mission streak progress
+ */
+
+export function useGetMissionStreak<TData = Awaited<ReturnType<typeof getMissionStreak>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMissionStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMissionStreakQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getCompleteMissionUrl = (id: string,) => {
 
 
@@ -1068,7 +1146,7 @@ export const completeMission = async (id: string, options?: RequestInit): Promis
 
 
 
-export const getCompleteMissionMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const getCompleteMissionMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMission>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof completeMission>>, TError,{id: string}, TContext> => {
 
@@ -1097,12 +1175,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CompleteMissionMutationResult = NonNullable<Awaited<ReturnType<typeof completeMission>>>
 
-    export type CompleteMissionMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type CompleteMissionMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>
 
     /**
  * @summary Mark a mission as completed
  */
-export const useCompleteMission = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const useCompleteMission = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMission>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof completeMission>>,
@@ -1140,7 +1218,7 @@ export const skipMission = async (id: string,
 
 
 
-export const getSkipMissionMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const getSkipMissionMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipMission>>, TError,{id: string;data: BodyType<SkipMissionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof skipMission>>, TError,{id: string;data: BodyType<SkipMissionBody>}, TContext> => {
 
@@ -1169,12 +1247,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SkipMissionMutationResult = NonNullable<Awaited<ReturnType<typeof skipMission>>>
     export type SkipMissionMutationBody = BodyType<SkipMissionBody>
-    export type SkipMissionMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+    export type SkipMissionMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>
 
     /**
  * @summary Skip a mission with a reason
  */
-export const useSkipMission = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+export const useSkipMission = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse | ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipMission>>, TError,{id: string;data: BodyType<SkipMissionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof skipMission>>,

@@ -260,6 +260,21 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /missions/streak:
+    get:
+      operationId: getMissionStreak
+      tags: [missions]
+      summary: Get verified consecutive daily mission streak progress
+      responses:
+        "200":
+          description: Current, longest, and first-earned seven-day streak details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MissionStreak"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /missions/{id}/complete:
     post:
       operationId: completeMission
@@ -278,6 +293,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Mission is no longer eligible to be completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /missions/{id}/skip:
     post:
@@ -303,6 +324,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Mission is no longer eligible to be skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /score:
     get:
@@ -645,6 +672,8 @@ components:
           type: ["string", "null"]
         primaryGoalType:
           type: ["string", "null"]
+        savingsMilestone100kAt:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
@@ -803,6 +832,17 @@ components:
         createdAt:
           type: string
       required: [id, userId, missionDate, title, status, createdAt]
+
+    MissionStreak:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        firstSevenDayStreakAt:
+          type: ["string", "null"]
+      required: [currentStreak, longestStreak, firstSevenDayStreakAt]
 
     SkipMissionBody:
       type: object

@@ -47,6 +47,8 @@ export interface FinancialProfile {
   riskTolerance?: string | null;
   /** @nullable */
   primaryGoalType?: string | null;
+  /** @nullable */
+  savingsMilestone100kAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -144,6 +146,13 @@ export interface Mission {
   /** @nullable */
   completedAt?: string | null;
   createdAt: string;
+}
+
+export interface MissionStreak {
+  currentStreak: number;
+  longestStreak: number;
+  /** @nullable */
+  firstSevenDayStreakAt: string | null;
 }
 
 export interface SkipMissionBody {

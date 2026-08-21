@@ -61,6 +61,7 @@ export const GetFinancialProfileResponse = zod.object({
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
   "primaryGoalType": zod.string().nullish(),
+  "savingsMilestone100kAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }),zod.null()])
@@ -88,6 +89,7 @@ export const UpdateFinancialProfileResponse = zod.object({
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
   "primaryGoalType": zod.string().nullish(),
+  "savingsMilestone100kAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -268,6 +270,16 @@ export const GetTodayMissionResponse = zod.object({
   "skipReason": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Get verified consecutive daily mission streak progress
+ */
+export const GetMissionStreakResponse = zod.object({
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "firstSevenDayStreakAt": zod.string().nullable()
 })
 
 

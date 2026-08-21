@@ -42,6 +42,7 @@ import { buildProfileAchievements, profileHelpArticles, type ProfileAchievement 
 import {
   useGetScore,
   useGetFinancialProfile,
+  useGetMissionStreak,
   useListNotificationPreferences,
   useUpdateNotificationPreference,
   getListNotificationPreferencesQueryKey,
@@ -110,12 +111,13 @@ export default function ProfileScreen() {
   // ── Real API: score + notification prefs ──────────────────────────────────
   const { data: scoreResult } = useGetScore();
   const { data: financialProfile } = useGetFinancialProfile();
+  const { data: missionStreak } = useGetMissionStreak();
   const { data: notifPrefs } = useListNotificationPreferences();
   const { mutateAsync: updatePref } = useUpdateNotificationPreference();
 
   const score = scoreResult?.score ?? 842;
   const tier = scoreResult ? getScoreTier(score) : getScoreTier(842);
-  const achievements = buildProfileAchievements(financialProfile?.profile?.netWorth);
+  const achievements = buildProfileAchievements(financialProfile?.profile, missionStreak);
 
   const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
     try {
@@ -465,9 +467,13 @@ export default function ProfileScreen() {
                 {selectedAchievement.status === 'earned' ? 'Achievement earned' : 'Current progress'}
               </span>
               <span className="text-white font-bold text-base leading-6">{selectedAchievement.progressLabel}</span>
-              {selectedAchievement.status === 'earned' && (
+              {selectedAchievement.earnedAt && (
                 <span className="text-[#CBD5E1] font-semibold text-sm">
-                  Date earned: Not recorded
+                  Date earned: {new Date(selectedAchievement.earnedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
                 </span>
               )}
             </div>

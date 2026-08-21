@@ -15,6 +15,8 @@ export const financialProfiles = pgTable("financial_profiles", {
   savingsRate: real("savings_rate"),
   riskTolerance: text("risk_tolerance"), // conservative | moderate | aggressive
   primaryGoalType: text("primary_goal_type"),
+  // Immutable record of the first saved profile that crossed the $100k threshold
+  savingsMilestone100kAt: timestamp("savings_milestone_100k_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

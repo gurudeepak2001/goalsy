@@ -8,8 +8,18 @@ const mocks = vi.hoisted(() => ({
   financialProfile: {
     profile: {
       netWorth: 125_000,
+        savingsMilestone100kAt: '2026-08-14T12:00:00.000Z',
     },
   },
+    missionStreak: {
+      currentStreak: 4,
+      longestStreak: 4,
+      firstSevenDayStreakAt: null,
+    } as {
+      currentStreak: number;
+      longestStreak: number;
+      firstSevenDayStreakAt: string | null;
+    },
 }));
 
 vi.mock('wouter', () => ({
@@ -36,6 +46,7 @@ vi.mock('@workspace/api-client-react', () => ({
   getListNotificationPreferencesQueryKey: () => ['notification-preferences'],
   useGetScore: () => ({ data: { score: 842, tier: 'Command', computedAt: '2026-08-21T12:00:00.000Z' } }),
   useGetFinancialProfile: () => ({ data: mocks.financialProfile }),
+  useGetMissionStreak: () => ({ data: mocks.missionStreak }),
   useListNotificationPreferences: () => ({ data: [] }),
   useUpdateNotificationPreference: () => ({ mutateAsync: mocks.updatePref }),
 }));
@@ -67,13 +78,23 @@ import ProfileScreen from './ProfileScreen';
 
 describe('ProfileScreen achievements and help', () => {
   beforeEach(() => {
-    mocks.financialProfile = { profile: { netWorth: 125_000 } };
+    mocks.financialProfile = {
+      profile: {
+        netWorth: 125_000,
+        savingsMilestone100kAt: '2026-08-14T12:00:00.000Z',
+      },
+    };
+    mocks.missionStreak = {
+      currentStreak: 4,
+      longestStreak: 4,
+      firstSevenDayStreakAt: null,
+    };
     mocks.navigate.mockReset();
     mocks.signOut.mockReset();
     mocks.updatePref.mockReset();
   });
 
-  it('opens an honest earned savings achievement detail with live profile progress', () => {
+  it('opens a persisted earned savings achievement detail with live profile progress', () => {
     render(<ProfileScreen />);
 
     fireEvent.click(screen.getByRole('button', { name: /view details for savings milestone/i }));
@@ -81,17 +102,33 @@ describe('ProfileScreen achievements and help', () => {
     const detailDialog = screen.getByRole('dialog', { name: 'Savings Milestone: $100k' });
     expect(detailDialog).toBeInTheDocument();
     expect(within(detailDialog).getByText('$125,000 of $100,000 (100%)')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('Date earned: Not recorded')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Date earned: Aug 14, 2026')).toBeInTheDocument();
   });
 
-  it('does not fabricate mission streak progress when no streak history exists', () => {
+  it('shows verified consecutive mission streak progress without an invented award date', () => {
     render(<ProfileScreen />);
 
     fireEvent.click(screen.getByRole('button', { name: /view details for 7-day mission streak/i }));
 
     const detailDialog = screen.getByRole('dialog', { name: '7-Day Mission Streak' });
-    expect(within(detailDialog).getByText('Streak progress is not recorded yet')).toBeInTheDocument();
-    expect(within(detailDialog).queryByText('Date earned: Not recorded')).not.toBeInTheDocument();
+    expect(within(detailDialog).getByText('4 of 7 consecutive days')).toBeInTheDocument();
+    expect(within(detailDialog).queryByText(/Date earned:/)).not.toBeInTheDocument();
+  });
+
+  it('shows the saved first seven-day mission award date after the streak is earned', () => {
+    mocks.missionStreak = {
+      currentStreak: 8,
+      longestStreak: 10,
+      firstSevenDayStreakAt: '2026-08-10T09:30:00.000Z',
+    };
+
+    render(<ProfileScreen />);
+
+    fireEvent.click(screen.getByRole('button', { name: /view details for 7-day mission streak/i }));
+
+    const detailDialog = screen.getByRole('dialog', { name: '7-Day Mission Streak' });
+    expect(within(detailDialog).getByText('8-day current streak · Best: 10 days')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Date earned: Aug 10, 2026')).toBeInTheDocument();
   });
 
   it('covers every current app feature area in Help & Support without unsupported promises', () => {

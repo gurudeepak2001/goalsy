@@ -3,6 +3,7 @@ export * from "./goalProgressEntries";
 export * from "./financialProfiles";
 export * from "./goals";
 export * from "./dailyMissions";
+export * from "./achievementAwards";
 export * from "./scoreSnapshots";
 export * from "./notificationPreferences";
 export * from "./bills";

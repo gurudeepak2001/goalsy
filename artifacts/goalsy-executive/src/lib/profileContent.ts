@@ -59,6 +59,17 @@ export interface ProfileAchievement {
   earnedAt?: string;
 }
 
+export interface MissionStreakProgress {
+  currentStreak?: number | null;
+  longestStreak?: number | null;
+  firstSevenDayStreakAt?: string | null;
+}
+
+export interface SavingsMilestoneProgress {
+  netWorth?: number | null;
+  savingsMilestone100kAt?: string | null;
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -67,30 +78,41 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function buildProfileAchievements(netWorth: number | null | undefined): ProfileAchievement[] {
+export function buildProfileAchievements(
+  financialProfile: SavingsMilestoneProgress | null | undefined,
+  missionStreak: MissionStreakProgress | null | undefined,
+): ProfileAchievement[] {
   const savingsTarget = 100_000;
-  const savedAmount = Math.max(0, netWorth ?? 0);
+  const savedAmount = Math.max(0, financialProfile?.netWorth ?? 0);
   const savingsProgress = Math.min(100, Math.round((savedAmount / savingsTarget) * 100));
-  const hasNetWorth = typeof netWorth === 'number' && Number.isFinite(netWorth);
+  const hasNetWorth = typeof financialProfile?.netWorth === 'number' && Number.isFinite(financialProfile.netWorth);
+  const currentStreak = Math.max(0, missionStreak?.currentStreak ?? 0);
+  const longestStreak = Math.max(currentStreak, missionStreak?.longestStreak ?? 0);
+  const missionEarnedAt = missionStreak?.firstSevenDayStreakAt ?? undefined;
+  const savingsEarnedAt = financialProfile?.savingsMilestone100kAt ?? undefined;
 
   return [
     {
       id: 'mission-streak',
       title: '7-Day Mission Streak',
       summary: 'Complete seven daily missions in a row',
-      description: 'Daily missions are available from Today. Goalsy does not yet store a verified multi-day streak history, so this achievement will not claim progress or an earned date until that history is available.',
-      status: 'not-tracked',
-      progressLabel: 'Streak progress is not recorded yet',
+      description: 'Your streak is verified from the completed daily missions saved to your account, so it stays accurate wherever you sign in.',
+      status: missionEarnedAt ? 'earned' : 'in-progress',
+      progressLabel: missionEarnedAt
+        ? `${currentStreak}-day current streak · Best: ${longestStreak} days`
+        : `${Math.min(currentStreak, 7)} of 7 consecutive days`,
+      earnedAt: missionEarnedAt,
     },
     {
       id: 'savings-100k',
       title: 'Savings Milestone: $100k',
       summary: 'Reach $100,000 in saved net worth',
-      description: 'This milestone uses the net worth you save in your Financial Profile. Goalsy can show current progress, but it does not retain the first date you crossed this threshold.',
-      status: hasNetWorth && savedAmount >= savingsTarget ? 'earned' : 'in-progress',
+      description: 'This milestone uses the net worth you save in your Financial Profile. Goalsy records the first time you reach $100,000 and keeps that award date even if your balance later changes.',
+      status: savingsEarnedAt ? 'earned' : 'in-progress',
       progressLabel: hasNetWorth
         ? `${formatCurrency(savedAmount)} of ${formatCurrency(savingsTarget)} (${savingsProgress}%)`
         : 'Add net worth in Financial Profile to track progress',
+      earnedAt: savingsEarnedAt,
     },
   ];
 }
