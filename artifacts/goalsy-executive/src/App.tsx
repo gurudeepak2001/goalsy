@@ -40,6 +40,7 @@ import GoalDetailScreen from '@/pages/GoalDetailScreen';
 import ProfileScreen from '@/pages/ProfileScreen';
 import ScoreScreen from '@/pages/ScoreScreen';
 import ExpensesScreen from '@/pages/ExpensesScreen';
+import RouteScrollReset from '@/components/RouteScrollReset';
 
 console.log('[Goalsy] imports done');
 
@@ -793,6 +794,7 @@ function ClerkProviderWithRoutes() {
       </ClerkLoading>
       <ClerkLoaded>
         <ApiClientBootstrap />
+        <RouteScrollReset />
         <Router />
       </ClerkLoaded>
     </ClerkProvider>

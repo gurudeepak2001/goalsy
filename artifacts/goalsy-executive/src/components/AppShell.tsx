@@ -76,6 +76,7 @@ export default function AppShell({
           and passes behind the blurred header overlay above. */}
       <div
         ref={scrollRef}
+        data-route-scroll-container
         className={`absolute inset-0 overflow-y-auto px-6 flex flex-col ${contentClassName}`}
         style={showBottomNav
           ? {
