@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity, Shield, Lock, Layers, PieChart, Loader2, CheckCircle2,
   DollarSign, TrendingUp, Target, ChevronRight, AlertTriangle, Info,
@@ -9,6 +10,7 @@ import AppHeader from '@/components/AppHeader';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { mockConnectedAccounts, simulateAsync } from '@/lib/mockData';
 import {
+  getGetFinancialProfileQueryKey,
   useGetFinancialProfile,
   useUpdateFinancialProfile,
 } from '@workspace/api-client-react';
@@ -47,6 +49,7 @@ function parseDollar(raw: string): number | null {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function FinancialConnectionScreen() {
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const isEditMode = new URLSearchParams(window.location.search).get('mode') === 'edit';
 
   // Step: 'profile' first, then 'connection'
@@ -61,20 +64,29 @@ export default function FinancialConnectionScreen() {
   const [savingsRate, setSavingsRate] = useState('');
   const [riskTolerance, setRiskTolerance] = useState('');
   const [primaryGoalType, setPrimaryGoalType] = useState('');
+  const formIsDirty = useRef(false);
+  const hasHydratedInitialProfile = useRef(false);
+
+  const markFormDirty = () => {
+    formIsDirty.current = true;
+  };
 
   // ── Load existing profile to pre-populate ──────────────────────────────────
   const { data: fpData, isLoading: fpLoading } = useGetFinancialProfile();
 
   useEffect(() => {
+    if (fpLoading || hasHydratedInitialProfile.current || formIsDirty.current) return;
     const fp = fpData?.profile;
-    if (!fp) return;
-    if (fp.annualIncome != null) setAnnualIncome(String(fp.annualIncome));
-    if (fp.monthlyExpenses != null) setMonthlyExpenses(String(fp.monthlyExpenses));
-    if (fp.netWorth != null) setNetWorth(String(fp.netWorth));
-    if (fp.savingsRate != null) setSavingsRate(String(fp.savingsRate));
-    if (fp.riskTolerance) setRiskTolerance(fp.riskTolerance);
-    if (fp.primaryGoalType) setPrimaryGoalType(fp.primaryGoalType);
-  }, [fpData]);
+    if (fp) {
+      if (fp.annualIncome != null) setAnnualIncome(String(fp.annualIncome));
+      if (fp.monthlyExpenses != null) setMonthlyExpenses(String(fp.monthlyExpenses));
+      if (fp.netWorth != null) setNetWorth(String(fp.netWorth));
+      if (fp.savingsRate != null) setSavingsRate(String(fp.savingsRate));
+      if (fp.riskTolerance) setRiskTolerance(fp.riskTolerance);
+      if (fp.primaryGoalType) setPrimaryGoalType(fp.primaryGoalType);
+    }
+    hasHydratedInitialProfile.current = true;
+  }, [fpData, fpLoading]);
 
   // ── Save mutation ──────────────────────────────────────────────────────────
   const { mutateAsync: saveProfile, isPending: saving } = useUpdateFinancialProfile();
@@ -82,7 +94,7 @@ export default function FinancialConnectionScreen() {
   const handleProfileContinue = async () => {
     setProfileSaveError(null);
     try {
-      await saveProfile({
+      const savedProfile = await saveProfile({
         data: {
           annualIncome: parseDollar(annualIncome),
           monthlyExpenses: parseDollar(monthlyExpenses),
@@ -92,6 +104,11 @@ export default function FinancialConnectionScreen() {
           primaryGoalType: primaryGoalType || null,
         },
       });
+      // The update endpoint returns a bare profile while the GET hook caches
+      // { profile }. Update that cache before navigation so AI Home cannot reuse
+      // a stale cached null profile while its background refetch is in flight.
+      queryClient.setQueryData(getGetFinancialProfileQueryKey(), { profile: savedProfile });
+      await queryClient.invalidateQueries({ queryKey: getGetFinancialProfileQueryKey() });
       if (isEditMode) {
         toast({ title: 'Profile Updated', description: 'Your financial picture has been saved.' });
         navigate('/ai-home');
@@ -176,7 +193,10 @@ export default function FinancialConnectionScreen() {
                         min="0"
                         placeholder="120000"
                         value={annualIncome}
-                        onChange={(e) => setAnnualIncome(e.target.value)}
+                        onChange={(e) => {
+                          markFormDirty();
+                          setAnnualIncome(e.target.value);
+                        }}
                         className={`${inputCls} pl-8`}
                       />
                     </div>
@@ -190,7 +210,10 @@ export default function FinancialConnectionScreen() {
                         min="0"
                         placeholder="4500"
                         value={monthlyExpenses}
-                        onChange={(e) => setMonthlyExpenses(e.target.value)}
+                        onChange={(e) => {
+                          markFormDirty();
+                          setMonthlyExpenses(e.target.value);
+                        }}
                         className={`${inputCls} pl-8`}
                       />
                     </div>
@@ -207,7 +230,10 @@ export default function FinancialConnectionScreen() {
                         type="number"
                         placeholder="250000"
                         value={netWorth}
-                        onChange={(e) => setNetWorth(e.target.value)}
+                        onChange={(e) => {
+                          markFormDirty();
+                          setNetWorth(e.target.value);
+                        }}
                         className={`${inputCls} pl-8`}
                       />
                     </div>
@@ -228,7 +254,10 @@ export default function FinancialConnectionScreen() {
                         min="0"
                         placeholder="1500"
                         value={savingsRate}
-                        onChange={(e) => setSavingsRate(e.target.value)}
+                        onChange={(e) => {
+                          markFormDirty();
+                          setSavingsRate(e.target.value);
+                        }}
                         className={`${inputCls} pl-8`}
                       />
                     </div>
@@ -242,7 +271,10 @@ export default function FinancialConnectionScreen() {
                     <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                     <select
                       value={riskTolerance}
-                      onChange={(e) => setRiskTolerance(e.target.value)}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setRiskTolerance(e.target.value);
+                      }}
                       className={`${selectCls} pl-8 text-${riskTolerance ? 'white' : '[#4B5563]'}`}
                     >
                       {RISK_OPTIONS.map((o) => (
@@ -262,7 +294,10 @@ export default function FinancialConnectionScreen() {
                     <Target size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                     <select
                       value={primaryGoalType}
-                      onChange={(e) => setPrimaryGoalType(e.target.value)}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setPrimaryGoalType(e.target.value);
+                      }}
                       className={`${selectCls} pl-8`}
                     >
                       {GOAL_TYPE_OPTIONS.map((o) => (

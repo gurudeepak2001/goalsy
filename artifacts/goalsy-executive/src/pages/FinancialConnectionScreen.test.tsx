@@ -4,6 +4,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   saveProfile: vi.fn(),
+  queryClient: {
+    setQueryData: vi.fn(),
+    invalidateQueries: vi.fn().mockResolvedValue(undefined),
+  },
   financialProfile: {
     profile: {
       annualIncome: 100_000,
@@ -20,7 +24,12 @@ vi.mock('wouter', () => ({
   useLocation: () => [window.location.pathname, mocks.navigate],
 }));
 
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => mocks.queryClient,
+}));
+
 vi.mock('@workspace/api-client-react', () => ({
+  getGetFinancialProfileQueryKey: () => ['/api/financial-profile'],
   useGetFinancialProfile: () => ({
     data: mocks.financialProfile,
     isLoading: false,
@@ -59,7 +68,26 @@ describe('FinancialConnectionScreen edit mode', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/financial-connection?mode=edit');
     mocks.navigate.mockReset();
-    mocks.saveProfile.mockReset().mockResolvedValue(undefined);
+    mocks.queryClient.setQueryData.mockReset();
+    mocks.queryClient.invalidateQueries.mockReset().mockResolvedValue(undefined);
+    mocks.saveProfile.mockReset().mockResolvedValue({
+      annualIncome: 120_000,
+      monthlyExpenses: 4_500,
+      netWorth: 80_000,
+      savingsRate: 500,
+      riskTolerance: 'moderate',
+      primaryGoalType: 'home_purchase',
+    });
+    mocks.financialProfile = {
+      profile: {
+        annualIncome: 100_000,
+        monthlyExpenses: 4_000,
+        netWorth: null,
+        savingsRate: null,
+        riskTolerance: null,
+        primaryGoalType: null,
+      },
+    };
   });
 
   it('pre-populates the profile and saves directly back to Strategic Intelligence', async () => {
@@ -91,6 +119,58 @@ describe('FinancialConnectionScreen edit mode', () => {
         }),
       });
       expect(mocks.navigate).toHaveBeenCalledWith('/ai-home');
+      expect(mocks.queryClient.setQueryData).toHaveBeenCalledWith(
+        ['/api/financial-profile'],
+        expect.objectContaining({
+          profile: expect.objectContaining({
+            annualIncome: 120_000,
+            monthlyExpenses: 4_500,
+          }),
+        }),
+      );
+      expect(mocks.queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['/api/financial-profile'],
+      });
+    });
+  });
+
+  it('preserves early user input when the profile query resolves later', async () => {
+    mocks.financialProfile = undefined as unknown as typeof mocks.financialProfile;
+    const view = render(<FinancialConnectionScreen />);
+
+    fireEvent.change(screen.getByPlaceholderText('120000'), {
+      target: { value: '123456' },
+    });
+
+    mocks.financialProfile = {
+      profile: {
+        annualIncome: 100_000,
+        monthlyExpenses: 4_000,
+        netWorth: null,
+        savingsRate: null,
+        riskTolerance: null,
+        primaryGoalType: null,
+      },
+    };
+    view.rerender(<FinancialConnectionScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('123456')).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('4000')).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not update the cached profile or navigate when saving fails', async () => {
+    mocks.saveProfile.mockRejectedValueOnce(new Error('Network unavailable'));
+    render(<FinancialConnectionScreen />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mocks.queryClient.setQueryData).not.toHaveBeenCalled();
+      expect(mocks.queryClient.invalidateQueries).not.toHaveBeenCalled();
+      expect(mocks.navigate).not.toHaveBeenCalled();
+      expect(screen.getByText('Network unavailable')).toBeInTheDocument();
     });
   });
 
