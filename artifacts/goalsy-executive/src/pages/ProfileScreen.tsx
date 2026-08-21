@@ -34,13 +34,14 @@ import { Switch } from '@/components/ui/switch';
 import {
   mockConnectedAccounts,
   mockSubscription,
-  mockHelpArticles,
   mockAvatarPresets,
   simulateAsync,
 } from '@/lib/mockData';
 import { getScoreTier } from '@/lib/scoreUtils';
+import { buildProfileAchievements, profileHelpArticles, type ProfileAchievement } from '@/lib/profileContent';
 import {
   useGetScore,
+  useGetFinancialProfile,
   useListNotificationPreferences,
   useUpdateNotificationPreference,
   getListNotificationPreferencesQueryKey,
@@ -99,6 +100,7 @@ export default function ProfileScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [openArticleId, setOpenArticleId] = useState<string | null>(null);
+  const [selectedAchievement, setSelectedAchievement] = useState<ProfileAchievement | null>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.hasImage ? user?.imageUrl : undefined);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
@@ -107,11 +109,13 @@ export default function ProfileScreen() {
 
   // ── Real API: score + notification prefs ──────────────────────────────────
   const { data: scoreResult } = useGetScore();
+  const { data: financialProfile } = useGetFinancialProfile();
   const { data: notifPrefs } = useListNotificationPreferences();
   const { mutateAsync: updatePref } = useUpdateNotificationPreference();
 
   const score = scoreResult?.score ?? 842;
   const tier = scoreResult ? getScoreTier(score) : getScoreTier(842);
+  const achievements = buildProfileAchievements(financialProfile?.profile?.netWorth);
 
   const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
     try {
@@ -241,24 +245,29 @@ export default function ProfileScreen() {
         <div className="flex flex-col gap-4">
           <SectionLabel text="Achievements" accentBar />
           <div className="flex flex-col gap-3">
-            <div className="bg-[#111827] border border-white/5 rounded-[20px] p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center flex-shrink-0">
-                <Flame size={24} className="text-[#F59E0B]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-base leading-6">7-Day Mission Streak</span>
-                <span className="text-[#808BA4] font-semibold text-[13px] leading-5">Perfect weekly execution</span>
-              </div>
-            </div>
-            <div className="bg-[#111827] border border-white/5 rounded-[20px] p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-[#22C55E]/10 flex items-center justify-center flex-shrink-0">
-                <PiggyBank size={24} className="text-[#22C55E]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-base leading-6">Savings Milestone: $100k</span>
-                <span className="text-[#808BA4] font-semibold text-[13px] leading-5">Wealth accumulation target met</span>
-              </div>
-            </div>
+            {achievements.map((achievement) => {
+              const isMission = achievement.id === 'mission-streak';
+              return (
+                <button
+                  key={achievement.id}
+                  type="button"
+                  aria-label={`View details for ${achievement.title}`}
+                  onClick={() => setSelectedAchievement(achievement)}
+                  className="w-full bg-[#111827] border border-white/5 rounded-[20px] p-5 flex items-center gap-4 text-left hover:bg-[#161F2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] active:scale-[0.99] transition"
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isMission ? 'bg-[#F59E0B]/10' : 'bg-[#22C55E]/10'}`}>
+                    {isMission
+                      ? <Flame size={24} className="text-[#F59E0B]" />
+                      : <PiggyBank size={24} className="text-[#22C55E]" />}
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-white font-bold text-base leading-6">{achievement.title}</span>
+                    <span className="text-[#808BA4] font-semibold text-[13px] leading-5">{achievement.progressLabel}</span>
+                  </div>
+                  <ChevronRight size={18} className="text-[#808BA4] flex-shrink-0" />
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -442,19 +451,43 @@ export default function ProfileScreen() {
         </div>
       </AppModal>
 
+      {/* Achievement detail modal */}
+      <AppModal
+        open={selectedAchievement !== null}
+        onOpenChange={(open) => { if (!open) setSelectedAchievement(null); }}
+        title={selectedAchievement?.title ?? 'Achievement'}
+      >
+        {selectedAchievement && (
+          <div className="flex flex-col gap-5 pb-4">
+            <p className="text-[#CBD5E1] font-semibold text-sm leading-6">{selectedAchievement.description}</p>
+            <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex flex-col gap-2">
+              <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+                {selectedAchievement.status === 'earned' ? 'Achievement earned' : 'Current progress'}
+              </span>
+              <span className="text-white font-bold text-base leading-6">{selectedAchievement.progressLabel}</span>
+              {selectedAchievement.status === 'earned' && (
+                <span className="text-[#CBD5E1] font-semibold text-sm">
+                  Date earned: Not recorded
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </AppModal>
+
       {/* Help & Support modal */}
       <AppModal open={helpOpen} onOpenChange={setHelpOpen} title="Help & Support">
         <div className="flex flex-col gap-3 pb-4">
-          {mockHelpArticles.map((article) => {
+          {profileHelpArticles.map((article) => {
             const isOpen = openArticleId === article.id;
             return (
               <div key={article.id} className="bg-[#111827] border border-white/5 rounded-2xl overflow-hidden">
                 <button type="button" onClick={() => setOpenArticleId(isOpen ? null : article.id)}
                   className="w-full p-5 flex items-center justify-between gap-4 text-left">
-                  <span className="text-white font-bold text-[15px] leading-[22px]">{article.question}</span>
+                  <span className="text-white font-bold text-[15px] leading-[22px]">{article.title}</span>
                   <ChevronDown size={18} className={`text-[#808BA4] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isOpen && <p className="px-5 pb-5 text-[#CBD5E1] font-semibold text-sm leading-6">{article.answer}</p>}
+                {isOpen && <p className="px-5 pb-5 text-[#CBD5E1] font-semibold text-sm leading-6">{article.body}</p>}
               </div>
             );
           })}

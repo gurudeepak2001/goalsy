@@ -155,30 +155,6 @@ export const mockSubscription: MockSubscriptionPlan = {
   ],
 };
 
-export interface MockHelpArticle {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export const mockHelpArticles: MockHelpArticle[] = [
-  {
-    id: 'connect-bank',
-    question: 'How do I connect a new bank account?',
-    answer: 'Go to Profile > Connected Accounts > Add Institution and follow the secure Plaid link flow.',
-  },
-  {
-    id: 'score-calc',
-    question: 'How is my Goalsy Score calculated?',
-    answer: 'Your score blends savings rate, debt ratio, cash flow stability, and payment discipline.',
-  },
-  {
-    id: 'cancel-sub',
-    question: 'How do I cancel my subscription?',
-    answer: 'Contact support at least 3 days before renewal to cancel without being charged for the next cycle.',
-  },
-];
-
 export interface MockBill {
   id: string;
   merchant: string;
