@@ -546,13 +546,19 @@ function AuthGate({ component: Component }: { component: ComponentType }) {
   );
 }
 
-function GuestOnly({ component: Component }: { component: ComponentType }) {
-  return (
-    <>
-      <Show when="signed-out"><Component /></Show>
-      <Show when="signed-in"><Redirect to="/ai-home" /></Show>
-    </>
-  );
+export function GuestOnly({ component: Component }: { component: ComponentType }) {
+  const { isSignedIn } = useAuth();
+
+  // Clerk can briefly report an unresolved auth state while it refreshes an
+  // anonymous client. Do not remove guest forms during that transition: doing
+  // so remounts controlled inputs and erases text entered immediately on load.
+  // ClerkLoaded guarantees the SDK itself is ready, and a confirmed signed-in
+  // state is the only case that should redirect away from these routes.
+  if (isSignedIn === true) {
+    return <Redirect to="/ai-home" />;
+  }
+
+  return <Component />;
 }
 
 function HomeRedirect() {
@@ -564,23 +570,79 @@ function HomeRedirect() {
   );
 }
 
+// Keep route component identities stable. Clerk can update the current URL while
+// it restores its anonymous client; inline Route component callbacks are new on
+// every Router render, which makes Wouter remount the current page and clears any
+// controlled form fields the user has already started to enter.
+function WelcomeRoute() {
+  return <GuestOnly component={WelcomeScreen} />;
+}
+
+function SignInRoute() {
+  return <GuestOnly component={SignInScreen} />;
+}
+
+function CreateAccountRoute() {
+  return <GuestOnly component={CreateAccountScreen} />;
+}
+
+function FinancialConnectionRoute() {
+  return <AuthGate component={FinancialConnectionScreen} />;
+}
+
+function AIHomeRoute() {
+  return <AuthGate component={AIHomeScreen} />;
+}
+
+function TodayRoute() {
+  return <AuthGate component={TodayScreen} />;
+}
+
+function FinancialHealthRoute() {
+  return <AuthGate component={FinancialHealthScreen} />;
+}
+
+function CalendarRoute() {
+  return <AuthGate component={CalendarScreen} />;
+}
+
+function GoalsOverviewRoute() {
+  return <AuthGate component={GoalsOverviewScreen} />;
+}
+
+function GoalDetailRoute() {
+  return <AuthGate component={GoalDetailScreen} />;
+}
+
+function ProfileRoute() {
+  return <AuthGate component={ProfileScreen} />;
+}
+
+function ScoreRoute() {
+  return <AuthGate component={ScoreScreen} />;
+}
+
+function ExpensesRoute() {
+  return <AuthGate component={ExpensesScreen} />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/"                     component={HomeRedirect} />
-      <Route path="/welcome"              component={() => <GuestOnly component={WelcomeScreen} />} />
-      <Route path="/signin"               component={() => <GuestOnly component={SignInScreen} />} />
-      <Route path="/create-account"       component={() => <GuestOnly component={CreateAccountScreen} />} />
-      <Route path="/financial-connection" component={() => <AuthGate component={FinancialConnectionScreen} />} />
-      <Route path="/ai-home"              component={() => <AuthGate component={AIHomeScreen} />} />
-      <Route path="/today"                component={() => <AuthGate component={TodayScreen} />} />
-      <Route path="/financial-health"     component={() => <AuthGate component={FinancialHealthScreen} />} />
-      <Route path="/calendar"             component={() => <AuthGate component={CalendarScreen} />} />
-      <Route path="/goals"                component={() => <AuthGate component={GoalsOverviewScreen} />} />
-      <Route path="/goals/:id"            component={() => <AuthGate component={GoalDetailScreen} />} />
-      <Route path="/profile"              component={() => <AuthGate component={ProfileScreen} />} />
-      <Route path="/score"                component={() => <AuthGate component={ScoreScreen} />} />
-      <Route path="/expenses"            component={() => <AuthGate component={ExpensesScreen} />} />
+      <Route path="/welcome"              component={WelcomeRoute} />
+      <Route path="/signin"               component={SignInRoute} />
+      <Route path="/create-account"       component={CreateAccountRoute} />
+      <Route path="/financial-connection" component={FinancialConnectionRoute} />
+      <Route path="/ai-home"              component={AIHomeRoute} />
+      <Route path="/today"                component={TodayRoute} />
+      <Route path="/financial-health"     component={FinancialHealthRoute} />
+      <Route path="/calendar"             component={CalendarRoute} />
+      <Route path="/goals"                component={GoalsOverviewRoute} />
+      <Route path="/goals/:id"            component={GoalDetailRoute} />
+      <Route path="/profile"              component={ProfileRoute} />
+      <Route path="/score"                component={ScoreRoute} />
+      <Route path="/expenses"             component={ExpensesRoute} />
       <Route component={NotFound} />
     </Switch>
   );

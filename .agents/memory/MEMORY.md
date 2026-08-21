@@ -6,3 +6,4 @@
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
 - [Clerk API server auth](clerk-api-auth.md) — use jose JWKS, never @clerk/express; CLERK_SECRET_KEY is an invalid placeholder.
 - [Enteraxion LLC app migration](enteraxion-migration.md) — new App Store entry under Enteraxion LLC; two hard blockers (APNs key + Clerk bundle ID) must be done before any upload/TestFlight work.
+- [Stable route components](stable-route-components.md) — Clerk startup can alter URL state; route component identities must remain stable so active form fields are not remounted.

@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render, act, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
 
 // ── Hoisted mutable flags ──────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ import React from 'react';
 // (Vitest v4 removed the two-arg generic overload).
 const authState = vi.hoisted(() => ({
   getToken: vi.fn(() => Promise.resolve<string | null>(null)),
-  isSignedIn: true as boolean,
+  isSignedIn: true as boolean | undefined,
 }));
 
 // Captures the toast call so tests can assert on title/description.
@@ -113,7 +113,19 @@ vi.mock('@tanstack/react-query', () => ({
 
 // ── Import component under test ───────────────────────────────────────────────
 // Import after all vi.mock() calls so hoisted mocks are in place.
-import { ApiClientBootstrap } from '../App';
+import { ApiClientBootstrap, GuestOnly } from '../App';
+
+function GuestFormProbe() {
+  const [email, setEmail] = React.useState('');
+
+  return (
+    <input
+      aria-label="Email address"
+      value={email}
+      onChange={(event) => setEmail(event.target.value)}
+    />
+  );
+}
 
 // ── Helper: fire visibilitychange with document.hidden = false ────────────────
 // jsdom defaults document.hidden to false (document is "visible"), so we just
@@ -224,6 +236,31 @@ describe('ApiClientBootstrap – session-expired toast on foreground restore', (
     });
 
     expect(mockToast).toHaveBeenCalledOnce(); // still only once
+  });
+});
+
+describe('GuestOnly – transient auth refresh', () => {
+  beforeEach(() => {
+    authState.isSignedIn = false;
+  });
+
+  it('keeps an in-progress sign-in form mounted while Clerk briefly resolves auth state', () => {
+    const view = render(<GuestOnly component={GuestFormProbe} />);
+    const email = screen.getByRole('textbox', { name: 'Email address' });
+
+    fireEvent.change(email, { target: { value: 'leader@example.com' } });
+    expect(email).toHaveValue('leader@example.com');
+
+    // This mirrors Clerk's short anonymous-client refresh after a guest route opens.
+    authState.isSignedIn = undefined;
+    view.rerender(<GuestOnly component={GuestFormProbe} />);
+
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('leader@example.com');
+
+    authState.isSignedIn = false;
+    view.rerender(<GuestOnly component={GuestFormProbe} />);
+
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('leader@example.com');
   });
 });
 
