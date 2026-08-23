@@ -114,7 +114,7 @@ vi.mock('recharts', () => ({
 // ── Import the component under test ──────────────────────────────────────────
 
 // Import after all mocks are set up
-import { ConfirmForm, WeeklyMilestoneRow } from '../pages/GoalDetailScreen';
+import { canLogMilestoneProgress, ConfirmForm, WeeklyMilestoneRow } from '../pages/GoalDetailScreen';
 import type { WeekMilestone } from '../pages/GoalDetailScreen';
 import { fireEvent } from '@testing-library/react';
 
@@ -736,5 +736,71 @@ describe('WeeklyMilestoneRow – post-save state transition', () => {
 
     // The row is in confirmed state – the date label is still rendered
     expect(getByText('Jan 7, 26')).toBeInTheDocument();
+  });
+});
+
+describe('WeeklyMilestoneRow – active-week progress logging', () => {
+  const now = new Date('2026-08-22T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const rowProps = {
+    color: '#22C55E',
+    isHistoryConfirmed: false,
+    isConfirming: false,
+    confirmValue: '',
+    onConfirmChange: vi.fn(),
+    onSave: vi.fn(),
+    onCancelConfirm: vi.fn(),
+    isSaving: false,
+  };
+
+  it('allows a deposit for the week currently in progress', () => {
+    const currentWeek: WeekMilestone = {
+      weekIndex: 8,
+      // This week began five days ago and ends in two days.
+      weekDate: new Date('2026-08-24T12:00:00.000Z'),
+      dateLabel: 'Aug 24, 26',
+      expectedAmount: 200,
+      status: 'upcoming',
+      isPast: false,
+    };
+    const onTap = vi.fn();
+
+    expect(canLogMilestoneProgress(currentWeek, now)).toBe(true);
+
+    const { getByRole } = render(
+      <WeeklyMilestoneRow milestone={currentWeek} onTap={onTap} {...rowProps} />,
+    );
+
+    fireEvent.click(getByRole('button'));
+    expect(onTap).toHaveBeenCalledOnce();
+  });
+
+  it('keeps later weeks locked until they begin', () => {
+    const futureWeek: WeekMilestone = {
+      weekIndex: 9,
+      // Starts two days after "now", so it is not the active contribution week.
+      weekDate: new Date('2026-08-31T12:00:00.000Z'),
+      dateLabel: 'Aug 31, 26',
+      expectedAmount: 240,
+      status: 'upcoming',
+      isPast: false,
+    };
+
+    expect(canLogMilestoneProgress(futureWeek, now)).toBe(false);
+
+    const { getByRole } = render(
+      <WeeklyMilestoneRow milestone={futureWeek} onTap={vi.fn()} {...rowProps} />,
+    );
+
+    expect(getByRole('button')).toBeDisabled();
   });
 });

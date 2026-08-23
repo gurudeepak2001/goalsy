@@ -81,23 +81,39 @@ router.get("/notifications", requireAuth, async (req, res) => {
       .where(and(eq(goals.userId, userId), eq(goals.status, "active")));
 
     if (userGoals.length > 0) {
-      // Fetch all undismissed notifications at once for dedup checks
+      // Include dismissed alerts in duplicate checks. A dismissal means the
+      // person has handled that specific alert; excluding it here caused the
+      // same reminder to be re-created immediately after a tap.
       const existingNotifs = await db
-        .select({ type: notifications.type, targetId: notifications.targetId })
+        .select({
+          type: notifications.type,
+          targetId: notifications.targetId,
+          isDismissed: notifications.isDismissed,
+          createdAt: notifications.createdAt,
+        })
         .from(notifications)
-        .where(
-          and(
-            eq(notifications.userId, userId),
-            eq(notifications.isDismissed, false),
-          ),
-        );
+        .where(eq(notifications.userId, userId));
 
-      // O(1) dedup: "type::targetId"
+      // O(1) dedup: "type::targetId". Goal alerts and deadline warnings stay
+      // dismissed until the goal's state changes instead of returning on the
+      // next refresh. Weekly reminders may return after a full week if the goal
+      // still needs a check-in.
       const notifKeys = new Set(
         existingNotifs.map((n) => `${n.type}::${n.targetId ?? ""}`),
       );
       const hasNotif = (type: string, targetId: string) =>
         notifKeys.has(`${type}::${targetId}`);
+      const hasRecentOrActiveNotif = (
+        type: string,
+        targetId: string,
+        since: Date,
+      ) =>
+        existingNotifs.some(
+          (notification) =>
+            notification.type === type
+            && notification.targetId === targetId
+            && (!notification.isDismissed || notification.createdAt >= since),
+        );
 
       // ── 1. Behind-goal alerts ──────────────────────────────────────────────
       if (!disabled.has("goal_reminders")) {
@@ -213,7 +229,9 @@ router.get("/notifications", requireAuth, async (req, res) => {
           });
 
           for (const goal of staleGoals) {
-            if (hasNotif("weekly_confirm", goal.id)) continue;
+            // A dismissed weekly reminder stays gone for this week. If no
+            // progress is logged, a fresh reminder can still arrive next week.
+            if (hasRecentOrActiveNotif("weekly_confirm", goal.id, sevenDaysAgo)) continue;
 
             const lastDate = lastConfirmed.get(goal.id);
             const daysSince = lastDate

@@ -9,7 +9,6 @@ import AppModal from './AppModal';
 import { getInitials } from '@/lib/userDisplay';
 import {
   useListNotifications,
-  useMarkNotificationRead,
   useDismissNotification,
   useClearNotifications,
   getListNotificationsQueryKey,
@@ -112,7 +111,6 @@ export default function AppHeader({
 
   // ── Notification API hooks ─────────────────────────────────────────────────
   const { data: notifications } = useListNotifications({ query: { enabled: dashboard && showNotification, queryKey: getListNotificationsQueryKey() } });
-  const { mutateAsync: markRead } = useMarkNotificationRead();
   const { mutateAsync: dismiss } = useDismissNotification();
   const { mutateAsync: clearAll, isPending: clearing } = useClearNotifications();
 
@@ -122,18 +120,25 @@ export default function AppHeader({
   const invalidateNotifs = () =>
     queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
 
+  const removeNotificationFromCache = (id: string) => {
+    queryClient.setQueryData<AppNotification[]>(
+      getListNotificationsQueryKey(),
+      (current) => current?.filter((notification) => notification.id !== id),
+    );
+  };
+
   const handleTap = async (notif: AppNotification) => {
     setNotifOpen(false);
-    // A tapped alert is handled, so remove it just like the explicit X button.
-    // Marking it read remains useful for the notification audit trail.
+    // Remove it immediately so navigation cannot leave a stale item behind in
+    // the panel. The server records both dismissal and read status atomically.
+    removeNotificationFromCache(notif.id);
     try {
-      await Promise.all([
-        dismiss({ id: notif.id }),
-        notif.isRead ? Promise.resolve() : markRead({ id: notif.id }),
-      ]);
+      await dismiss({ id: notif.id });
       await invalidateNotifs();
     } catch {
-      // Continue to the linked screen even if an offline request cannot clear it.
+      // Restore authoritative state on the next query if an offline request
+      // could not be recorded, but still allow the linked goal to open.
+      await invalidateNotifs();
     }
     if (notif.targetScreen) {
       // Construct the deep-link path: if targetId is set and not already
@@ -148,10 +153,13 @@ export default function AppHeader({
   };
 
   const handleDismiss = async (id: string) => {
+    removeNotificationFromCache(id);
     try {
       await dismiss({ id });
       await invalidateNotifs();
-    } catch { /* silent */ }
+    } catch {
+      await invalidateNotifs();
+    }
   };
 
   const handleClearAll = async () => {

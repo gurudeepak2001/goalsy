@@ -240,6 +240,24 @@ export interface WeekMilestone {
   isPast: boolean;
 }
 
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * A deposit can be recorded for completed weeks and for the week currently in
+ * progress. Future milestones stay read-only so a planned deposit cannot be
+ * recorded before that week begins.
+ */
+export function canLogMilestoneProgress(
+  milestone: Pick<WeekMilestone, 'weekDate' | 'isPast'>,
+  now = new Date(),
+): boolean {
+  if (milestone.isPast) return true;
+
+  const weekEnd = milestone.weekDate.getTime();
+  const currentTime = now.getTime();
+  return weekEnd > currentTime && weekEnd - MS_PER_WEEK <= currentTime;
+}
+
 export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
   return computeGoalSchedule(goal).map((milestone) => {
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
@@ -386,7 +404,8 @@ export function WeeklyMilestoneRow({
   isSaving: boolean;
   saveError?: string;
 }) {
-  const { dateLabel, expectedAmount, status, isPast } = milestone;
+  const { dateLabel, expectedAmount, status } = milestone;
+  const canLogProgress = canLogMilestoneProgress(milestone);
 
   const markerColor =
     isHistoryConfirmed ? color
@@ -404,9 +423,9 @@ export function WeeklyMilestoneRow({
     <div className="border-b border-white/5 last:border-0">
       <button
         type="button"
-        disabled={!isPast}
-        onClick={isPast ? onTap : undefined}
-        className={`w-full flex items-center gap-3 py-2.5 min-h-[44px] text-left ${isPast && !isConfirming ? 'active:opacity-70' : ''}`}
+        disabled={!canLogProgress}
+        onClick={canLogProgress ? onTap : undefined}
+        className={`w-full flex items-center gap-3 py-2.5 min-h-[44px] text-left ${canLogProgress && !isConfirming ? 'active:opacity-70' : ''}`}
       >
         {/* Marker */}
         <div className="flex-shrink-0 w-5 flex items-center justify-center">
@@ -1174,7 +1193,7 @@ export default function GoalDetailScreen() {
           <div className="flex items-center justify-between mb-3">
             <span className={labelCls} style={{ marginBottom: 0 }}>Weekly Milestones</span>
             {allMilestones.length > 0 && (
-              <span className="text-[#808BA4] text-[10px] font-semibold">Tap a past week to log progress</span>
+              <span className="text-[#808BA4] text-[10px] font-semibold">Tap a current or past week to log progress</span>
             )}
           </div>
 
