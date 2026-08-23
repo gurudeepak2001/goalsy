@@ -173,6 +173,13 @@ describe('ConfirmForm – keyboard visibility (timer fallback, web path)', () =>
     // Timer has not fired yet – scrollIntoView must not have been called
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
+
+  it('shows the entered amount outside the native field for iOS WebView visibility', () => {
+    const { getByText } = render(<ConfirmForm {...defaultProps} confirmValue="1250" />);
+
+    expect(getByText('Entered amount:')).toBeInTheDocument();
+    expect(getByText('$1250')).toBeInTheDocument();
+  });
 });
 
 // ── Tests: native Capacitor keyboardDidShow path ───────────────────────────────

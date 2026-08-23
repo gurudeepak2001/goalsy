@@ -619,6 +619,7 @@ export function ConfirmForm({
                 value={confirmValue}
                 onChange={(e) => onConfirmChange(e.target.value.replace(/[^0-9.]/g, ''))}
                 autoFocus
+                style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', caretColor: '#FFFFFF', opacity: 1 }}
               />
             </div>
             <button
@@ -636,6 +637,11 @@ export function ConfirmForm({
               className="!py-2 !text-xs"
             />
           </div>
+          {confirmValue && (
+            <p aria-live="polite" className="text-[#CBD5E1] text-xs font-semibold">
+              Entered amount: <span className="text-white">${confirmValue}</span>
+            </p>
+          )}
           {saveError && (
             <div className="flex items-center gap-1.5">
               <AlertTriangle size={11} className="text-[#EF4444] flex-shrink-0" />
