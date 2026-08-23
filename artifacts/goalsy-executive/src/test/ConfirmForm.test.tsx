@@ -720,6 +720,7 @@ describe('WeeklyMilestoneRow – post-save state transition', () => {
         color="#22C55E"
         isHistoryConfirmed={true}
         historyAmount={4800}
+        weeklyDeposit={1200}
         isConfirming={false}
         confirmValue=""
         onConfirmChange={onConfirmChange}
@@ -736,6 +737,8 @@ describe('WeeklyMilestoneRow – post-save state transition', () => {
 
     // The row is in confirmed state – the date label is still rendered
     expect(getByText('Jan 7, 26')).toBeInTheDocument();
+    // The exact weekly deposit remains visible separately from the running total.
+    expect(getByText('Added $1,200 this week')).toBeInTheDocument();
   });
 });
 

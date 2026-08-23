@@ -380,6 +380,7 @@ export function WeeklyMilestoneRow({
   color,
   isHistoryConfirmed,
   historyAmount,
+  weeklyDeposit,
   suggestedDeposit,
   isConfirming,
   confirmValue,
@@ -394,6 +395,7 @@ export function WeeklyMilestoneRow({
   color: string;
   isHistoryConfirmed: boolean;
   historyAmount?: number;
+  weeklyDeposit?: number;
   suggestedDeposit?: number;
   isConfirming: boolean;
   confirmValue: string;
@@ -459,10 +461,17 @@ export function WeeklyMilestoneRow({
           <span className="text-[#CBD5E1] font-semibold text-[13px]">{dateLabel}</span>
           <div className="flex items-center gap-2">
             {isHistoryConfirmed && historyAmount !== undefined ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#808BA4] font-semibold text-[11px] line-through">{formatDollars(expectedAmount)}</span>
-                <span className="font-bold text-[13px]" style={{ color }}>{formatDollars(historyAmount)}</span>
-                <CheckCircle2 size={12} style={{ color }} />
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#808BA4] font-semibold text-[11px] line-through">{formatDollars(expectedAmount)}</span>
+                  <span className="font-bold text-[13px]" style={{ color }}>{formatDollars(historyAmount)}</span>
+                  <CheckCircle2 size={12} style={{ color }} />
+                </div>
+                {weeklyDeposit !== undefined && (
+                  <span className="text-[#94A3B8] font-semibold text-[10px]">
+                    Added {formatDollars(weeklyDeposit)} this week
+                  </span>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
@@ -912,6 +921,9 @@ export default function GoalDetailScreen() {
         queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
         queryClient.invalidateQueries({ queryKey: getListGoalProgressQueryKey(goal.id) }),
       ]);
+      // A deposit can be added to an older week. Reveal the complete history
+      // immediately so the saved week is not hidden by the compact eight-week view.
+      setMilestoneExpanded(true);
       toast({ title: 'Weekly Deposit Saved', description: `${formatDollars(amount)} deposited for Week ${confirmingWeekIdx}.` });
       setConfirmingWeekIdx(null);
       setConfirmAmount('');
@@ -1246,6 +1258,7 @@ export default function GoalDetailScreen() {
                     color={color}
                     isHistoryConfirmed={confirmedMap.has(m.weekIndex)}
                     historyAmount={histAmt}
+                    weeklyDeposit={weeklyDeposit}
                     suggestedDeposit={Math.max(0, Math.round(goal.monthlyContribution * 12 / 52))}
                     isConfirming={confirmingWeekIdx === m.weekIndex}
                     confirmValue={confirmAmount}
