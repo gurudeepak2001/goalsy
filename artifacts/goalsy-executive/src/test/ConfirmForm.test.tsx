@@ -706,7 +706,7 @@ describe('WeeklyMilestoneRow – post-save state transition', () => {
     );
 
     // Form should be visible: the question prompt is present
-    expect(getByText(/how much have you actually saved/i)).toBeInTheDocument();
+    expect(getByText(/how much did you deposit this week/i)).toBeInTheDocument();
 
     // Clicking Save triggers onSave
     fireEvent.click(getByText('Save'));

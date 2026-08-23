@@ -9,6 +9,28 @@ import ExecutiveButton from '@/components/ExecutiveButton';
 import { simulateAsync } from '@/lib/mockData';
 import { getClerkErrorMessage } from '@/lib/clerkErrors';
 
+// Clerk's Capacitor startup can replace the native route tree once while it
+// resolves its anonymous client. Keep a very short-lived draft in JS memory so
+// that one remount cannot erase credentials the user has just typed. This is
+// deliberately not localStorage, Preferences, or any other persistent surface.
+const REMOUNT_DRAFT_TTL_MS = 15_000;
+let signInDraft = { email: '', password: '', updatedAt: 0 };
+
+function getSignInDraft() {
+  if (Date.now() - signInDraft.updatedAt > REMOUNT_DRAFT_TTL_MS) {
+    signInDraft = { email: '', password: '', updatedAt: 0 };
+  }
+  return signInDraft;
+}
+
+function updateSignInDraft(values: Partial<Pick<typeof signInDraft, 'email' | 'password'>>) {
+  signInDraft = { ...signInDraft, ...values, updatedAt: Date.now() };
+}
+
+function clearSignInDraft() {
+  signInDraft = { email: '', password: '', updatedAt: 0 };
+}
+
 export default function SignInScreen() {
   const [, navigate] = useLocation();
   // NOTE: useSignIn (not useClerk) is used for all sign-in operations throughout
@@ -20,8 +42,8 @@ export default function SignInScreen() {
   const { isLoaded, signIn, setActive } = useSignIn();
 
   const [faceIdStatus, setFaceIdStatus] = useState<'idle' | 'scanning' | 'verified'>('idle');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(() => getSignInDraft().email);
+  const [password, setPassword] = useState(() => getSignInDraft().password);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -70,6 +92,7 @@ export default function SignInScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+        clearSignInDraft();
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
         // Defer by one frame so Clerk's isSignedIn propagates before AuthGate renders.
         requestAnimationFrame(() => navigate('/financial-connection'));
@@ -159,6 +182,7 @@ export default function SignInScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+        clearSignInDraft();
         toast({ title: 'Signed In', description: 'Welcome back to your financial cockpit.' });
         requestAnimationFrame(() => navigate('/financial-connection'));
       } else {
@@ -286,6 +310,7 @@ export default function SignInScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+        clearSignInDraft();
         toast({ title: 'Password Updated', description: 'Signed in with your new password.' });
         requestAnimationFrame(() => navigate('/financial-connection'));
       } else {
@@ -342,7 +367,10 @@ export default function SignInScreen() {
               placeholder="executive@domain.com"
               leftIcon={<Mail size={18} />}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                updateSignInDraft({ email: e.target.value });
+                setEmail(e.target.value);
+              }}
             />
 
             <ExecutiveInput
@@ -351,7 +379,10 @@ export default function SignInScreen() {
               placeholder="••••••••"
               leftIcon={<Lock size={18} />}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                updateSignInDraft({ password: e.target.value });
+                setPassword(e.target.value);
+              }}
               rightElement={
                 <button
                   type="button"

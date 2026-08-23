@@ -76,13 +76,17 @@ export interface GoalProgressEntry {
   id: string;
   goalId: string;
   weekIndex: number;
+  /** Individual amount deposited during this week */
+  weeklyDeposit: number;
+  /** Derived running total through this week */
   confirmedAmount: number;
   confirmedAt: string;
 }
 
 export interface CreateGoalProgressBody {
   weekIndex: number;
-  confirmedAmount: number;
+  /** @minimum 0 */
+  weeklyDeposit: number;
 }
 
 export interface Goal {

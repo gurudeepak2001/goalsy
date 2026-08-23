@@ -69,16 +69,26 @@ function driverColor(trend: string): string {
 }
 
 // ── Chart data helpers ───────────────────────────────────────────────────────
-function formatMonth(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short' });
+function periodKey(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-function buildChartData(snapshots: { score: number; computedAt: string }[]) {
-  // snapshots come newest-first from API; reverse for chart (oldest → newest)
-  return [...snapshots].reverse().map((s) => ({
-    month: formatMonth(s.computedAt),
-    score: s.score,
-  }));
+function periodLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+export function buildChartData(snapshots: { score: number; computedAt: string }[]) {
+  // The API returns newest-first. Keep the newest reading for each calendar
+  // month, then reverse the unique periods for a chronological chart.
+  const latestByPeriod = new Map<string, { period: string; label: string; score: number }>();
+  for (const snapshot of snapshots) {
+    const period = periodKey(snapshot.computedAt);
+    if (!latestByPeriod.has(period)) {
+      latestByPeriod.set(period, { period, label: periodLabel(snapshot.computedAt), score: snapshot.score });
+    }
+  }
+  return [...latestByPeriod.values()].reverse();
 }
 
 export default function ScoreScreen() {
@@ -101,7 +111,7 @@ export default function ScoreScreen() {
   // Fall back to a single point when history is empty
   const displayData = chartData.length > 0
     ? chartData
-    : [{ month: 'Now', score }];
+    : [{ period: 'now', label: 'Now', score }];
 
   const milestonePoint = displayData.length > 0 ? displayData[displayData.length - 1] : null;
 
@@ -233,17 +243,18 @@ export default function ScoreScreen() {
                     <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} dy={10} />
+                <XAxis dataKey="period" tickFormatter={(period) => period === 'now' ? 'Now' : periodLabel(`${period}-01T00:00:00.000Z`)} axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} domain={['dataMin - 10', 'dataMax + 10']} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
                   itemStyle={{ color: '#fff', fontWeight: 700 }}
                   labelStyle={{ color: '#94A3B8' }}
+                  labelFormatter={(period) => period === 'now' ? 'Now' : periodLabel(`${period}-01T00:00:00.000Z`)}
                 />
                 <Area type="monotone" dataKey="score" stroke="#2563EB" strokeWidth={3} fill="url(#scoreGradient)" dot={{ fill: '#2563EB', strokeWidth: 0, r: 4 }} activeDot={{ r: 6, fill: '#3B82F6' }} />
                 {milestonePoint && displayData.length > 1 && (
                   <ReferenceDot
-                    x={milestonePoint.month}
+                    x={milestonePoint.period}
                     y={milestonePoint.score}
                     r={6}
                     fill="#F59E0B"

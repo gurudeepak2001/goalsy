@@ -12,6 +12,9 @@ export const goals = pgTable("goals", {
   // Dollar amounts as whole integers
   targetAmount: integer("target_amount").notNull(),
   currentAmount: integer("current_amount").notNull().default(0),
+  // Balance already assigned to a goal before weekly deposits are logged.
+  // Weekly progress entries are individual deposits and are added to this once.
+  openingAmount: integer("opening_amount").notNull().default(0),
   monthlyContribution: integer("monthly_contribution").notNull().default(0),
   // payment_frequency: monthly | weekly
   // monthlyContribution always stores the MONTHLY equivalent regardless of frequency.

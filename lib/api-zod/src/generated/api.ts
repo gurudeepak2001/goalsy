@@ -229,7 +229,8 @@ export const ListGoalProgressResponseItem = zod.object({
   "id": zod.string(),
   "goalId": zod.string(),
   "weekIndex": zod.number(),
-  "confirmedAmount": zod.number(),
+  "weeklyDeposit": zod.number().describe('Individual amount deposited during this week'),
+  "confirmedAmount": zod.number().describe('Derived running total through this week'),
   "confirmedAt": zod.string()
 })
 export const ListGoalProgressResponse = zod.array(ListGoalProgressResponseItem)
@@ -242,16 +243,21 @@ export const CreateGoalProgressParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const createGoalProgressBodyWeeklyDepositMin = 0;
+
+
+
 export const CreateGoalProgressBody = zod.object({
   "weekIndex": zod.number(),
-  "confirmedAmount": zod.number()
+  "weeklyDeposit": zod.number().min(createGoalProgressBodyWeeklyDepositMin)
 })
 
 export const CreateGoalProgressResponse = zod.object({
   "id": zod.string(),
   "goalId": zod.string(),
   "weekIndex": zod.number(),
-  "confirmedAmount": zod.number(),
+  "weeklyDeposit": zod.number().describe('Individual amount deposited during this week'),
+  "confirmedAmount": zod.number().describe('Derived running total through this week'),
   "confirmedAt": zod.string()
 })
 

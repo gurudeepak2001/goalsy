@@ -362,6 +362,7 @@ export function WeeklyMilestoneRow({
   color,
   isHistoryConfirmed,
   historyAmount,
+  suggestedDeposit,
   isConfirming,
   confirmValue,
   onConfirmChange,
@@ -375,6 +376,7 @@ export function WeeklyMilestoneRow({
   color: string;
   isHistoryConfirmed: boolean;
   historyAmount?: number;
+  suggestedDeposit?: number;
   isConfirming: boolean;
   confirmValue: string;
   onConfirmChange: (v: string) => void;
@@ -459,6 +461,7 @@ export function WeeklyMilestoneRow({
       {isConfirming && (
         <ConfirmForm
           expectedAmount={expectedAmount}
+            suggestedDeposit={suggestedDeposit}
           confirmValue={confirmValue}
           onConfirmChange={onConfirmChange}
           onSave={onSave}
@@ -473,6 +476,7 @@ export function WeeklyMilestoneRow({
 
 export function ConfirmForm({
   expectedAmount,
+  suggestedDeposit,
   confirmValue,
   onConfirmChange,
   onSave,
@@ -481,6 +485,7 @@ export function ConfirmForm({
   saveError,
 }: {
   expectedAmount: number;
+  suggestedDeposit?: number;
   confirmValue: string;
   onConfirmChange: (v: string) => void;
   onSave: () => void;
@@ -574,7 +579,7 @@ export function ConfirmForm({
   return (
         <div ref={formRef} className="pb-3 pl-8 flex flex-col gap-2">
           <p className="text-[#808BA4] text-xs font-semibold">
-            How much have you actually saved as of this week?
+            How much did you deposit this week?
           </p>
           <div className="flex gap-2 items-center">
             <div className="flex-1">
@@ -582,7 +587,7 @@ export function ConfirmForm({
                 label=""
                 leftIcon={<span className="font-bold text-sm">$</span>}
                 inputMode="decimal"
-                placeholder={String(expectedAmount)}
+                placeholder={String(suggestedDeposit ?? expectedAmount)}
                 value={confirmValue}
                 onChange={(e) => onConfirmChange(e.target.value.replace(/[^0-9.]/g, ''))}
                 autoFocus
@@ -627,11 +632,14 @@ export default function GoalDetailScreen() {
   const { mutateAsync: logProgress, isPending: loggingProgress } = useCreateGoalProgress();
   const { mutateAsync: deleteGoal, isPending: deleting } = useDeleteGoal();
 
-  // Map of weekIndex → most recent confirmed amount (entries arrive newest-first)
+  // Map of weekIndex → derived running total and individual weekly deposit.
+  // Entries arrive newest-first, so the first one remains authoritative.
   const confirmedMap = new Map<number, number>();
+  const depositMap = new Map<number, number>();
   for (const entry of (progressData ?? [])) {
     if (!confirmedMap.has(entry.weekIndex)) {
       confirmedMap.set(entry.weekIndex, entry.confirmedAmount);
+      depositMap.set(entry.weekIndex, entry.weeklyDeposit);
     }
   }
 
@@ -879,20 +887,13 @@ export default function GoalDetailScreen() {
     }
     setConfirmError(undefined);
     try {
-      await logProgress({ id: goal.id, data: { weekIndex: confirmingWeekIdx, confirmedAmount: amount } });
-      // Patch caches immediately so Goals Overview total contributions updates without waiting for refetch
-      queryClient.setQueryData(getListGoalsQueryKey(), (old: Goal[] | undefined) =>
-        old?.map((g) => g.id === goal.id ? { ...g, currentAmount: amount } : g),
-      );
-      queryClient.setQueryData(getGetGoalQueryKey(goal.id), (old: Goal | undefined) =>
-        old ? { ...old, currentAmount: amount } : old,
-      );
+      await logProgress({ id: goal.id, data: { weekIndex: confirmingWeekIdx, weeklyDeposit: amount } });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
         queryClient.invalidateQueries({ queryKey: getListGoalProgressQueryKey(goal.id) }),
       ]);
-      toast({ title: 'Progress Logged', description: `Week ${confirmingWeekIdx} confirmed at ${formatDollars(amount)}.` });
+      toast({ title: 'Weekly Deposit Saved', description: `${formatDollars(amount)} deposited for Week ${confirmingWeekIdx}.` });
       setConfirmingWeekIdx(null);
       setConfirmAmount('');
     } catch {
@@ -1218,6 +1219,7 @@ export default function GoalDetailScreen() {
 
               {shownMilestones.map((m) => {
                 const histAmt = confirmedMap.get(m.weekIndex);
+                const weeklyDeposit = depositMap.get(m.weekIndex);
                 return (
                   <WeeklyMilestoneRow
                     key={m.weekIndex}
@@ -1225,15 +1227,15 @@ export default function GoalDetailScreen() {
                     color={color}
                     isHistoryConfirmed={confirmedMap.has(m.weekIndex)}
                     historyAmount={histAmt}
+                    suggestedDeposit={Math.max(0, Math.round(goal.monthlyContribution * 12 / 52))}
                     isConfirming={confirmingWeekIdx === m.weekIndex}
                     confirmValue={confirmAmount}
                     onConfirmChange={(v) => { setConfirmAmount(v); setConfirmError(undefined); }}
                     onTap={() => {
                       setConfirmingWeekIdx(m.weekIndex);
-                      // Only pre-fill from confirmed history. If no history, open blank
-                      // so cancel always returns to a clean state — not to goal.currentAmount
-                      // which the user might mistake for their previously-typed value.
-                      setConfirmAmount(histAmt !== undefined ? String(histAmt) : '');
+                      // The user edits the one deposit for this week; the API
+                      // calculates the running total displayed in the row.
+                      setConfirmAmount(weeklyDeposit !== undefined ? String(weeklyDeposit) : '');
                       setConfirmError(undefined);
                     }}
                     onSave={handleConfirmMilestone}

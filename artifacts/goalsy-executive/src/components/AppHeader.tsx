@@ -123,11 +123,18 @@ export default function AppHeader({
     queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
 
   const handleTap = async (notif: AppNotification) => {
-    // Mark as read (fire and forget)
-    if (!notif.isRead) {
-      markRead({ id: notif.id }).then(invalidateNotifs).catch(() => {});
-    }
     setNotifOpen(false);
+    // A tapped alert is handled, so remove it just like the explicit X button.
+    // Marking it read remains useful for the notification audit trail.
+    try {
+      await Promise.all([
+        dismiss({ id: notif.id }),
+        notif.isRead ? Promise.resolve() : markRead({ id: notif.id }),
+      ]);
+      await invalidateNotifs();
+    } catch {
+      // Continue to the linked screen even if an offline request cannot clear it.
+    }
     if (notif.targetScreen) {
       // Construct the deep-link path: if targetId is set and not already
       // embedded in targetScreen, append it (handles legacy notifications

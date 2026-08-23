@@ -5,6 +5,60 @@ import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
+type GoalRow = typeof goals.$inferSelect;
+type ProgressRow = typeof goalProgressEntries.$inferSelect;
+
+type LedgerRow = {
+  entry: ProgressRow;
+  weeklyDeposit: number;
+  confirmedAmount: number;
+};
+
+/**
+ * Old clients wrote multiple cumulative snapshots for a week. The latest one is
+ * the effective value; retaining older rows preserves their audit trail.
+ */
+function getEffectiveProgressEntries(entries: ProgressRow[]) {
+  const latestByWeek = new Map<number, ProgressRow>();
+  for (const entry of entries) {
+    if (!latestByWeek.has(entry.weekIndex)) latestByWeek.set(entry.weekIndex, entry);
+  }
+  return [...latestByWeek.values()].sort((a, b) => a.weekIndex - b.weekIndex);
+}
+
+/**
+ * Builds a single-deposit-per-week ledger. Legacy cumulative rows are converted
+ * to differences without overwriting the original values until a user saves.
+ */
+function buildProgressLedger(goal: GoalRow, entries: ProgressRow[]) {
+  const hasLegacySnapshots = entries.some((entry) => entry.weeklyDeposit === null);
+  const inferredOpeningAmount =
+    entries.length === 0 && goal.openingAmount === 0 && goal.currentAmount > 0
+      ? goal.currentAmount
+      : goal.openingAmount;
+  // Historical snapshots had already replaced currentAmount, so a zero baseline
+  // preserves every historical total when they are converted to deposits.
+  const openingAmount = hasLegacySnapshots ? 0 : inferredOpeningAmount;
+
+  let runningTotal = openingAmount;
+  const rows: LedgerRow[] = entries.map((entry) => {
+    const weeklyDeposit =
+      entry.weeklyDeposit ?? entry.confirmedAmount - runningTotal;
+    runningTotal += weeklyDeposit;
+    return { entry, weeklyDeposit, confirmedAmount: runningTotal };
+  });
+
+  return { openingAmount, currentAmount: runningTotal, rows };
+}
+
+function serializeLedgerRows(rows: LedgerRow[]) {
+  return rows.map(({ entry, weeklyDeposit, confirmedAmount }) => ({
+    ...entry,
+    weeklyDeposit,
+    confirmedAmount,
+  }));
+}
+
 // GET /api/goals
 router.get("/goals", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
@@ -51,6 +105,7 @@ router.post("/goals", requireAuth, async (req, res) => {
         type,
         targetAmount,
         currentAmount: currentAmount ?? 0,
+        openingAmount: currentAmount ?? 0,
         monthlyContribution: monthlyContribution ?? 0,
         paymentFrequency: paymentFrequency ?? "monthly",
         targetDate: targetDate ?? null,
@@ -99,6 +154,18 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
   }>;
 
   try {
+    if (currentAmount !== undefined) {
+      const existingProgress = await db
+        .select({ id: goalProgressEntries.id })
+        .from(goalProgressEntries)
+        .where(and(eq(goalProgressEntries.goalId, id), eq(goalProgressEntries.userId, userId)))
+        .limit(1);
+      if (existingProgress.length) {
+        res.status(409).json({ message: "Update weekly deposits instead of manually changing a goal with progress history" });
+        return;
+      }
+    }
+
     const [goal] = await db
       .update(goals)
       .set({
@@ -106,6 +173,7 @@ router.put("/goals/:id", requireAuth, async (req, res) => {
         ...(type !== undefined && { type }),
         ...(targetAmount !== undefined && { targetAmount }),
         ...(currentAmount !== undefined && { currentAmount }),
+        ...(currentAmount !== undefined && { openingAmount: currentAmount }),
         ...(monthlyContribution !== undefined && { monthlyContribution }),
         ...(paymentFrequency !== undefined && { paymentFrequency }),
         ...(targetDate !== undefined && { targetDate }),
@@ -145,7 +213,7 @@ router.get("/goals/:id/progress", requireAuth, async (req, res) => {
   try {
     // Verify the goal belongs to this user
     const [goal] = await db
-      .select({ id: goals.id })
+      .select()
       .from(goals)
       .where(and(eq(goals.id, id), eq(goals.userId, userId)));
     if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
@@ -159,8 +227,9 @@ router.get("/goals/:id/progress", requireAuth, async (req, res) => {
           eq(goalProgressEntries.userId, userId),
         ),
       )
-      .orderBy(desc(goalProgressEntries.confirmedAt));
-    res.json(entries);
+      .orderBy(desc(goalProgressEntries.confirmedAt), desc(goalProgressEntries.id));
+    const ledger = buildProgressLedger(goal, getEffectiveProgressEntries(entries));
+    res.json(serializeLedgerRows(ledger.rows));
   } catch {
     res.status(500).json({ message: "Failed to fetch progress entries" });
   }
@@ -170,41 +239,81 @@ router.get("/goals/:id/progress", requireAuth, async (req, res) => {
 router.post("/goals/:id/progress", requireAuth, async (req, res) => {
   const userId = res.locals.userId as string;
   const id = req.params.id as string;
-  const { weekIndex, confirmedAmount } = req.body as {
+  const { weekIndex, weeklyDeposit } = req.body as {
     weekIndex: number;
-    confirmedAmount: number;
+    weeklyDeposit: number;
   };
 
-  if (weekIndex === undefined || confirmedAmount === undefined) {
-    res.status(400).json({ message: "weekIndex and confirmedAmount are required" });
+  if (!Number.isInteger(weekIndex) || weekIndex < 0 || !Number.isInteger(weeklyDeposit) || weeklyDeposit < 0) {
+    res.status(400).json({ message: "weekIndex and weeklyDeposit must be non-negative whole numbers" });
     return;
   }
 
   try {
-    // Verify the goal belongs to this user
-    const [goal] = await db
-      .select({ id: goals.id })
-      .from(goals)
-      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
-    if (!goal) { res.status(404).json({ message: "Goal not found" }); return; }
+    const result = await db.transaction(async (tx) => {
+      const [goal] = await tx
+        .select()
+        .from(goals)
+        .where(and(eq(goals.id, id), eq(goals.userId, userId)));
+      if (!goal) return null;
 
-    const [entry] = await db
-      .insert(goalProgressEntries)
-      .values({
-        goalId: id,
-        userId,
-        weekIndex,
-        confirmedAmount,
-      })
-      .returning();
+      const savedEntries = await tx
+        .select()
+        .from(goalProgressEntries)
+        .where(and(eq(goalProgressEntries.goalId, id), eq(goalProgressEntries.userId, userId)))
+        .orderBy(desc(goalProgressEntries.confirmedAt), desc(goalProgressEntries.id));
+      const effectiveEntries = getEffectiveProgressEntries(savedEntries);
+      const existingEntry = effectiveEntries.find((entry) => entry.weekIndex === weekIndex);
 
-    // Also update the goal's currentAmount to the latest confirmed snapshot
-    await db
-      .update(goals)
-      .set({ currentAmount: confirmedAmount, updatedAt: new Date() })
-      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
+      let nextEntries: ProgressRow[];
+      let selectedEntryId: string;
+      if (existingEntry) {
+        await tx
+          .update(goalProgressEntries)
+          .set({ weeklyDeposit })
+          .where(eq(goalProgressEntries.id, existingEntry.id));
+        nextEntries = effectiveEntries.map((entry) =>
+          entry.id === existingEntry.id ? { ...entry, weeklyDeposit } : entry,
+        );
+        selectedEntryId = existingEntry.id;
+      } else {
+        const [entry] = await tx
+          .insert(goalProgressEntries)
+          .values({
+            goalId: id,
+            userId,
+            weekIndex,
+            weeklyDeposit,
+            confirmedAmount: 0,
+          })
+          .returning();
+        nextEntries = [...effectiveEntries, entry].sort((a, b) => a.weekIndex - b.weekIndex);
+        selectedEntryId = entry.id;
+      }
 
-    res.status(201).json(entry);
+      const ledger = buildProgressLedger(goal, nextEntries);
+      await Promise.all(
+        ledger.rows.map(({ entry, weeklyDeposit: amount, confirmedAmount }) =>
+          tx
+            .update(goalProgressEntries)
+            .set({ weeklyDeposit: amount, confirmedAmount })
+            .where(eq(goalProgressEntries.id, entry.id)),
+        ),
+      );
+      await tx
+        .update(goals)
+        .set({
+          openingAmount: ledger.openingAmount,
+          currentAmount: ledger.currentAmount,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(goals.id, id), eq(goals.userId, userId)));
+
+      const selectedRow = ledger.rows.find(({ entry }) => entry.id === selectedEntryId);
+      return selectedRow ? serializeLedgerRows([selectedRow])[0] : null;
+    });
+    if (!result) { res.status(404).json({ message: "Goal not found" }); return; }
+    res.status(201).json(result);
   } catch {
     res.status(500).json({ message: "Failed to log progress" });
   }

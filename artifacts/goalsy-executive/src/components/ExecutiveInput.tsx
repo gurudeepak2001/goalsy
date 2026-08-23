@@ -8,7 +8,7 @@ interface ExecutiveInputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
-  ({ label, leftIcon, rightElement, className = '', id: idProp, type, ...props }, ref) => {
+  ({ label, leftIcon, rightElement, className = '', id: idProp, type, style, ...props }, ref) => {
     const generatedId = useId();
     const inputId = idProp ?? generatedId;
     const isPassword = type === 'password';
@@ -38,6 +38,12 @@ const ExecutiveInput = forwardRef<HTMLInputElement, ExecutiveInputProps>(
             ref={ref}
             type={isPassword ? (revealed ? 'text' : 'password') : type}
             className="text-white placeholder:text-[#444444] text-base font-semibold bg-transparent outline-none flex-1 w-full h-full"
+            style={{
+              color: '#FFFFFF',
+              WebkitTextFillColor: '#FFFFFF',
+              opacity: 1,
+              ...style,
+            }}
             {...props}
           />
           {isPassword && (

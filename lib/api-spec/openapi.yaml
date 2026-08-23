@@ -714,20 +714,25 @@ components:
           type: string
         weekIndex:
           type: integer
+        weeklyDeposit:
+          type: integer
+          description: "Individual amount deposited during this week"
         confirmedAmount:
           type: integer
+          description: "Derived running total through this week"
         confirmedAt:
           type: string
-      required: [id, goalId, weekIndex, confirmedAmount, confirmedAt]
+      required: [id, goalId, weekIndex, weeklyDeposit, confirmedAmount, confirmedAt]
 
     CreateGoalProgressBody:
       type: object
       properties:
         weekIndex:
           type: integer
-        confirmedAmount:
+        weeklyDeposit:
           type: integer
-      required: [weekIndex, confirmedAmount]
+          minimum: 0
+      required: [weekIndex, weeklyDeposit]
 
     Goal:
       type: object

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useLocation } from 'wouter';
 import { useUser, useClerk } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,7 +18,6 @@ import {
   Image,
   Trash2,
   Loader2,
-  Check,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/userDisplay';
@@ -34,8 +33,6 @@ import { Switch } from '@/components/ui/switch';
 import {
   mockConnectedAccounts,
   mockSubscription,
-  mockAvatarPresets,
-  simulateAsync,
 } from '@/lib/mockData';
 import { getScoreTier } from '@/lib/scoreUtils';
 import { buildProfileAchievements, profileHelpArticles, type ProfileAchievement } from '@/lib/profileContent';
@@ -105,6 +102,8 @@ export default function ProfileScreen() {
   const [avatarSrc, setAvatarSrc] = useState<string | undefined>(user?.hasImage ? user?.imageUrl : undefined);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState<'idle' | 'camera' | 'library'>('idle');
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
 
@@ -118,6 +117,10 @@ export default function ProfileScreen() {
   const score = scoreResult?.score ?? 842;
   const tier = scoreResult ? getScoreTier(score) : getScoreTier(842);
   const achievements = buildProfileAchievements(financialProfile?.profile, missionStreak);
+
+  useEffect(() => {
+    setAvatarSrc(user?.hasImage ? user.imageUrl : undefined);
+  }, [user?.hasImage, user?.imageUrl]);
 
   const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
     try {
@@ -140,29 +143,57 @@ export default function ProfileScreen() {
     }
   };
 
-  const handlePickAvatar = async (source: 'camera' | 'library') => {
+  const openPhotoPicker = (source: 'camera' | 'library') => {
+    (source === 'camera' ? cameraInputRef : libraryInputRef).current?.click();
+  };
+
+  const handlePickAvatar = async (event: ChangeEvent<HTMLInputElement>, source: 'camera' | 'library') => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Choose an image file', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Photo is too large', description: 'Choose an image smaller than 5 MB.', variant: 'destructive' });
+      return;
+    }
+    if (!user) {
+      toast({ title: 'Could Not Save', description: 'Please sign in again and retry.', variant: 'destructive' });
+      return;
+    }
     setAvatarUploading(source);
-    await simulateAsync(true, 1400);
-    const preset = mockAvatarPresets[Math.floor(Math.random() * mockAvatarPresets.length)];
-    setAvatarSrc(preset);
-    setAvatarUploading('idle');
-    setAvatarModalOpen(false);
-    toast({
-      title: 'Profile Photo Updated',
-      description: source === 'camera' ? 'New photo captured and saved.' : 'Photo selected from your library.',
-    });
+    try {
+      await user.setProfileImage({ file });
+      await user.reload();
+      setAvatarSrc(user.imageUrl);
+      setAvatarModalOpen(false);
+      toast({
+        title: 'Profile Photo Updated',
+        description: source === 'camera' ? 'New photo captured and saved.' : 'Photo selected from your library.',
+      });
+    } catch {
+      toast({ title: 'Could Not Save', description: 'Your profile photo could not be updated. Please try again.', variant: 'destructive' });
+    } finally {
+      setAvatarUploading('idle');
+    }
   };
 
-  const handleSelectPreset = (preset: string) => {
-    setAvatarSrc(preset);
-    setAvatarModalOpen(false);
-    toast({ title: 'Profile Photo Updated', description: 'Your profile photo has been changed.' });
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatarSrc(undefined);
-    setAvatarModalOpen(false);
-    toast({ title: 'Profile Photo Removed', description: 'Your avatar now shows your initials.' });
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarUploading('library');
+    try {
+      await user.setProfileImage({ file: null });
+      await user.reload();
+      setAvatarSrc(undefined);
+      setAvatarModalOpen(false);
+      toast({ title: 'Profile Photo Removed', description: 'Your avatar now shows your initials.' });
+    } catch {
+      toast({ title: 'Could Not Remove', description: 'Your profile photo could not be removed. Please try again.', variant: 'destructive' });
+    } finally {
+      setAvatarUploading('idle');
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -200,6 +231,21 @@ export default function ProfileScreen() {
         />
       }
     >
+      <input
+        ref={cameraInputRef}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        capture="user"
+        onChange={(event) => handlePickAvatar(event, 'camera')}
+      />
+      <input
+        ref={libraryInputRef}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        onChange={(event) => handlePickAvatar(event, 'library')}
+      />
       <div className="flex flex-col gap-10">
         {/* Identity */}
         <div className="flex items-center gap-6">
@@ -357,35 +403,16 @@ export default function ProfileScreen() {
       <AppModal open={avatarModalOpen} onOpenChange={setAvatarModalOpen} title="Change Profile Photo">
         <div className="flex flex-col gap-5 pb-4">
           <div className="flex flex-col gap-3">
-            <button type="button" onClick={() => handlePickAvatar('camera')} disabled={avatarUploading !== 'idle'}
+            <button type="button" onClick={() => openPhotoPicker('camera')} disabled={avatarUploading !== 'idle'}
               className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70">
               {avatarUploading === 'camera' ? <Loader2 size={18} className="animate-spin text-[#2563EB]" /> : <Camera size={18} className="text-[#2563EB]" />}
               {avatarUploading === 'camera' ? 'Capturing Photo...' : 'Take Photo'}
             </button>
-            <button type="button" onClick={() => handlePickAvatar('library')} disabled={avatarUploading !== 'idle'}
+            <button type="button" onClick={() => openPhotoPicker('library')} disabled={avatarUploading !== 'idle'}
               className="w-full h-14 bg-[#111827] border border-white/5 rounded-2xl flex items-center gap-4 px-5 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-70">
               {avatarUploading === 'library' ? <Loader2 size={18} className="animate-spin text-[#2563EB]" /> : <Image size={18} className="text-[#2563EB]" />}
               {avatarUploading === 'library' ? 'Uploading...' : 'Choose from Library'}
             </button>
-          </div>
-          <div className="flex flex-col gap-3">
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Or pick an avatar</span>
-            <div className="grid grid-cols-3 gap-3">
-              {mockAvatarPresets.map((preset) => {
-                const isSelected = avatarSrc === preset;
-                return (
-                  <button key={preset} type="button" onClick={() => handleSelectPreset(preset)}
-                    className={`relative aspect-square rounded-2xl overflow-hidden border-2 active:scale-95 transition-transform ${isSelected ? 'border-[#2563EB]' : 'border-white/5'}`}>
-                    <img src={preset} alt="Avatar option" className="w-full h-full object-cover bg-[#111827]" />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Check size={20} className="text-white" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
           </div>
           {avatarSrc && (
             <button type="button" onClick={handleRemoveAvatar}
