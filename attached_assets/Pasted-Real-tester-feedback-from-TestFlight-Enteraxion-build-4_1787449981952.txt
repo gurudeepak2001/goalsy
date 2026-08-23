@@ -1,0 +1,29 @@
+Real tester feedback from TestFlight (Enteraxion build) — 4 bugs to investigate:
+
+1. CRITICAL — Weekly milestone input field doesn't show what you're typing, leading to wildly incorrect saved values.
+
+When entering a weekly milestone amount ("How much have you actually saved as of this week?"), the typed number is not visible on screen while entering it. This makes it very easy to accidentally enter an incorrect value without noticing, and in testing this resulted in a milestone showing "$32.0M" instead of a reasonable number.
+
+Please fix the input field so the entered value is clearly visible while typing (check for a styling bug like matching text/background color).
+
+Also — please clarify the current expected input, and confirm/fix as needed: should the user enter just THAT WEEK's individual contribution amount (e.g., "$25 saved this week"), with the app calculating the running total automatically? Or does the current implementation expect the user to manually enter their cumulative total-to-date each time?
+
+Recommendation: the weekly-individual-amount approach is standard UX and less error-prone — the app should handle addition to the running total internally, matching how the overall Progress total is already displayed elsewhere in the goal. If the current code expects a manual cumulative entry, that's likely contributing to both the confusion and the bad $32M value, and should be changed to auto-summing individual weekly entries instead.
+
+2. Profile photo doesn't open the camera — instead assigns a random cartoon avatar.
+
+Tapping to take/change the profile photo doesn't open the device camera or photo picker. Instead, it assigns a random cartoon/placeholder avatar image. This looks like it may be calling a mock/placeholder avatar function instead of the actual camera/photo library picker (e.g. Capacitor's Camera API). Please investigate and wire it up to actually open the device camera or photo library so users can set a real photo.
+
+3. Goalsy Score graph shows confusing duplicate axis labels.
+
+The Score History chart shows "Aug Aug" as adjacent x-axis labels, which is confusing. Please check the date-formatting logic for the chart's x-axis and ensure labels are distinct/correctly formatted.
+
+4. Notifications don't clear when tapped.
+
+Tapping a notification is expected to dismiss/clear it, but currently only the "X" button clears it — tapping the notification body itself doesn't dismiss it. Please fix notification tap behavior so tapping the notification clears it (in addition to or instead of requiring the X).
+
+5. Follow-up check: Is the Sign In input-clearing bug actually fixed?
+
+Earlier (Task #151) this was reported fixed, but it was still happening specifically on the Sign In page after that fix shipped — typed text was clearing after ~2 seconds, same as the original report. Please confirm whether that Sign In-specific case has actually been resolved since then, or if it's still outstanding.
+
+Please investigate all of the above, fix what you can, and ask me if anything needs product clarification (especially #1's UX question) before implementing.
