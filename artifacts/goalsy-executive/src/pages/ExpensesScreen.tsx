@@ -351,6 +351,7 @@ export default function ExpensesScreen() {
                 <button
                   key={freq}
                   type="button"
+                  aria-pressed={newFrequency === freq}
                   onClick={() => setNewFrequency(freq)}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
                     newFrequency === freq

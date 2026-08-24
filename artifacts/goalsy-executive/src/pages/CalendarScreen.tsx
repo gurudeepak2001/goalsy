@@ -119,12 +119,19 @@ function AccentCard({
   dimmed?: boolean;
   onClick?: () => void;
 }) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onClick();
+  };
+
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`bg-[#111827] rounded-[20px] p-6 flex flex-col gap-4 ${dimmed ? 'opacity-60' : ''} ${
+      className={`bg-[#111827] rounded-[20px] p-6 flex flex-col gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] ${dimmed ? 'opacity-60' : ''} ${
         onClick ? 'cursor-pointer hover:bg-[#161F2E] transition-colors active:scale-[0.98]' : ''
       }`}
       style={{
@@ -237,6 +244,7 @@ export default function CalendarScreen() {
                 </button>
                 <button
                   type="button"
+                  aria-label="Open bill settings"
                   onClick={() => setSettingsOpen(true)}
                   className="w-12 h-12 border border-white/10 rounded-xl flex items-center justify-center text-white active:scale-95 transition-transform flex-shrink-0"
                 >

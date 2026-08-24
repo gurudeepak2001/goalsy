@@ -22,13 +22,19 @@ export default function ListRow({
 }: ListRowProps) {
   const isClickable = !!onClick;
   const titleColor = variant === 'danger' ? 'text-[#EF4444]' : 'text-white';
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onClick();
+  };
 
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
-      className={`bg-[#0F1625] border border-[#1A2238] rounded-xl px-4 py-3.5 flex items-center gap-3 ${
+      className={`bg-[#0F1625] border border-[#1A2238] rounded-xl px-4 py-3.5 flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] ${
         isClickable ? 'hover:bg-[#131E35] cursor-pointer transition-colors' : ''
       } ${className}`}
     >

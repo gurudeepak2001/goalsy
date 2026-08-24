@@ -64,12 +64,19 @@ interface RowProps {
 
 function Row({ icon, title, onClick, right }: RowProps) {
   const isClickable = !!onClick;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onClick();
+  };
+
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
-      className={`bg-[#111827] border border-white/5 rounded-2xl px-6 py-5 flex items-center justify-between ${
+      className={`bg-[#111827] border border-white/5 rounded-2xl px-6 py-5 flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] ${
         isClickable ? 'hover:bg-[#161F2E] cursor-pointer transition-colors' : ''
       }`}
     >
@@ -275,9 +282,10 @@ export default function ProfileScreen() {
         </div>
 
         {/* Goalsy Score */}
-        <div
+        <button
+          type="button"
           onClick={() => navigate('/score')}
-          className="bg-[#111827] border border-white/5 rounded-3xl p-6 flex items-center justify-between cursor-pointer hover:bg-[#161F2E] transition-colors"
+          className="w-full text-left bg-[#111827] border border-white/5 rounded-3xl p-6 flex items-center justify-between cursor-pointer hover:bg-[#161F2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] transition-colors"
           data-testid="card-score"
         >
           <div className="flex flex-col gap-1">
@@ -287,7 +295,7 @@ export default function ProfileScreen() {
             </div>
           </div>
           <CircularScoreRing value={Math.round(score / 10)} label={String(score)} size={80} strokeWidth={7} color="#2563EB" showGlow={false} />
-        </div>
+        </button>
 
         {/* Achievements */}
         <div className="flex flex-col gap-4">

@@ -1366,6 +1366,7 @@ export default function GoalDetailScreen() {
                     <button
                       key={freq}
                       type="button"
+                      aria-pressed={adjustFrequency === freq}
                       onClick={() => {
                         setAdjustFrequency(freq);
                         setAdjustContrib('');

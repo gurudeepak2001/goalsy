@@ -7,6 +7,7 @@ import GoalsyLogo from './GoalsyLogo';
 import Avatar from './Avatar';
 import AppModal from './AppModal';
 import { getInitials } from '@/lib/userDisplay';
+import { toast } from '@/hooks/use-toast';
 import {
   useListNotifications,
   useDismissNotification,
@@ -166,7 +167,14 @@ export default function AppHeader({
     try {
       await clearAll();
       await invalidateNotifs();
-    } catch { /* silent */ }
+    } catch {
+      await invalidateNotifs();
+      toast({
+        title: 'Could not clear notifications',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (dashboard) {
