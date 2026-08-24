@@ -258,6 +258,23 @@ export function canLogMilestoneProgress(
   return weekEnd > currentTime && weekEnd - MS_PER_WEEK <= currentTime;
 }
 
+/**
+ * The progress ledger is refreshed immediately after a weekly save, while the
+ * separate goal query can briefly hold its previous total. Use the latest
+ * confirmed ledger row for milestone projections so future values move as soon
+ * as the edited weekly amount is shown.
+ */
+export function getLatestConfirmedAmount(
+  fallbackAmount: number,
+  entries: Array<Pick<{ weekIndex: number; confirmedAmount: number }, 'weekIndex' | 'confirmedAmount'>> | undefined,
+): number {
+  if (!entries?.length) return fallbackAmount;
+
+  return entries.reduce(
+    (latest, entry) => entry.weekIndex > latest.weekIndex ? entry : latest,
+  ).confirmedAmount;
+}
+
 export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
   return computeGoalSchedule(goal).map((milestone) => {
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
@@ -676,11 +693,14 @@ export default function GoalDetailScreen() {
       depositMap.set(entry.weekIndex, entry.weeklyDeposit);
     }
   }
+  const milestoneGoal = goal
+    ? { ...goal, currentAmount: getLatestConfirmedAmount(goal.currentAmount, progressData) }
+    : undefined;
 
   // Chart data — past milestones with expected vs confirmed amounts
   // (computed here so it's available when JSX renders; only used when ≥2 confirmed)
   const buildChartPoints = () => {
-    const past = computeWeeklyMilestones(goal!, confirmedMap).filter((m) => m.isPast);
+    const past = milestoneGoal ? computeWeeklyMilestones(milestoneGoal, confirmedMap).filter((m) => m.isPast) : [];
     return past.map((m) => ({
       label: m.dateLabel,
       expected: m.expectedAmount,
@@ -812,7 +832,7 @@ export default function GoalDetailScreen() {
     goal.targetAmount > 0 ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) : 0;
   const progressTicks = [25, 50, 75].map((pct) => ({ pct, reached: progress >= pct }));
 
-  const allMilestones = computeWeeklyMilestones(goal, confirmedMap);
+  const allMilestones = computeWeeklyMilestones(milestoneGoal ?? goal, confirmedMap);
   const pastMilestones = allMilestones.filter((m) => m.isPast);
   const futureMilestones = allMilestones.filter((m) => !m.isPast);
   const targetDatePassed = !!goal.targetDate && new Date(goal.targetDate) < new Date();

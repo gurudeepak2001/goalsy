@@ -114,7 +114,12 @@ vi.mock('recharts', () => ({
 // ── Import the component under test ──────────────────────────────────────────
 
 // Import after all mocks are set up
-import { canLogMilestoneProgress, ConfirmForm, WeeklyMilestoneRow } from '../pages/GoalDetailScreen';
+import {
+  canLogMilestoneProgress,
+  ConfirmForm,
+  getLatestConfirmedAmount,
+  WeeklyMilestoneRow,
+} from '../pages/GoalDetailScreen';
 import type { WeekMilestone } from '../pages/GoalDetailScreen';
 import { fireEvent } from '@testing-library/react';
 
@@ -812,5 +817,16 @@ describe('WeeklyMilestoneRow – active-week progress logging', () => {
     );
 
     expect(getByRole('button')).toBeDisabled();
+  });
+});
+
+describe('weekly milestone future balance', () => {
+  it('uses the latest confirmed ledger amount while the goal query refreshes', () => {
+    // The goal endpoint can briefly still return $12,100 after Week 2 is
+    // changed, but the refreshed ledger already has the correct $12,050.
+    expect(getLatestConfirmedAmount(12_100, [
+      { weekIndex: 1, confirmedAmount: 12_000 },
+      { weekIndex: 2, confirmedAmount: 12_050 },
+    ])).toBe(12_050);
   });
 });
