@@ -276,7 +276,27 @@ export function getLatestConfirmedAmount(
 }
 
 export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, number>): WeekMilestone[] {
+  const latestConfirmedWeekIndex = confirmedMap.size
+    ? Math.max(...confirmedMap.keys())
+    : null;
+
   return computeGoalSchedule(goal).map((milestone) => {
+    let expectedAmount = milestone.expectedAmount;
+    if (
+      goal.monthlyContribution > 0
+      && latestConfirmedWeekIndex !== null
+      && milestone.weekIndex > latestConfirmedWeekIndex
+    ) {
+      // A user can confirm the active week before its date is technically
+      // "past". Start the next displayed milestone one contribution after that
+      // confirmation rather than counting the active week a second time.
+      const futureSteps = milestone.weekIndex - latestConfirmedWeekIndex;
+      expectedAmount = Math.round(Math.min(
+        goal.targetAmount,
+        goal.currentAmount + futureSteps * fromMonthlyContribution(goal.monthlyContribution, 'weekly'),
+      ));
+    }
+
     // ── Root Cause 2 fix: use the week's own confirmed amount for status ──
     // For past weeks with a logged confirmation, compare that actual figure
     // against the expected — not the goal's running currentAmount total.
@@ -292,16 +312,17 @@ export function computeWeeklyMilestones(goal: Goal, confirmedMap: Map<number, nu
       status = 'upcoming';
     } else if (confirmedAmount !== undefined) {
       // Explicit progress log: trust it fully.
-      status = confirmedAmount >= milestone.expectedAmount ? 'reached' : 'behind';
+      status = confirmedAmount >= expectedAmount ? 'reached' : 'behind';
     } else {
       // No explicit log: use currentAmount as a positive proxy only.
       // If currentAmount already meets the bar, mark 'reached'; otherwise
       // stay neutral ('upcoming') — we cannot claim 'behind' without evidence.
-      status = goal.currentAmount >= milestone.expectedAmount ? 'reached' : 'upcoming';
+      status = goal.currentAmount >= expectedAmount ? 'reached' : 'upcoming';
     }
 
     return {
       ...milestone,
+      expectedAmount,
       status,
     };
   });

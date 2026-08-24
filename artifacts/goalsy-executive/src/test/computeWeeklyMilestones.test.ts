@@ -283,4 +283,27 @@ describe('computeWeeklyMilestones – remaining balance and buffered end date', 
     expect(futureMilestones[0]?.expectedAmount).toBe(525);
     expect(futureMilestones[1]?.expectedAmount).toBe(550);
   });
+
+  it('starts future projections after a confirmed active week instead of counting that week twice', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-20T12:00:00Z');
+    vi.setSystemTime(now);
+    const monthlyContribution = 25 * 52 / 12;
+    const goal = makeGoal({
+      createdAt: new Date(now.getTime() - 5 * MS_PER_DAY).toISOString(),
+      targetAmount: 2_591,
+      currentAmount: 520,
+      monthlyContribution,
+      targetDate: null,
+    });
+
+    const milestones = computeWeeklyMilestones(goal, new Map([
+      [2, 520], // The active Aug 24 week is already confirmed.
+    ]));
+    const nextFuture = milestones.find((milestone) => milestone.weekIndex === 3);
+    const followingFuture = milestones.find((milestone) => milestone.weekIndex === 4);
+
+    expect(nextFuture?.expectedAmount).toBe(545);
+    expect(followingFuture?.expectedAmount).toBe(570);
+  });
 });
