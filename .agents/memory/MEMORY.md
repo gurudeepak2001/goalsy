@@ -8,3 +8,4 @@
 - [Enteraxion LLC app migration](enteraxion-migration.md) — new App Store entry under Enteraxion LLC; two hard blockers (APNs key + Clerk bundle ID) must be done before any upload/TestFlight work.
 - [Stable route components](stable-route-components.md) — Clerk startup can alter URL state; route component identities must remain stable so active form fields are not remounted.
 - [Concurrent mission transition tests](concurrent-mission-tests.md) — derive assertions from PostgreSQL’s persisted winner; request order does not establish terminal-state precedence.
+- [Weekly milestone projection anchors](weekly-milestone-projections.md) — an active, confirmed week may be future-dated; begin projections after that ledger entry, not after the wall clock.
