@@ -170,14 +170,21 @@ export default function CalendarScreen() {
     .filter((b) => !b.isPaid)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
 
-  const handleInitiatePayment = async () => {
+  const handleRecordManualPayment = async () => {
     if (!upcomingBill || paying) return;
     try {
       await payBill({ id: upcomingBill.id });
       await queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
-      toast({ title: 'Payment Successful', description: `${upcomingBill.name} bill of $${upcomingBill.amount.toLocaleString()} paid.` });
+      toast({
+        title: 'Manual payment recorded',
+        description: `${upcomingBill.name} was marked paid in Goalsy. No external payment was made.`,
+      });
     } catch {
-      toast({ title: 'Payment Failed', description: 'Could not process payment. Please try again.', variant: 'destructive' });
+      toast({
+        title: 'Could not record manual payment',
+        description: 'The bill was not marked paid. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -232,14 +239,14 @@ export default function CalendarScreen() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleInitiatePayment}
+                  onClick={handleRecordManualPayment}
                   disabled={paying}
                   className="flex-1 h-12 bg-white rounded-xl text-[#05070A] font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {paying ? (
-                    <><Loader2 size={16} className="animate-spin" /> Processing</>
+                    <><Loader2 size={16} className="animate-spin" /> Recording</>
                   ) : (
-                    'Initiate Payment'
+                    'Record manual payment'
                   )}
                 </button>
                 <button
@@ -365,9 +372,9 @@ export default function CalendarScreen() {
         <div className="flex flex-col gap-5 pb-4">
           <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-white font-bold text-[15px]">Autopay</span>
+               <span className="text-white font-bold text-[15px]">Autopay Preview</span>
               <span className="text-[#808BA4] font-semibold text-[13px]">
-                Automatically pay {upcomingBill?.name ?? 'this bill'} on the due date
+                 Preview only — nothing will be paid automatically
               </span>
             </div>
             <Switch
@@ -375,10 +382,8 @@ export default function CalendarScreen() {
               onCheckedChange={(next) => {
                 setAutopay(next);
                 toast({
-                  title: next ? 'Autopay Enabled' : 'Autopay Disabled',
-                  description: next
-                    ? `${upcomingBill?.name ?? 'Bill'} will be paid automatically each cycle.`
-                    : `You'll need to pay ${upcomingBill?.name ?? 'this bill'} manually.`,
+                    title: next ? 'Autopay preview selected' : 'Autopay preview cleared',
+                    description: 'This preview does not schedule or process payments.',
                 });
               }}
             />

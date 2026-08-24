@@ -1,12 +1,9 @@
-import { useState } from 'react';
 import {
   ArrowRight,
   Lightbulb,
   TrendingUp,
   BarChart3,
   Zap,
-  Loader2,
-  CheckCircle2,
   Target,
   AlertTriangle,
   TrendingDown,
@@ -15,7 +12,6 @@ import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
-import { simulateAsync } from '@/lib/mockData';
 import {
   estimatedCompletionMonths,
   MS_PER_MONTH,
@@ -362,8 +358,6 @@ function CardSkeleton() {
 
 export default function AIHomeScreen() {
   const [, navigate] = useLocation();
-  const [transferStatus, setTransferStatus] = useState<'idle' | 'processing' | 'done'>('idle');
-  const [movedToSavings, setMovedToSavings] = useState(0);
 
   const { data: goalsData, isLoading: goalsLoading } = useListGoals();
   const { data: fpData, isLoading: fpLoading } = useGetFinancialProfile();
@@ -388,15 +382,12 @@ export default function AIHomeScreen() {
   const surplusPct = monthlyIncome > 0 ? Math.round((surplus / monthlyIncome) * 100) : null;
   const recommendedTransfer = Math.max(0, Math.round(surplus * 0.4 / 100) * 100);
 
-  const handleExecuteTransfer = async () => {
-    if (transferStatus !== 'idle') return;
-    setTransferStatus('processing');
+  const handlePlanTransfer = () => {
     const amount = recommendedTransfer > 0 ? recommendedTransfer : 2400;
-    await simulateAsync(amount, 1500);
-    setTransferStatus('done');
-    setMovedToSavings((prev) => prev + amount);
-    toast({ title: 'Transfer Complete', description: `${formatDollars(amount)} moved to High-Yield Savings.` });
-    setTimeout(() => setTransferStatus('idle'), 2500);
+    toast({
+      title: 'Manual transfer plan',
+      description: `When you're ready, move ${formatDollars(amount)} to High-Yield Savings in your bank app. Goalsy did not move funds.`,
+    });
   };
 
   return (
@@ -558,14 +549,7 @@ export default function AIHomeScreen() {
           ) : surplusPct !== null ? (
             <>
               <div className="flex flex-col gap-1">
-                {movedToSavings > 0 ? (
-                  <p className="text-[#E5E7EB] font-bold text-lg leading-[25px]">
-                    {formatDollars(movedToSavings)} moved to savings today.{' '}
-                    {surplus > 0
-                      ? `Monthly surplus is ${formatDollars(surplus)}.`
-                      : 'Keep up the discipline.'}
-                  </p>
-                ) : surplus > 0 ? (
+                {surplus > 0 ? (
                   <p className="text-[#E5E7EB] font-bold text-lg leading-[25px]">
                     Cash flow is{' '}
                     <span className="text-[#22C55E]">{surplusPct}% above outflows</span>
@@ -586,17 +570,11 @@ export default function AIHomeScreen() {
               {surplus > 0 && recommendedTransfer > 0 && (
                 <button
                   type="button"
-                  onClick={handleExecuteTransfer}
-                  disabled={transferStatus !== 'idle'}
+                  onClick={handlePlanTransfer}
                   className="w-full h-14 bg-[#2563EB] shadow-[0_0_20px_rgba(37,99,235,0.15)] rounded-xl flex items-center justify-center gap-3 text-white font-bold text-base active:scale-95 transition-transform disabled:opacity-80"
                 >
-                  {transferStatus === 'processing' ? (
-                    <><span>Processing Transfer</span><Loader2 size={16} className="animate-spin" /></>
-                  ) : transferStatus === 'done' ? (
-                    <><span>Transfer Complete</span><CheckCircle2 size={16} /></>
-                  ) : (
-                    <><span>Move {formatDollars(recommendedTransfer)} to Savings</span><ArrowRight size={16} /></>
-                  )}
+                  <span>Plan {formatDollars(recommendedTransfer)} transfer</span>
+                  <ArrowRight size={16} />
                 </button>
               )}
             </>

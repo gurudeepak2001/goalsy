@@ -484,7 +484,9 @@ export default function ProfileScreen() {
               </div>
             ))}
           </div>
-          <ExecutiveButton variant="outline" text="Manage Subscription" onClick={() => toast({ title: 'Manage Subscription', description: 'Opens billing management.' })} />
+          <p className="text-[#808BA4] font-semibold text-xs leading-5">
+            Subscription management is not available yet. This plan information is a preview.
+          </p>
         </div>
       </AppModal>
 

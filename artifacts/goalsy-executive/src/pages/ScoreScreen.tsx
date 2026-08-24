@@ -13,6 +13,7 @@ import { getScoreTier } from '@/lib/scoreUtils';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import { useGetScore, useGetScoreHistory } from '@workspace/api-client-react';
+import { useLocation } from 'wouter';
 
 // ── Score Gauge ──────────────────────────────────────────────────────────────
 function ScoreGauge({ value }: { value: number }) {
@@ -68,6 +69,21 @@ function driverColor(trend: string): string {
   return '#EF4444';
 }
 
+function getDriverAction(label: string): { path: string; label: string } {
+  const normalized = label.toLowerCase();
+
+  if (/spend|expense|budget/.test(normalized)) {
+    return { path: '/expenses', label: 'Review expenses' };
+  }
+  if (/cash flow|income|emergency|credit/.test(normalized)) {
+    return { path: '/financial-health', label: 'Review financial health' };
+  }
+  if (/mission|momentum/.test(normalized)) {
+    return { path: '/today', label: 'Open today’s mission' };
+  }
+  return { path: '/goals', label: 'Review goals' };
+}
+
 // ── Chart data helpers ───────────────────────────────────────────────────────
 function periodKey(iso: string): string {
   const date = new Date(iso);
@@ -92,6 +108,7 @@ export function buildChartData(snapshots: { score: number; computedAt: string }[
 }
 
 export default function ScoreScreen() {
+  const [, navigate] = useLocation();
   const [filter, setFilter] = useState<'90D' | '1Y' | 'ALL'>('90D');
 
   const { data: scoreResult, isLoading: scoreLoading } = useGetScore();
@@ -186,8 +203,16 @@ export default function ScoreScreen() {
               {drivers
                 .filter((d) => d.trend !== 'up')
                 .slice(0, 3)
-                .map((d) => (
-                  <div key={d.label} className="bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4">
+                .map((d) => {
+                  const action = getDriverAction(d.label);
+                  return (
+                  <button
+                    key={d.label}
+                    type="button"
+                    onClick={() => navigate(action.path)}
+                    aria-label={`${action.label}: Improve your ${d.label}`}
+                    className="w-full text-left bg-[#111827] border border-white/5 rounded-3xl p-5 flex flex-col gap-4 hover:bg-[#161F2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] active:scale-[0.99] transition"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-[0.5px] px-2 py-1 rounded-full text-[#F59E0B] bg-[#F59E0B]/10">
                         Improve
@@ -209,8 +234,13 @@ export default function ScoreScreen() {
                         </span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                    <div className="flex items-center gap-2 pt-1 text-[#3B82F6] font-bold text-xs">
+                      <span>{action.label}</span>
+                      <ArrowUpRight size={13} />
+                    </div>
+                  </button>
+                  );
+                })}
             </div>
           </div>
         )}
