@@ -13,8 +13,10 @@ export interface GoalScheduleMilestone {
 
 /**
  * Generates milestone amounts from the balance saved today. Historical entries
- * keep their existing plan-based pace, while every future milestone is rebased
- * to the latest balance so an older goal cannot jump straight to its target.
+ * keep their existing plan-based pace, while future milestones advance one
+ * contribution at a time from the latest balance. Future amounts must be
+ * relative to the milestone sequence, not the clock, because the active week
+ * can still be loggable while its date is ahead of today.
  */
 export function computeGoalSchedule(
   goal: Goal,
@@ -40,6 +42,7 @@ export function computeGoalSchedule(
   const futureWindowMs = Math.max(1, endDate.getTime() - now.getTime());
   const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
   const milestones: GoalScheduleMilestone[] = [];
+  let futureMilestoneCount = 0;
 
   for (let i = 1; i <= totalWeeks; i++) {
     const weekDate = new Date(createdAt.getTime() + i * MS_PER_WEEK);
@@ -52,8 +55,12 @@ export function computeGoalSchedule(
         expectedAmount = goal.currentAmount + i * goal.monthlyContribution / WEEKS_PER_MONTH;
       } else {
         // Rebase future pace to today's balance, not the balance at creation.
-        const futureWeeks = Math.max(1, Math.ceil((weekDate.getTime() - now.getTime()) / MS_PER_WEEK));
-        expectedAmount = goal.currentAmount + futureWeeks * goal.monthlyContribution / WEEKS_PER_MONTH;
+        // Count future rows rather than elapsed time: the active week may be
+        // ahead of today but the next displayed row is still one contribution
+        // after the latest confirmed row.
+        futureMilestoneCount += 1;
+        expectedAmount = goal.currentAmount
+          + futureMilestoneCount * goal.monthlyContribution / WEEKS_PER_MONTH;
       }
     } else if (isPast) {
       // A deadline-only goal has no contribution cadence to infer historically.

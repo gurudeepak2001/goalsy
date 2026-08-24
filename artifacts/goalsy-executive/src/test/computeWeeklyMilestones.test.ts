@@ -260,4 +260,27 @@ describe('computeWeeklyMilestones – remaining balance and buffered end date', 
 
     expect(nextMilestone?.expectedAmount).toBe(525);
   });
+
+  it('advances each future row by one contribution when the active week is ahead of today', () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-08-20T12:00:00Z');
+    vi.setSystemTime(now);
+    const monthlyContribution = 25 * 52 / 12;
+    const goal = makeGoal({
+      createdAt: new Date(now.getTime() - 10 * MS_PER_DAY).toISOString(),
+      targetAmount: 2_591,
+      currentAmount: 500,
+      monthlyContribution,
+      targetDate: null,
+    });
+
+    const futureMilestones = computeWeeklyMilestones(goal, new Map())
+      .filter((milestone) => !milestone.isPast);
+
+    // Aug 24 is the active upcoming milestone and Aug 31 is the next one.
+    // Both are ahead of the clock, but they must be one and two contributions
+    // after the saved $500 balance—not two and three contributions.
+    expect(futureMilestones[0]?.expectedAmount).toBe(525);
+    expect(futureMilestones[1]?.expectedAmount).toBe(550);
+  });
 });
