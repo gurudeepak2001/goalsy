@@ -2,62 +2,15 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, goals, goalProgressEntries } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import {
+  buildProgressLedger,
+  getEffectiveProgressEntries,
+  normalizeProgressEntries,
+  serializeLedgerRows,
+  type ProgressRow,
+} from "../lib/progressLedger";
 
 const router = Router();
-
-type GoalRow = typeof goals.$inferSelect;
-type ProgressRow = typeof goalProgressEntries.$inferSelect;
-
-type LedgerRow = {
-  entry: ProgressRow;
-  weeklyDeposit: number;
-  confirmedAmount: number;
-};
-
-/**
- * Old clients wrote multiple cumulative snapshots for a week. The latest one is
- * the effective value; retaining older rows preserves their audit trail.
- */
-function getEffectiveProgressEntries(entries: ProgressRow[]) {
-  const latestByWeek = new Map<number, ProgressRow>();
-  for (const entry of entries) {
-    if (!latestByWeek.has(entry.weekIndex)) latestByWeek.set(entry.weekIndex, entry);
-  }
-  return [...latestByWeek.values()].sort((a, b) => a.weekIndex - b.weekIndex);
-}
-
-/**
- * Builds a single-deposit-per-week ledger. Legacy cumulative rows are converted
- * to differences without overwriting the original values until a user saves.
- */
-function buildProgressLedger(goal: GoalRow, entries: ProgressRow[]) {
-  const hasLegacySnapshots = entries.some((entry) => entry.weeklyDeposit === null);
-  const inferredOpeningAmount =
-    entries.length === 0 && goal.openingAmount === 0 && goal.currentAmount > 0
-      ? goal.currentAmount
-      : goal.openingAmount;
-  // Historical snapshots had already replaced currentAmount, so a zero baseline
-  // preserves every historical total when they are converted to deposits.
-  const openingAmount = hasLegacySnapshots ? 0 : inferredOpeningAmount;
-
-  let runningTotal = openingAmount;
-  const rows: LedgerRow[] = entries.map((entry) => {
-    const weeklyDeposit =
-      entry.weeklyDeposit ?? entry.confirmedAmount - runningTotal;
-    runningTotal += weeklyDeposit;
-    return { entry, weeklyDeposit, confirmedAmount: runningTotal };
-  });
-
-  return { openingAmount, currentAmount: runningTotal, rows };
-}
-
-function serializeLedgerRows(rows: LedgerRow[]) {
-  return rows.map(({ entry, weeklyDeposit, confirmedAmount }) => ({
-    ...entry,
-    weeklyDeposit,
-    confirmedAmount,
-  }));
-}
 
 // GET /api/goals
 router.get("/goals", requireAuth, async (req, res) => {
@@ -263,7 +216,11 @@ router.post("/goals/:id/progress", requireAuth, async (req, res) => {
         .where(and(eq(goalProgressEntries.goalId, id), eq(goalProgressEntries.userId, userId)))
         .orderBy(desc(goalProgressEntries.confirmedAt), desc(goalProgressEntries.id));
       const effectiveEntries = getEffectiveProgressEntries(savedEntries);
-      const existingEntry = effectiveEntries.find((entry) => entry.weekIndex === weekIndex);
+      // Preserve every prior weekly deposit before changing one row. Legacy
+      // snapshots otherwise recalculate a later deposit to keep its old total,
+      // so lowering Week 2 would incorrectly leave Week 3 unchanged.
+      const normalizedEntries = normalizeProgressEntries(goal, effectiveEntries);
+      const existingEntry = normalizedEntries.find((entry) => entry.weekIndex === weekIndex);
 
       let nextEntries: ProgressRow[];
       let selectedEntryId: string;
@@ -272,7 +229,7 @@ router.post("/goals/:id/progress", requireAuth, async (req, res) => {
           .update(goalProgressEntries)
           .set({ weeklyDeposit })
           .where(eq(goalProgressEntries.id, existingEntry.id));
-        nextEntries = effectiveEntries.map((entry) =>
+        nextEntries = normalizedEntries.map((entry) =>
           entry.id === existingEntry.id ? { ...entry, weeklyDeposit } : entry,
         );
         selectedEntryId = existingEntry.id;
@@ -287,7 +244,7 @@ router.post("/goals/:id/progress", requireAuth, async (req, res) => {
             confirmedAmount: 0,
           })
           .returning();
-        nextEntries = [...effectiveEntries, entry].sort((a, b) => a.weekIndex - b.weekIndex);
+        nextEntries = [...normalizedEntries, entry].sort((a, b) => a.weekIndex - b.weekIndex);
         selectedEntryId = entry.id;
       }
 
