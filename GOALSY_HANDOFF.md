@@ -5,7 +5,8 @@
 **Repository:** `github.com/gurudeepak2001/goalsy`  
 **Branch reviewed:** `main`  
 **Codebase date:** September 2, 2026  
-**Current HEAD:** `c17a0ed`  
+**Reference baseline reviewed:** `c17a0ed`  
+**Native identifier migration currently on GitHub `main`:** `6d97e5824a655d331bc365fd4d9249bc78f42b72`
 
 > This document is based on the current repository and the project decisions recorded during the prior implementation work. It separates facts verified in code from facts that must be confirmed in Replit, Clerk, Apple Developer, App Store Connect, and TestFlight dashboards.
 
@@ -287,8 +288,9 @@ However, the repository alone cannot prove current production uptime, traffic, d
 
 Verified in the repository:
 
-- The native project currently uses bundle ID `com.myui.goalsyexecutive`.
-- Xcode team settings and prior handoff notes identify MyUI LLC.
+- The historical MyUI build used bundle ID `com.myui.goalsyexecutive`.
+- The current checked-in native project uses Enteraxion bundle ID `com.enteraxion.goalsy`.
+- Xcode team settings and prior handoff notes identify MyUI LLC for the historical build.
 - Existing project notes describe MyUI TestFlight distribution.
 - Xcode marketing version is `1.0` and build number is `1`.
 - iOS deployment target is 15.0.
@@ -314,12 +316,16 @@ The Enteraxion plan is a **new App Store entry**, not an Apple app transfer:
 
 Verified current code status:
 
-- Capacitor still uses `com.myui.goalsyexecutive`.
-- Xcode targets still use `com.myui.goalsyexecutive`.
-- The new Enteraxion bundle ID has not been selected in code.
+- Capacitor uses `com.enteraxion.goalsy`.
+- Xcode app and test targets use the Enteraxion namespace.
+- Android uses namespace/application ID `com.enteraxion.goalsy`.
+- The legacy MyUI Android activity package has been removed.
+- The app-ID migration is on GitHub `main`.
+- The Clerk, Apple Developer, App Store Connect, and APNs dashboard configuration still requires confirmation.
+- The Clerk cookie-rotation workflow has a local Enteraxion update, but the remote workflow file still needs a token/connection with GitHub `workflow` scope.
 - No repository evidence proves that an Enteraxion build has been archived, uploaded, or made available in TestFlight.
 
-Therefore, the Enteraxion build should currently be treated as **not uploaded/not confirmed** until App Store Connect is checked. Before uploading, update the bundle ID, Clerk native configuration, APNs configuration, entitlements, and build settings together.
+Therefore, the Enteraxion build should currently be treated as **not uploaded/not confirmed** until App Store Connect is checked. Before uploading, confirm the bundle ID, Clerk native configuration, APNs configuration, entitlements, and build settings together.
 
 ---
 
@@ -757,18 +763,18 @@ Release tests:
 
 ## 6.2 Bundle ID and Apple developer account
 
-Current repository values are still MyUI values:
+The current checked-in app identifier is:
 
 ```text
-com.myui.goalsyexecutive
+com.enteraxion.goalsy
 ```
 
-The Enteraxion plan calls for a new bundle ID and a new App Store listing. Before the first Enteraxion upload:
+The app-ID migration is complete in the checked-in Capacitor, Xcode, and Android project configuration. Before the first Enteraxion upload:
 
-- [ ] Select the final Enteraxion bundle ID.
-- [ ] Update `capacitor.config.ts`.
-- [ ] Update all Xcode app/test target identifiers.
-- [ ] Update Android package identifiers if Android is also being rebranded.
+- [x] Select the Enteraxion bundle ID in the repository: `com.enteraxion.goalsy`.
+- [x] Update `capacitor.config.ts`.
+- [x] Update all Xcode app/test target identifiers.
+- [x] Update Android namespace/application ID, URL scheme, and Java package.
 - [ ] Update Clerk native application settings.
 - [ ] Update APNs App ID/capability.
 - [ ] Update `APNS_BUNDLE_ID`.
@@ -776,7 +782,7 @@ The Enteraxion plan calls for a new bundle ID and a new App Store listing. Befor
 - [ ] Add/update signing certificates and provisioning profiles.
 - [ ] Confirm the App Store Connect record uses the same identifier.
 
-Do not upload an Enteraxion archive while the native project still advertises the MyUI bundle ID.
+The checked-in native project no longer advertises the MyUI bundle ID. Do not upload an Enteraxion archive until Clerk, APNs, signing, and App Store Connect settings have been confirmed.
 
 ## 6.3 App Store Connect metadata
 
@@ -1308,8 +1314,9 @@ Never substitute an estimated Goalsy calculation for a provider score without la
 - [ ] Configure Clerk Production publishable key for native release builds.
 - [ ] Configure explicit Production FAPI/JWKS host.
 - [ ] Remove unsafe Development fallback in Production.
-- [ ] Finalize Enteraxion bundle ID.
-- [ ] Update Xcode, Capacitor, Clerk, APNs, and push-token bundle-ID configuration.
+- [x] Finalize the repository’s Enteraxion bundle ID.
+- [x] Update Xcode, Capacitor, Android, and push-token identifier references.
+- [ ] Update/confirm Clerk native configuration, APNs, and Apple signing settings.
 - [ ] Create/use Enteraxion provisioning/signing assets.
 - [ ] Configure APNs capability, entitlements, and Enteraxion APNs credentials.
 - [ ] Confirm production API/database environment.
@@ -1426,7 +1433,8 @@ A new teammate should verify these items directly rather than relying only on th
 - [ ] Clerk Production custom domain/certificate
 - [ ] Current MyUI TestFlight build and tester availability
 - [ ] Whether any Enteraxion App Store/TestFlight record already exists
-- [ ] Final Enteraxion bundle ID
+- [x] Repository’s final Enteraxion bundle ID
+- [ ] Apple/App Store Connect confirmation of the final Enteraxion bundle ID
 - [ ] Apple Developer team and signing assets
 - [ ] APNs key ownership and bundle-ID mapping
 - [ ] App Store Connect metadata/listing status
