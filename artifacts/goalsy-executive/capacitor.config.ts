@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   // Unique reverse-domain identifier — this becomes your app's ID in both stores.
   // Once you publish, this CANNOT be changed without creating a new app listing.
-  appId: 'com.myui.goalsyexecutive',
+  appId: 'com.enteraxion.goalsy',
   appName: 'Goalsy',
 
   // Where Vite puts the production build (matches vite.config.ts → build.outDir)

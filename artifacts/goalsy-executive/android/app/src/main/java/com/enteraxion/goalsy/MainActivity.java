@@ -1,4 +1,4 @@
-package com.myui.goalsyexecutive;
+package com.enteraxion.goalsy;
 
 import android.webkit.CookieManager;
 import android.util.Log;
@@ -19,13 +19,13 @@ public class MainActivity extends BridgeActivity {
      * the user out on next launch.
      *
      * CookieManager.flush() is the Android equivalent of the iOS
-     * WKHTTPCookieStore → UserDefaults backup in AppDelegate.swift.  It blocks
+     * WKHTTPCookieStore → UserDefaults backup in AppDelegate.swift. It blocks
      * until all pending cookie writes have been committed to disk, so any
      * subsequent SIGKILL cannot lose them.
      *
      * Android System WebView ships as a separate APK and updates independently
-     * of the OS.  A silent WebView update could change the flush behaviour and
-     * break this guarantee.  Run the regression checklist after any bump to the
+     * of the OS. A silent WebView update could change the flush behaviour and
+     * break this guarantee. Run the regression checklist after any bump to the
      * Capacitor Android target SDK, Gradle wrapper, or when a major WebView
      * version ships:
      *
@@ -38,8 +38,8 @@ public class MainActivity extends BridgeActivity {
      *
      * We do NOT need to restore cookies on onCreate() — unlike iOS
      * WKHTTPCookieStore (which is wiped on process death), Android's
-     * CookieManager reads directly from the on-disk SQLite database, so
-     * the cookies are already present when the WebView starts.
+     * CookieManager reads directly from the on-disk SQLite database, so the
+     * cookies are already present when the WebView starts.
      */
     @Override
     protected void onStop() {
