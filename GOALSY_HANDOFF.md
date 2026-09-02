@@ -30,7 +30,7 @@ The current product combines:
 
 The old `replit.md` says that all screens are static and that the API is unused. That is stale. The current screens use generated React Query hooks and the API for many domains, although the financial-health and account-connection portions still contain mock data.
 
-The immediate workstream for Lakhan is:
+The current workstream is:
 
 1. Build secure Plaid connectivity and financial-data synchronization.
 2. Build a separate credit-score provider integration.
@@ -1377,35 +1377,7 @@ Never substitute an estimated Goalsy calculation for a provider score without la
 
 ---
 
-# 10. Recommended implementation order for Lakhan
-
-1. Read this document and inspect:
-   - `artifacts/goalsy-executive/src/pages/FinancialConnectionScreen.tsx`
-   - `artifacts/goalsy-executive/src/pages/ProfileScreen.tsx`
-   - `artifacts/goalsy-executive/src/pages/TodayScreen.tsx`
-   - `artifacts/goalsy-executive/src/pages/FinancialHealthScreen.tsx`
-   - `artifacts/goalsy-executive/src/pages/ExpensesScreen.tsx`
-   - `lib/api-spec/openapi.yaml`
-   - `artifacts/api-server/src/routes/index.ts`
-   - `lib/db/src/schema/`
-2. Confirm Plaid products and production-account requirements.
-3. Design the normalized financial-data API and schema before writing UI code.
-4. Implement Link token creation and public-token exchange server-side.
-5. Add item/account storage with encryption and user scoping.
-6. Add initial balance synchronization.
-7. Replace Profile and Financial Connection mocks.
-8. Add transaction synchronization and webhook/cursor handling.
-9. Replace Today and Financial Health mock calculations.
-10. Add liabilities only if debt/utilization remains in the first release.
-11. Select and implement the separate credit-score vendor.
-12. Add consent, privacy, deletion, disconnect, stale-data, and provider-error paths.
-13. Run clean-install, force-kill, provider reconnect, account deletion, and App Review tests.
-
-Do not begin by adding raw Plaid calls to each screen. Build one server-side connection/sync layer and make the screens consume normalized Goalsy data.
-
----
-
-# 11. Known decisions to preserve
+# 10. Known decisions to preserve
 
 - Development and Production Clerk environments must remain separate.
 - Existing Development users will not automatically exist in Clerk Production.
@@ -1423,7 +1395,7 @@ Do not begin by adding raw Plaid calls to each screen. Build one server-side con
 
 ---
 
-# 12. Dashboard verification still required
+# 11. Dashboard verification still required
 
 A new teammate should verify these items directly rather than relying only on this repository:
 
