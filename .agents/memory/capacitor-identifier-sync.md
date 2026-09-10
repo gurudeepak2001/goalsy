@@ -8,5 +8,3 @@ Changing Capacitor's `appId` and running `cap sync` updates the generated platfo
 **Why:** During the Enteraxion migration, a successful Capacitor sync left the checked-in Xcode and Android project identifiers on the prior MyUI namespace. Treating a successful sync as proof of full identifier migration would produce mismatched native releases.
 
 **How to apply:** For any app-ID migration, update and verify Capacitor config, every Xcode app/test target, Android namespace/application ID/resources/package path, and identifier-dependent CI tests. Then run `cap sync` and search active code/config for the old identifier.
-
-The Clerk cookie-rotation GitHub Actions workflow still needs its bundle ID changed to `com.enteraxion.goalsy` on the remote repository. The prepared change cannot be uploaded until GitHub access includes workflow-file write permission.
