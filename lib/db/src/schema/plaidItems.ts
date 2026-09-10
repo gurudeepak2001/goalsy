@@ -1,4 +1,4 @@
-import { date, foreignKey, index, pgTable, real, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, foreignKey, index, pgTable, real, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -32,6 +32,7 @@ export const plaidAccounts = pgTable("plaid_accounts", {
   availableBalance: real("available_balance"),
   creditLimit: real("credit_limit"),
   currencyCode: text("currency_code"),
+  isHidden: boolean("is_hidden").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [

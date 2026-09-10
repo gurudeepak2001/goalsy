@@ -103,9 +103,11 @@ describe('goal contribution mission flow', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Add Progress to Emergency Fund' });
     expect(dialog).toHaveTextContent('$2,000 of $10,000');
-    expect(screen.getByRole('textbox', { name: 'Amount added' })).toHaveValue('46');
+    expect(dialog).toHaveTextContent('Add at least $25 once for this week.');
+    expect(dialog).toHaveTextContent('This does not add $25 automatically every week.');
+    expect(screen.getByRole('textbox', { name: 'This week’s new total' })).toHaveValue('25');
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Amount added' }), { target: { value: '75' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'This week’s new total' }), { target: { value: '75' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Progress & Complete Mission' }));
 
     await waitFor(() => expect(mocks.completeMission).toHaveBeenCalledWith({ id: 'mission-savings' }));

@@ -182,6 +182,21 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /plaid/accounts/{id}:
+    delete:
+      operationId: hidePlaidAccount
+      tags: [plaid]
+      summary: Hide one connected account from Goalsy
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "204":
+          description: Account hidden
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /plaid/items/{id}:
     delete:
       operationId: disconnectPlaidItem

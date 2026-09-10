@@ -222,6 +222,16 @@ router.post("/plaid/items/exchange", requireAuth, async (req, res): Promise<void
       }).returning();
 
       await applyOwnedLiabilitiesSnapshot(tx, accountResponse, item.id, userId);
+      const linkedAccountIds = accountResponse.accounts.map((account) => account.account_id);
+      if (linkedAccountIds.length) {
+        await tx.update(plaidAccounts)
+          .set({ isHidden: false, updatedAt: new Date() })
+          .where(and(
+            eq(plaidAccounts.itemId, item.id),
+            eq(plaidAccounts.userId, userId),
+            inArray(plaidAccounts.plaidAccountId, linkedAccountIds),
+          ));
+      }
       return item;
     });
 
@@ -254,14 +264,21 @@ router.get("/plaid/accounts", requireAuth, async (req, res): Promise<void> => {
   try {
     const items = await db.select().from(plaidItems).where(eq(plaidItems.userId, userId));
     for (const item of items) {
-      const refreshed = await getPlaidAccountSnapshot(
-        decryptPlaidToken(item.encryptedAccessToken),
-        (error) => req.log.warn(
+      try {
+        const refreshed = await getPlaidAccountSnapshot(
+          decryptPlaidToken(item.encryptedAccessToken),
+          (error) => req.log.warn(
+            { error, itemId: item.id },
+            "Plaid liabilities unavailable during account refresh",
+          ),
+        );
+        await db.transaction((tx) => applyOwnedLiabilitiesSnapshot(tx, refreshed, item.id, userId));
+      } catch (error) {
+        req.log.warn(
           { error, itemId: item.id },
-          "Plaid liabilities unavailable during account refresh",
-        ),
-      );
-      await db.transaction((tx) => applyOwnedLiabilitiesSnapshot(tx, refreshed, item.id, userId));
+          "Plaid connection refresh failed; returning saved account data",
+        );
+      }
     }
     const accounts = await db.select({
       id: plaidAccounts.id,
@@ -295,12 +312,31 @@ router.get("/plaid/accounts", requireAuth, async (req, res): Promise<void> => {
           eq(plaidCreditLiabilities.userId, userId),
         ),
       )
-      .where(eq(plaidAccounts.userId, userId));
+      .where(and(eq(plaidAccounts.userId, userId), eq(plaidAccounts.isHidden, false)));
     res.json({ accounts });
   } catch (error) {
     req.log.error({ error }, "Failed to refresh Plaid accounts");
     res.status(502).json({ message: "Unable to refresh connected accounts" });
   }
+});
+
+router.delete("/plaid/accounts/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const userId = res.locals.userId as string;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    res.status(404).json({ message: "Account not found" });
+    return;
+  }
+
+  const hidden = await db.update(plaidAccounts)
+    .set({ isHidden: true, updatedAt: new Date() })
+    .where(and(eq(plaidAccounts.id, id), eq(plaidAccounts.userId, userId)))
+    .returning({ id: plaidAccounts.id });
+  if (!hidden.length) {
+    res.status(404).json({ message: "Account not found" });
+    return;
+  }
+  res.status(204).send();
 });
 
 router.delete("/plaid/items/:id", requireAuth, async (req, res): Promise<void> => {

@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   signOut: vi.fn(),
   updatePref: vi.fn(),
+  hidePlaidAccount: vi.fn(),
+  invalidateQueries: vi.fn(),
+  plaidConnections: [] as Array<{ id: string; institutionName: string | null; status: string }>,
   plaidAccounts: [] as Array<{
     id: string;
     itemId: string;
@@ -56,7 +59,7 @@ vi.mock('@clerk/react', () => ({
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
 }));
 
 vi.mock('@workspace/api-client-react', () => ({
@@ -65,7 +68,10 @@ vi.mock('@workspace/api-client-react', () => ({
   useGetFinancialProfile: () => ({ data: mocks.financialProfile }),
   useGetMissionStreak: () => ({ data: mocks.missionStreak }),
   useGetPlaidAccounts: () => ({ data: { accounts: mocks.plaidAccounts } }),
-  useGetPlaidConnections: () => ({ data: { connections: [] } }),
+  useGetPlaidConnections: () => ({ data: { connections: mocks.plaidConnections } }),
+  useHidePlaidAccount: () => ({ mutateAsync: mocks.hidePlaidAccount, isPending: false }),
+  getGetPlaidAccountsQueryKey: () => ['plaid-accounts'],
+  getGetPlaidConnectionsQueryKey: () => ['plaid-connections'],
   useListNotificationPreferences: () => ({ data: [] }),
   useUpdateNotificationPreference: () => ({ mutateAsync: mocks.updatePref }),
 }));
@@ -78,7 +84,11 @@ vi.mock('@/components/Avatar', () => ({ default: () => <div /> }));
 vi.mock('@/components/CircularScoreRing', () => ({ default: () => <div /> }));
 vi.mock('@/components/SectionLabel', () => ({ default: ({ text }: { text: string }) => <h2>{text}</h2> }));
 vi.mock('@/components/ExecutiveInput', () => ({ default: () => <input /> }));
-vi.mock('@/components/ExecutiveButton', () => ({ default: ({ text }: { text: string }) => <button type="button">{text}</button> }));
+vi.mock('@/components/ExecutiveButton', () => ({
+  default: ({ text, onClick, disabled }: { text: string; onClick?: () => void; disabled?: boolean }) => (
+    <button type="button" onClick={onClick} disabled={disabled}>{text}</button>
+  ),
+}));
 vi.mock('@/components/ui/switch', () => ({ Switch: () => <button type="button">Toggle</button> }));
 vi.mock('@/components/AppModal', () => ({
   default: ({
@@ -111,6 +121,9 @@ describe('ProfileScreen achievements and help', () => {
     mocks.navigate.mockReset();
     mocks.signOut.mockReset();
     mocks.updatePref.mockReset();
+    mocks.hidePlaidAccount.mockReset().mockResolvedValue(undefined);
+    mocks.invalidateQueries.mockReset().mockResolvedValue(undefined);
+    mocks.plaidConnections = [];
     mocks.plaidAccounts = [];
   });
 
@@ -210,6 +223,37 @@ describe('ProfileScreen achievements and help', () => {
     expect(within(detailDialog).getByText('21.49%')).toBeInTheDocument();
     expect(within(detailDialog).getByText('Sep 28, 2026')).toBeInTheDocument();
     expect(within(detailDialog).getByText('•••• 3333')).toBeInTheDocument();
+  });
+
+  it('shows distinct institutions and removes only the selected account from Goalsy', async () => {
+    mocks.plaidConnections = [
+      { id: 'item-1', institutionName: 'Plaid Bank', status: 'active' },
+      { id: 'item-2', institutionName: 'Plaid Bank', status: 'active' },
+    ];
+    mocks.plaidAccounts = [
+      {
+        id: 'account-1', itemId: 'item-1', name: 'Checking', officialName: null, mask: '1111',
+        type: 'depository', subtype: 'checking', currentBalance: 500, availableBalance: 450,
+        creditLimit: null, currencyCode: 'USD', minimumPaymentAmount: null, aprPercentage: null,
+        aprType: null, nextPaymentDueDate: null,
+      },
+      {
+        id: 'account-2', itemId: 'item-1', name: 'Savings', officialName: null, mask: '2222',
+        type: 'depository', subtype: 'savings', currentBalance: 900, availableBalance: 900,
+        creditLimit: null, currencyCode: 'USD', minimumPaymentAmount: null, aprPercentage: null,
+        aprType: null, nextPaymentDueDate: null,
+      },
+    ];
+
+    render(<ProfileScreen />);
+    expect(screen.getByText('1 institution · 2 accounts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'View details for Checking' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from Goalsy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Account' }));
+
+    await vi.waitFor(() => expect(mocks.hidePlaidAccount).toHaveBeenCalledWith({ id: 'account-1' }));
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['plaid-accounts'] });
   });
 
   it('labels missing credit liability fields as unavailable', () => {

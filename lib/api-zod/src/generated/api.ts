@@ -161,6 +161,16 @@ export const GetPlaidAccountsResponse = zod.object({
 
 
 /**
+ * @summary Hide one connected account from Goalsy
+ */
+export const HidePlaidAccountParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const HidePlaidAccountResponse = zod.void()
+
+
+/**
  * @summary Revoke and delete a Plaid connection
  */
 export const DisconnectPlaidItemParams = zod.object({

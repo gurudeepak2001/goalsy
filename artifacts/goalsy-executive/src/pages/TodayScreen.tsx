@@ -91,6 +91,9 @@ export default function TodayScreen() {
   const missionStatus = mission?.status ?? 'pending';
   const missionDone = missionStatus === 'completed' || missionStatus === 'skipped';
   const isGoalContributionMission = mission?.title === 'Top up your highest-priority goal';
+  const missionDescription = isGoalContributionMission
+    ? `Add at least $25 to ${highestPriorityGoal?.name ?? 'your top goal'} once this week. This is a one-time contribution—not $25 every week, and not a comparison with last week.`
+    : mission?.description;
   const balanceSummary = summarizePlaidBalances(plaidAccountData?.accounts ?? []);
   const totalBalance = balanceSummary.net;
 
@@ -292,8 +295,8 @@ export default function TodayScreen() {
                 <span className="text-[#22C55E] font-bold text-sm whitespace-nowrap">+2 Goalsy Score</span>
               </div>
               <h3 className="text-white font-bold text-lg leading-[25px]">{mission.title}</h3>
-              {mission.description && (
-                <p className="text-[#808BA4] font-semibold text-sm leading-5">{mission.description}</p>
+              {missionDescription && (
+                <p className="text-[#808BA4] font-semibold text-sm leading-5">{missionDescription}</p>
               )}
               <button
                 type="button"

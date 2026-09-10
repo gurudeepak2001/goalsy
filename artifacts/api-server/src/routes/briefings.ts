@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, bills, expenses, goals, plaidAccounts } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 
@@ -28,8 +28,8 @@ function firstOfNextUtcMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
 }
 
-function stableBriefingId(userId: string, type: string, scheduledDate: string): string {
-  const hex = createHash("sha256").update(`${userId}:${type}:${scheduledDate}`).digest("hex").slice(0, 32);
+function stableBriefingId(userId: string, type: string, monthKey: string): string {
+  const hex = createHash("sha256").update(`${userId}:${type}:${monthKey}`).digest("hex").slice(0, 32);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20)}`;
 }
 
@@ -47,7 +47,10 @@ router.get("/briefings", requireAuth, async (_req, res) => {
       db.select().from(goals).where(eq(goals.userId, userId)),
       db.select().from(expenses).where(eq(expenses.userId, userId)),
       db.select().from(bills).where(eq(bills.userId, userId)),
-      db.select().from(plaidAccounts).where(eq(plaidAccounts.userId, userId)),
+      db.select().from(plaidAccounts).where(and(
+        eq(plaidAccounts.userId, userId),
+        eq(plaidAccounts.isHidden, false),
+      )),
     ]);
 
     const now = new Date();
@@ -123,7 +126,7 @@ router.get("/briefings", requireAuth, async (_req, res) => {
 
     res.json([
       {
-        id: stableBriefingId(userId, "goal_review", goalDate),
+        id: stableBriefingId(userId, "goal_review", currentMonth),
         userId,
         title: activeGoals.length === 1 ? `${activeGoals[0].name} Goal Review` : "Goals Progress Review",
         scheduledDate: goalDate,
@@ -132,7 +135,7 @@ router.get("/briefings", requireAuth, async (_req, res) => {
         createdAt,
       },
       {
-        id: stableBriefingId(userId, "market_update", marketDate),
+        id: stableBriefingId(userId, "market_update", currentMonth),
         userId,
         title: "Future Market Update",
         scheduledDate: marketDate,
@@ -141,7 +144,7 @@ router.get("/briefings", requireAuth, async (_req, res) => {
         createdAt,
       },
       {
-        id: stableBriefingId(userId, "monthly_summary", monthlyDate),
+        id: stableBriefingId(userId, "monthly_summary", currentMonth),
         userId,
         title: "Monthly Financial Check-In",
         scheduledDate: monthlyDate,

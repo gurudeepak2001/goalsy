@@ -846,6 +846,7 @@ export default function GoalDetailScreen() {
   const [missionContributionOpen, setMissionContributionOpen] = useState(false);
   const [missionContributionAmount, setMissionContributionAmount] = useState('');
   const [missionContributionWeek, setMissionContributionWeek] = useState<number | null>(null);
+  const [missionContributionExisting, setMissionContributionExisting] = useState(0);
   const missionContributionOpened = useRef(false);
 
   useEffect(() => {
@@ -857,10 +858,11 @@ export default function GoalDetailScreen() {
     const selectedWeek = eligible.at(-1)?.weekIndex
       ?? Math.max(1, Math.floor((Date.now() - new Date(goal.createdAt).getTime()) / MS_PER_WEEK) + 1);
     const existingDeposit = (progressData ?? []).find((entry) => entry.weekIndex === selectedWeek)?.weeklyDeposit;
-    const suggestedDeposit = Math.max(25, Math.round(goal.monthlyContribution * 12 / 52));
+    const currentWeekDeposit = existingDeposit ?? 0;
 
     setMissionContributionWeek(selectedWeek);
-    setMissionContributionAmount(String(existingDeposit ?? suggestedDeposit));
+    setMissionContributionExisting(currentWeekDeposit);
+    setMissionContributionAmount(String(currentWeekDeposit + 25));
     setMissionContributionOpen(true);
     missionContributionOpened.current = true;
   }, [contributionRequested, goal, progressData]);
@@ -1013,8 +1015,16 @@ export default function GoalDetailScreen() {
   const handleMissionContribution = async () => {
     if (!goal || !contributionMissionId || missionContributionWeek === null) return;
     const amount = parseInt(missionContributionAmount.replace(/[^0-9]/g, ''), 10);
-    if (!missionContributionAmount.trim() || !Number.isInteger(amount) || amount <= 0) {
-      toast({ title: 'Enter the amount added to this goal', variant: 'destructive' });
+    if (
+      !missionContributionAmount.trim()
+      || !Number.isInteger(amount)
+      || amount < missionContributionExisting + 25
+    ) {
+      toast({
+        title: `Add at least $25 this week`,
+        description: `This week’s new total must be at least ${formatDollars(missionContributionExisting + 25)}.`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -1552,17 +1562,34 @@ export default function GoalDetailScreen() {
             <div className="text-white text-lg font-bold mt-1">
               {formatDollars(goal.currentAmount)} of {formatDollars(goal.targetAmount)}
             </div>
-            <p className="text-[#808BA4] text-xs font-semibold mt-2">
-              Enter the total amount you added during this week. Saving it will complete today&apos;s mission and update your Goalsy Score.
-            </p>
+            <div className="flex flex-col gap-2 mt-3">
+              {[
+                'Add at least $25 once for this week.',
+                'This does not add $25 automatically every week.',
+                'This is not based on how much you added last week.',
+              ].map((point) => (
+                <div key={point} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E] flex-shrink-0 mt-1.5" />
+                  <p className="text-[#A7B0C0] text-xs font-semibold leading-4">{point}</p>
+                </div>
+              ))}
+            </div>
           </div>
+          {missionContributionExisting > 0 && (
+            <div className="bg-[#172033] border border-white/5 rounded-xl px-4 py-3 text-[#A7B0C0] text-xs font-semibold leading-5">
+              You already recorded {formatDollars(missionContributionExisting)} this week. The amount below is the new weekly total, with another $25 included.
+            </div>
+          )}
           <ExecutiveInput
-            label="Amount added"
+            label="This week’s new total"
             leftIcon={<span className="font-bold">$</span>}
             inputMode="numeric"
             value={missionContributionAmount}
             onChange={(event) => setMissionContributionAmount(event.target.value.replace(/[^0-9]/g, ''))}
           />
+          <p className="text-[#808BA4] text-[11px] font-semibold -mt-3">
+            Saving this one-time update completes today&apos;s mission and refreshes your Goalsy Score.
+          </p>
           <ExecutiveButton
             text={loggingProgress || completingMission ? 'Saving Progress…' : 'Save Progress & Complete Mission'}
             icon={loggingProgress || completingMission ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}

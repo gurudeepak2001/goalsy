@@ -77,6 +77,7 @@ describe('Today linked balance details', () => {
     ];
 
     render(<TodayScreen />);
+    expect(screen.getByText(/one-time contribution—not \$25 every week/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add progress to Emergency Fund' }));
 
     expect(mocks.navigate).toHaveBeenCalledWith('/goals/top-goal?action=contribute&missionId=mission-savings');

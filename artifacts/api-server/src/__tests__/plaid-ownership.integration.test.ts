@@ -419,7 +419,7 @@ describe("Plaid API ownership and isolation", () => {
     expect(storedAccount.name).toBe("Owner Checking");
   });
 
-  it("rejects a balance refresh that tries to overwrite another user's account ID", async () => {
+  it("preserves saved accounts when one balance refresh tries to overwrite another user's account ID", async () => {
     const itemA = await seedItem(userA, `item-${runId}-refresh-owner`, "access-refresh-owner");
     const sharedAccountId = `account-${runId}-refresh-collision`;
     const accountA = await seedAccount(userA, itemA.id, sharedAccountId);
@@ -436,7 +436,8 @@ describe("Plaid API ownership and isolation", () => {
       .get(`/api/plaid/accounts?userId=${encodeURIComponent(userA)}&itemId=${itemA.id}`)
       .set(auth(userB));
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ accounts: [] });
     const [storedAccount] = await db.select().from(plaidAccounts).where(eq(plaidAccounts.id, accountA.id));
     expect(storedAccount.userId).toBe(userA);
     expect(storedAccount.itemId).toBe(itemA.id);
@@ -444,6 +445,25 @@ describe("Plaid API ownership and isolation", () => {
     expect(await db.select().from(plaidAccounts).where(eq(plaidAccounts.itemId, itemB.id))).toEqual([]);
     expect(JSON.stringify(response.body)).not.toContain("access-refresh-owner");
     expect(JSON.stringify(response.body)).not.toContain("access-refresh-attacker");
+  });
+
+  it("hides only the selected account without disconnecting its institution", async () => {
+    const itemA = await seedItem(userA, `item-${runId}-hide-account`, "access-hide-account");
+    const accountA = await seedAccount(userA, itemA.id, `account-${runId}-hide-account`);
+
+    const hidden = await request(server)
+      .delete(`/api/plaid/accounts/${accountA.id}`)
+      .set(auth(userA));
+    expect(hidden.status).toBe(204);
+
+    plaidMocks.getAccounts.mockRejectedValueOnce(new Error("Plaid temporarily unavailable"));
+    const listed = await request(server).get("/api/plaid/accounts").set(auth(userA));
+    expect(listed.status).toBe(200);
+    expect(listed.body.accounts).toEqual([]);
+
+    const [storedAccount] = await db.select().from(plaidAccounts).where(eq(plaidAccounts.id, accountA.id));
+    expect(storedAccount.isHidden).toBe(true);
+    expect(await db.select().from(plaidItems).where(eq(plaidItems.id, itemA.id))).toHaveLength(1);
   });
 
   it("serializes simultaneous exchanges so exactly one user can own a Plaid item", async () => {

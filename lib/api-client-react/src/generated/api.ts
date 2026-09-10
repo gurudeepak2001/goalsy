@@ -751,6 +751,77 @@ export function useGetPlaidAccounts<TData = Awaited<ReturnType<typeof getPlaidAc
 
 
 
+export const getHidePlaidAccountUrl = (id: string,) => {
+
+
+
+
+  return `/api/plaid/accounts/${id}`
+}
+
+/**
+ * @summary Hide one connected account from Goalsy
+ */
+export const hidePlaidAccount = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getHidePlaidAccountUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getHidePlaidAccountMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof hidePlaidAccount>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof hidePlaidAccount>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['hidePlaidAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof hidePlaidAccount>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  hidePlaidAccount(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HidePlaidAccountMutationResult = NonNullable<Awaited<ReturnType<typeof hidePlaidAccount>>>
+
+    export type HidePlaidAccountMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+    /**
+ * @summary Hide one connected account from Goalsy
+ */
+export const useHidePlaidAccount = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof hidePlaidAccount>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof hidePlaidAccount>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getHidePlaidAccountMutationOptions(options));
+    }
+
 export const getDisconnectPlaidItemUrl = (id: string,) => {
 
 

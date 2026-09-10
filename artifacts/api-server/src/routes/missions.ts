@@ -10,7 +10,7 @@ const MISSION_STREAK_ACHIEVEMENT_ID = "mission-streak-7-day";
 // Mission templates rotated daily (index by day-of-year mod length)
 const MISSION_TEMPLATES = [
   { title: "Review your largest expense category", description: "Open your spending breakdown and identify one category where you can reduce by 10% this month.", category: "review" },
-  { title: "Top up your highest-priority goal", description: "Make a manual contribution to your top goal — even $25 compounds meaningfully over time.", category: "savings" },
+  { title: "Top up your highest-priority goal", description: "Add at least $25 to your top goal once this week. This does not change your recurring weekly contribution plan.", category: "savings" },
   { title: "Check your credit utilisation", description: "Log in to any account and confirm your combined credit utilisation is below 30%.", category: "debt" },
   { title: "Schedule next month's bill payments", description: "Set up autopay or calendar reminders for every bill due in the next 30 days.", category: "action" },
   { title: "Review your emergency fund progress", description: "Confirm your emergency fund covers at least one month of expenses. If not, set a weekly auto-transfer.", category: "savings" },

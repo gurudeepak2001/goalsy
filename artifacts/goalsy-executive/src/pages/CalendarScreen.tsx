@@ -160,6 +160,21 @@ function briefingAccent(type: string | null | undefined): string {
   return '#3B82F6';
 }
 
+const BRIEFING_VIEWS_STORAGE_KEY = 'goalsy:briefing-opened-versions';
+
+function briefingVersion(briefing: Pick<Briefing, 'title' | 'summary'>): string {
+  return JSON.stringify([briefing.title, briefing.summary ?? '']);
+}
+
+function loadOpenedBriefingVersions(): Record<string, string> {
+  try {
+    const stored = window.localStorage.getItem(BRIEFING_VIEWS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) as Record<string, string> : {};
+  } catch {
+    return {};
+  }
+}
+
 export function splitBriefingSummary(summary: string | null | undefined): string[] {
   if (!summary?.trim()) return ['No additional details are available yet.'];
   return summary
@@ -182,6 +197,23 @@ export default function CalendarScreen() {
   const goalCheckpoints = computeGoalCheckpoints(goals);
 
   const [selectedBriefing, setSelectedBriefing] = useState<Briefing | null>(null);
+  const [openedBriefingVersions, setOpenedBriefingVersions] = useState<Record<string, string>>(
+    loadOpenedBriefingVersions,
+  );
+
+  const openBriefing = (briefing: Briefing) => {
+    const nextVersions = {
+      ...openedBriefingVersions,
+      [briefing.id]: briefingVersion(briefing),
+    };
+    setOpenedBriefingVersions(nextVersions);
+    try {
+      window.localStorage.setItem(BRIEFING_VIEWS_STORAGE_KEY, JSON.stringify(nextVersions));
+    } catch {
+      // The briefing remains readable when device storage is unavailable.
+    }
+    setSelectedBriefing(briefing);
+  };
 
   // Upcoming: the next unpaid bill sorted by due date
   const upcomingBill = (bills ?? [])
@@ -355,13 +387,24 @@ export default function CalendarScreen() {
             </AccentCard>
           ) : (
             <div className="flex flex-col gap-4">
-              {briefings.map((briefing) => (
-                <AccentCard key={briefing.id} onClick={() => setSelectedBriefing(briefing)}>
+              {briefings.map((briefing) => {
+                const openedVersion = openedBriefingVersions[briefing.id];
+                const hasUpdate = !!openedVersion && openedVersion !== briefingVersion(briefing);
+                return (
+                <AccentCard key={briefing.id} onClick={() => openBriefing(briefing)}>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
-                        {formatDateLabel(briefing.scheduledDate)} &bull; {briefing.type ?? 'Briefing'}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
+                          {formatDateLabel(briefing.scheduledDate)} &bull; {briefingTypeLabel(briefing.type)}
+                        </span>
+                        {hasUpdate && (
+                          <span className="flex items-center gap-1 text-[#22C55E] font-bold text-[10px] uppercase tracking-[0.6px]">
+                            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+                            Updated
+                          </span>
+                        )}
+                      </div>
                       <h3 className="text-white font-bold text-lg leading-[27px]">{briefing.title}</h3>
                     </div>
                     {briefing.type === 'goal_review' ? (
@@ -371,7 +414,8 @@ export default function CalendarScreen() {
                     )}
                   </div>
                 </AccentCard>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

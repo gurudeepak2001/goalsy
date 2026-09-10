@@ -44,6 +44,9 @@ import {
   useUpdateNotificationPreference,
   useGetPlaidAccounts,
   useGetPlaidConnections,
+  useHidePlaidAccount,
+  getGetPlaidAccountsQueryKey,
+  getGetPlaidConnectionsQueryKey,
   getListNotificationPreferencesQueryKey,
   type PlaidAccount,
 } from '@workspace/api-client-react';
@@ -114,6 +117,7 @@ export default function ProfileScreen() {
   const [editOpen, setEditOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [selectedPlaidAccount, setSelectedPlaidAccount] = useState<PlaidAccount | null>(null);
+  const [accountToRemove, setAccountToRemove] = useState<PlaidAccount | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -132,6 +136,7 @@ export default function ProfileScreen() {
   const { data: financialProfile } = useGetFinancialProfile();
   const { data: plaidAccountData } = useGetPlaidAccounts();
   const { data: plaidConnectionData } = useGetPlaidConnections();
+  const { mutateAsync: hidePlaidAccount, isPending: removingAccount } = useHidePlaidAccount();
   const { data: missionStreak } = useGetMissionStreak();
   const { data: notifPrefs } = useListNotificationPreferences();
   const { mutateAsync: updatePref } = useUpdateNotificationPreference();
@@ -139,6 +144,12 @@ export default function ProfileScreen() {
   const score = scoreResult?.score ?? 842;
   const tier = scoreResult ? getScoreTier(score) : getScoreTier(842);
   const achievements = buildProfileAchievements(financialProfile?.profile, missionStreak);
+  const connectedAccountCount = plaidAccountData?.accounts.length ?? 0;
+  const connectedInstitutionCount = new Set(
+    (plaidConnectionData?.connections ?? []).map((connection) =>
+      connection.institutionName?.trim().toLowerCase() || connection.id,
+    ),
+  ).size;
 
   useEffect(() => {
     setAvatarSrc(user?.hasImage ? user.imageUrl : undefined);
@@ -150,6 +161,29 @@ export default function ProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: getListNotificationPreferencesQueryKey() });
     } catch {
       toast({ title: 'Could not update preference', variant: 'destructive' });
+    }
+  };
+
+  const handleRemoveAccount = async () => {
+    if (!accountToRemove || removingAccount) return;
+    try {
+      await hidePlaidAccount({ id: accountToRemove.id });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetPlaidAccountsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetPlaidConnectionsQueryKey() }),
+      ]);
+      toast({
+        title: 'Account removed from Goalsy',
+        description: `${accountToRemove.name} is hidden. Other accounts from the institution remain connected.`,
+      });
+      setAccountToRemove(null);
+      setSelectedPlaidAccount(null);
+    } catch {
+      toast({
+        title: 'Could not remove account',
+        description: 'Your connection was not changed. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -352,7 +386,9 @@ export default function ProfileScreen() {
               onClick={() => setAccountsOpen(true)}
               right={
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-[#808BA4] font-semibold text-[13px]">{plaidConnectionData?.connections.length ?? 0} Institutions</span>
+                  <span className="text-[#808BA4] font-semibold text-[13px]">
+                    {connectedInstitutionCount} {connectedInstitutionCount === 1 ? 'institution' : 'institutions'} · {connectedAccountCount} {connectedAccountCount === 1 ? 'account' : 'accounts'}
+                  </span>
                   <ChevronRight size={16} className="text-[#808BA4]" />
                 </div>
               }
@@ -552,6 +588,50 @@ export default function ProfileScreen() {
                 <span className="text-white font-bold text-sm text-right capitalize">{value}</span>
               </div>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setAccountToRemove(selectedPlaidAccount);
+                setSelectedPlaidAccount(null);
+              }}
+              className="w-full h-12 rounded-xl border border-[#EF4444]/25 text-[#EF4444] font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Trash2 size={16} />
+              Remove from Goalsy
+            </button>
+          </div>
+        )}
+      </AppModal>
+
+      <AppModal
+        open={accountToRemove !== null}
+        onOpenChange={(open) => { if (!open && !removingAccount) setAccountToRemove(null); }}
+        title="Remove Connected Account?"
+      >
+        {accountToRemove && (
+          <div className="flex flex-col gap-5 pb-4">
+            <div className="bg-[#111827] border border-white/5 rounded-2xl p-5">
+              <p className="text-white font-bold">{accountToRemove.name}</p>
+              <p className="text-[#A7B0C0] text-sm font-semibold leading-5 mt-2">
+                This hides only this account from Goalsy. It does not remove the other accounts connected through the same institution.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <ExecutiveButton
+                variant="outline"
+                text="Cancel"
+                className="flex-1"
+                disabled={removingAccount}
+                onClick={() => setAccountToRemove(null)}
+              />
+              <ExecutiveButton
+                text={removingAccount ? 'Removing…' : 'Remove Account'}
+                className="flex-1"
+                disabled={removingAccount}
+                icon={removingAccount ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                onClick={handleRemoveAccount}
+              />
+            </div>
           </div>
         )}
       </AppModal>

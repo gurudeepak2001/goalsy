@@ -12,3 +12,5 @@
 - [Weekly milestone projection anchors](weekly-milestone-projections.md) — an active, confirmed week may be future-dated; begin projections after that ledger entry, not after the wall clock.
 - [Drizzle push constraint safety](drizzle-push-constraints.md) — failed pushes may leave partial constraint changes; inspect live constraints and rerun DB-backed ownership tests.
 - [Action-backed mission completion](action-backed-missions.md) — missions tied to a real financial action complete only after that action saves successfully.
+- [Monthly briefing identity](monthly-briefing-identity.md) — briefing IDs stay stable within a month so viewed content can show an update marker when real data changes.
+- [Plaid partial-refresh resilience](plaid-partial-refresh.md) — one failing institution must not blank all saved accounts; individual removal hides only that account.

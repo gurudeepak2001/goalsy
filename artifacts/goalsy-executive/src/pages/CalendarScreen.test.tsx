@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
 vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
@@ -58,6 +58,10 @@ vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 import CalendarScreen from './CalendarScreen';
 
 describe('CalendarScreen data integrity', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('shows saved API records without invented financial activity', () => {
     render(<CalendarScreen />);
 
@@ -77,5 +81,20 @@ describe('CalendarScreen data integrity', () => {
     expect(within(dialog).getByText('Goal Review')).toBeInTheDocument();
     expect(within(dialog).getByText(/Scheduled for Sunday, September 20/)).toBeInTheDocument();
     expect(within(dialog).getByText('Review progress toward the saved goal')).toBeInTheDocument();
+  });
+
+  it('keeps briefings visible and marks changed content as updated until it is opened', () => {
+    window.localStorage.setItem('goalsy:briefing-opened-versions', JSON.stringify({
+      'briefing-1': JSON.stringify(['Emergency Fund Review', 'Older briefing content.']),
+    }));
+
+    render(<CalendarScreen />);
+    const card = screen.getByRole('button', { name: /Emergency Fund Review/i });
+    expect(within(card).getByText('Updated')).toBeInTheDocument();
+
+    fireEvent.click(card);
+    expect(screen.getByRole('dialog', { name: 'Emergency Fund Review' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Emergency Fund Review/i })).toBeInTheDocument();
+    expect(screen.queryByText('Updated')).not.toBeInTheDocument();
   });
 });
