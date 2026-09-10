@@ -1,12 +1,9 @@
 import { ReactNode, useState } from 'react';
 import {
-  SlidersHorizontal,
   Wallet,
-  ArrowRightLeft,
   FileText,
   Lightbulb,
   Loader2,
-  CheckCircle2,
   Flag,
   AlertTriangle,
   Clock,
@@ -17,13 +14,13 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import AppModal from '@/components/AppModal';
-import { Switch } from '@/components/ui/switch';
 import { computeGoalSchedule } from '@/lib/goalSchedule';
 import {
   useListBills,
   usePayBill,
   useListBriefings,
   useListGoals,
+  useGetTodayMission,
   getListBillsQueryKey,
 } from '@workspace/api-client-react';
 import type { Briefing, Goal } from '@workspace/api-client-react';
@@ -157,12 +154,11 @@ export default function CalendarScreen() {
   const { data: bills } = useListBills();
   const { data: briefings } = useListBriefings();
   const { data: goals } = useListGoals();
+  const { data: todayMission } = useGetTodayMission();
   const { mutateAsync: payBill, isPending: paying } = usePayBill();
 
   const goalCheckpoints = computeGoalCheckpoints(goals);
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [autopay, setAutopay] = useState(false);
   const [selectedBriefing, setSelectedBriefing] = useState<Briefing | null>(null);
 
   // Upcoming: the next unpaid bill sorted by due date
@@ -199,21 +195,41 @@ export default function CalendarScreen() {
         {/* Today — mission status */}
         <div className="flex flex-col gap-4">
           <DayDivider text="Today" color="#3B82F6" />
-          <AccentCard dimmed>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-[#22C55E]" />
+          {todayMission ? (
+            <AccentCard
+              accentColor={todayMission.status === 'completed' ? '#22C55E' : '#3B82F6'}
+              dimmed={todayMission.status === 'skipped'}
+              onClick={() => navigate('/today')}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 flex items-center justify-center">
+                  <div className={`w-2 h-2 rounded-full ${
+                    todayMission.status === 'completed' ? 'bg-[#22C55E]' : 'bg-[#3B82F6]'
+                  }`} />
+                </div>
+                <span className={`font-bold text-xs uppercase tracking-[0.6px] ${
+                  todayMission.status === 'completed' ? 'text-[#22C55E]' : 'text-[#3B82F6]'
+                }`}>
+                  {todayMission.status === 'completed'
+                    ? 'Mission Accomplished'
+                    : todayMission.status === 'skipped'
+                      ? 'Mission Skipped'
+                      : "Today's Mission"}
+                </span>
               </div>
-              <span className="text-[#22C55E] font-bold text-xs uppercase tracking-[0.6px]">
-                Mission Accomplished
-              </span>
-            </div>
-            <h3 className="text-white font-bold text-lg leading-[22px] -mt-1">Optimize Debt Interest</h3>
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal size={16} className="text-[#808BA4]" />
-              <span className="text-[#808BA4] font-semibold text-[13px]">Interest rate reduced by 1.2%</span>
-            </div>
-          </AccentCard>
+              <h3 className="text-white font-bold text-lg leading-[22px] -mt-1">{todayMission.title}</h3>
+              {todayMission.description && (
+                <p className="text-[#808BA4] font-semibold text-[13px] leading-5">
+                  {todayMission.description}
+                </p>
+              )}
+            </AccentCard>
+          ) : (
+            <AccentCard dimmed>
+              <h3 className="text-white font-bold text-base">No mission scheduled today</h3>
+              <p className="text-[#808BA4] font-semibold text-[13px]">Your next Goalsy mission will appear here.</p>
+            </AccentCard>
+          )}
         </div>
 
         {/* Upcoming bill */}
@@ -249,36 +265,10 @@ export default function CalendarScreen() {
                     'Record manual payment'
                   )}
                 </button>
-                <button
-                  type="button"
-                  aria-label="Open bill settings"
-                  onClick={() => setSettingsOpen(true)}
-                  className="w-12 h-12 border border-white/10 rounded-xl flex items-center justify-center text-white active:scale-95 transition-transform flex-shrink-0"
-                >
-                  <SlidersHorizontal size={16} />
-                </button>
               </div>
             </AccentCard>
           </div>
         )}
-
-        {/* Automated savings (static — Plaid/investment integration out of scope) */}
-        <div className="flex flex-col gap-4">
-          <DayDivider text="Scheduled" />
-          <AccentCard accentColor="#3B82F6">
-            <div className="flex items-center gap-2">
-              <ArrowRightLeft size={16} className="text-[#3B82F6]" />
-              <span className="text-[#3B82F6] font-bold text-xs uppercase tracking-[0.6px]">Automated Savings</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-white font-bold text-lg leading-[27px]">Wealthfront Transfer</h3>
-                <span className="text-[#808BA4] font-semibold text-sm leading-[21px]">From Checking (4012)</span>
-              </div>
-              <span className="text-[#3B82F6] font-bold text-2xl leading-9">$2,500</span>
-            </div>
-          </AccentCard>
-        </div>
 
         {/* Goal Checkpoints */}
         {goalCheckpoints.length > 0 && (
@@ -366,34 +356,6 @@ export default function CalendarScreen() {
 
         <div className="h-4" />
       </div>
-
-      {/* Bill settings modal */}
-      <AppModal open={settingsOpen} onOpenChange={setSettingsOpen} title="Bill Settings">
-        <div className="flex flex-col gap-5 pb-4">
-          <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-               <span className="text-white font-bold text-[15px]">Autopay Preview</span>
-              <span className="text-[#808BA4] font-semibold text-[13px]">
-                 Preview only — nothing will be paid automatically
-              </span>
-            </div>
-            <Switch
-              checked={autopay}
-              onCheckedChange={(next) => {
-                setAutopay(next);
-                toast({
-                    title: next ? 'Autopay preview selected' : 'Autopay preview cleared',
-                    description: 'This preview does not schedule or process payments.',
-                });
-              }}
-            />
-          </div>
-          <div className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
-            <span className="text-white font-bold text-[15px]">Reminder</span>
-            <span className="text-[#808BA4] font-semibold text-[13px]">24h before due</span>
-          </div>
-        </div>
-      </AppModal>
 
       {/* Briefing detail modal */}
       <AppModal

@@ -1,0 +1,71 @@
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+
+vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
+vi.mock('@workspace/api-client-react', () => ({
+  getListBillsQueryKey: () => ['/api/bills'],
+  usePayBill: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useListGoals: () => ({ data: [] }),
+  useGetTodayMission: () => ({
+    data: {
+      id: 'mission-1',
+      userId: 'user-1',
+      missionDate: '2026-09-10',
+      title: 'Review emergency fund progress',
+      description: 'Compare this week’s saved amount with your emergency fund target.',
+      category: 'savings',
+      status: 'pending',
+      skipReason: null,
+      completedAt: null,
+      createdAt: '2026-09-10T12:00:00.000Z',
+    },
+  }),
+  useListBills: () => ({
+    data: [{
+      id: 'bill-1',
+      userId: 'user-1',
+      name: 'Electric bill',
+      amount: 125,
+      dueDate: '2026-09-15',
+      isPaid: false,
+    }],
+  }),
+  useListBriefings: () => ({
+    data: [{
+      id: 'briefing-1',
+      userId: 'user-1',
+      title: 'Emergency Fund Review',
+      summary: 'Review progress toward the saved goal.',
+      scheduledDate: '2026-09-20',
+      type: 'goal_review',
+    }],
+  }),
+}));
+vi.mock('@/components/AppHeader', () => ({ default: () => null }));
+vi.mock('@/components/AppShell', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
+}));
+vi.mock('@/components/AppModal', () => ({
+  default: ({ open, title, children }: { open: boolean; title: string; children: React.ReactNode }) => (
+    open ? <section role="dialog" aria-label={title}>{children}</section> : null
+  ),
+}));
+vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
+
+import CalendarScreen from './CalendarScreen';
+
+describe('CalendarScreen data integrity', () => {
+  it('shows saved API records without invented financial activity', () => {
+    render(<CalendarScreen />);
+
+    expect(screen.getByText('Review emergency fund progress')).toBeInTheDocument();
+    expect(screen.getByText('Electric bill')).toBeInTheDocument();
+    expect(screen.getByText('$125')).toBeInTheDocument();
+    expect(screen.getByText('Emergency Fund Review')).toBeInTheDocument();
+
+    expect(screen.queryByText(/Wealthfront|4012|1\.2%|Optimize Debt Interest|Autopay Preview/i)).not.toBeInTheDocument();
+  });
+});
