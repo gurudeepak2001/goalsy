@@ -2,6 +2,10 @@ import { pgTable, text, uuid, timestamp, uniqueIndex } from "drizzle-orm/pg-core
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+// Briefings are regenerated monthly, so view history older than 90 days can no
+// longer affect any briefing that remains useful to the user.
+export const BRIEFING_VIEW_RETENTION_DAYS = 90;
+
 export const briefings = pgTable("briefings", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),

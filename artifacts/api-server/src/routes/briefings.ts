@@ -1,7 +1,15 @@
 import { createHash } from "node:crypto";
 import { Router } from "express";
-import { and, eq } from "drizzle-orm";
-import { db, bills, briefingViews, expenses, goals, plaidAccounts } from "@workspace/db";
+import { and, eq, lt } from "drizzle-orm";
+import {
+  BRIEFING_VIEW_RETENTION_DAYS,
+  db,
+  bills,
+  briefingViews,
+  expenses,
+  goals,
+  plaidAccounts,
+} from "@workspace/db";
 import {
   ListBriefingsResponse,
   MarkBriefingViewedBody,
@@ -31,6 +39,10 @@ function addUtcDays(date: Date, days: number): Date {
 
 function firstOfNextUtcMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+}
+
+function briefingViewRetentionCutoff(now: Date): Date {
+  return addUtcDays(now, -BRIEFING_VIEW_RETENTION_DAYS);
 }
 
 function stableBriefingId(userId: string, type: string, monthKey: string): string {
@@ -63,6 +75,12 @@ router.get("/briefings", requireAuth, async (_req, res): Promise<void> => {
     ]);
 
     const now = new Date();
+    await db
+      .delete(briefingViews)
+      .where(and(
+        eq(briefingViews.userId, userId),
+        lt(briefingViews.viewedAt, briefingViewRetentionCutoff(now)),
+      ));
     const today = isoDate(now);
     const currentMonth = today.slice(0, 7);
     const activeGoals = userGoals.filter((goal) => goal.status === "active");

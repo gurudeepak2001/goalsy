@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 vi.mock("../middlewares/verifyClerkJwt.js", () => ({
   verifyClerkJwt: (req: any, res: any, next: any) => {
@@ -195,5 +195,40 @@ describe("generated financial briefings", () => {
 
     const otherUser = await request(server).get("/api/briefings").set(auth(userB));
     expect(otherUser.body.every((item: any) => item.viewedContentVersion === null)).toBe(true);
+  });
+
+  it("removes expired view history without removing current-month markers", async () => {
+    const initial = await request(server).get("/api/briefings").set(auth(userA));
+    const currentBriefing = initial.body[0];
+    const currentVersion = currentBriefing.contentVersion;
+    const expiredBriefingId = randomUUID();
+    const expiredViewedAt = new Date();
+    expiredViewedAt.setUTCDate(expiredViewedAt.getUTCDate() - 91);
+
+    await db.insert(briefingViews).values({
+      userId: userA,
+      briefingId: expiredBriefingId,
+      contentVersion: "expired-version",
+      viewedAt: expiredViewedAt,
+    });
+    await request(server)
+      .put(`/api/briefings/${currentBriefing.id}/view`)
+      .set(auth(userA))
+      .send({ contentVersion: currentVersion })
+      .expect(204);
+
+    const refreshed = await request(server).get("/api/briefings").set(auth(userA));
+    expect(refreshed.status).toBe(200);
+    expect(refreshed.body.find((item: any) => item.id === currentBriefing.id).viewedContentVersion)
+      .toBe(currentVersion);
+
+    const remainingExpiredRows = await db
+      .select()
+      .from(briefingViews)
+      .where(and(
+        eq(briefingViews.userId, userA),
+        eq(briefingViews.briefingId, expiredBriefingId),
+      ));
+    expect(remainingExpiredRows).toHaveLength(0);
   });
 });
