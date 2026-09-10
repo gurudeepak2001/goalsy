@@ -81,9 +81,11 @@ jobs:
           # tokens owned by the authenticated user.  Classic PATs are not included.
           echo "Querying GitHub fine-grained token list for token named '${TOKEN_NAME}'…"
 
-          MATCHES=$(gh api /user/personal-access-tokens \
+          if ! MATCHES=$(gh api /user/personal-access-tokens \
             --jq "[.[] | select(.name == \"${TOKEN_NAME}\")]" \
-            2>/dev/null || echo "[]")
+            2>/dev/null); then
+            MATCHES="[]"
+          fi
 
           MATCH_COUNT=$(echo "$MATCHES" | jq 'length')
 
