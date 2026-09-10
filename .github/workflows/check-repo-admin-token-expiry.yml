@@ -163,43 +163,44 @@ jobs:
           WORKFLOW_URL="${REPO_URL}/blob/main/.github/workflows/enforce-branch-protection.yml"
           EXPIRY_CHECK_URL="${REPO_URL}/blob/main/.github/workflows/check-repo-admin-token-expiry.yml"
 
-          BODY="## ${URGENCY}: REPO_ADMIN_TOKEN needs rotation
-
-${DAYS_MSG}
-
-The \`REPO_ADMIN_TOKEN\` secret is used by the
-[enforce-branch-protection.yml](${WORKFLOW_URL}) workflow
-to re-apply required-status-check rules on \`main\`.
-When this PAT lapses the workflow silently fails, leaving branch protection
-unable to be enforced without any visible alert.
-
-### Action required
-
-Follow the rotation steps in the
-[Branch Protection Runbook](${RUNBOOK_URL}):
-
-1. **Generate a new classic PAT** with the \`repo\` scope (GitHub → Settings →
-   Developer settings → Personal access tokens → Tokens (classic)).
-2. **Update the \`REPO_ADMIN_TOKEN\` repository secret** with the new value
-   (Repository → Settings → Secrets and variables → Actions).
-3. **Update expiry tracking** so this workflow keeps working after rotation:
-   - *Classic PAT*: update the \`REPO_ADMIN_TOKEN_EXPIRES_AT\` repository
-     variable to the new expiry date (ISO-8601, e.g. \`2025-12-31\`).
-   - *Fine-grained PAT*: no variable needed — the API tracks it automatically.
-     Ensure \`REPO_ADMIN_TOKEN_NAME\` matches the token's display name.
-4. **Re-run the Enforce Branch Protection workflow** to confirm it still works
-   with the new token.
-
-### Why this matters
-
-Without a valid \`REPO_ADMIN_TOKEN\`:
-- The \`enforce-branch-protection.yml\` workflow will fail.
-- Branch protection rules cannot be re-applied after accidental removal.
-- PRs that should be blocked (e.g. failing CI) could be merged unprotected.
-
-*This issue was opened automatically by the
-[check-repo-admin-token-expiry](${EXPIRY_CHECK_URL}) workflow.
-Close it once the token has been rotated.*"
+          BODY=$(printf '%s\n' \
+            "## ${URGENCY}: REPO_ADMIN_TOKEN needs rotation" \
+            "" \
+            "${DAYS_MSG}" \
+            "" \
+            "The \`REPO_ADMIN_TOKEN\` secret is used by the" \
+            "[enforce-branch-protection.yml](${WORKFLOW_URL}) workflow" \
+            "to re-apply required-status-check rules on \`main\`." \
+            "When this PAT lapses the workflow silently fails, leaving branch protection" \
+            "unable to be enforced without any visible alert." \
+            "" \
+            "### Action required" \
+            "" \
+            "Follow the rotation steps in the" \
+            "[Branch Protection Runbook](${RUNBOOK_URL}):" \
+            "" \
+            "1. **Generate a new classic PAT** with the \`repo\` scope (GitHub → Settings →" \
+            "   Developer settings → Personal access tokens → Tokens (classic))." \
+            "2. **Update the \`REPO_ADMIN_TOKEN\` repository secret** with the new value" \
+            "   (Repository → Settings → Secrets and variables → Actions)." \
+            "3. **Update expiry tracking** so this workflow keeps working after rotation:" \
+            "   - *Classic PAT*: update the \`REPO_ADMIN_TOKEN_EXPIRES_AT\` repository" \
+            "     variable to the new expiry date (ISO-8601, e.g. \`2025-12-31\`)." \
+            "   - *Fine-grained PAT*: no variable needed — the API tracks it automatically." \
+            "     Ensure \`REPO_ADMIN_TOKEN_NAME\` matches the token's display name." \
+            "4. **Re-run the Enforce Branch Protection workflow** to confirm it still works" \
+            "   with the new token." \
+            "" \
+            "### Why this matters" \
+            "" \
+            "Without a valid \`REPO_ADMIN_TOKEN\`:" \
+            "- The \`enforce-branch-protection.yml\` workflow will fail." \
+            "- Branch protection rules cannot be re-applied after accidental removal." \
+            "- PRs that should be blocked (e.g. failing CI) could be merged unprotected." \
+            "" \
+            "*This issue was opened automatically by the" \
+            "[check-repo-admin-token-expiry](${EXPIRY_CHECK_URL}) workflow." \
+            "Close it once the token has been rotated.*")
 
           # ── 5. Check for an existing open alert issue (avoid duplicates) ──────
           echo "Checking for existing open alert issues…"
