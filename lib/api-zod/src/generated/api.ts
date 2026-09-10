@@ -530,9 +530,28 @@ export const ListBriefingsResponseItem = zod.object({
   "scheduledDate": zod.string(),
   "type": zod.string().nullish(),
   "summary": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "contentVersion": zod.string(),
+  "viewedContentVersion": zod.string().nullable()
 })
 export const ListBriefingsResponse = zod.array(ListBriefingsResponseItem)
+
+
+/**
+ * @summary Record the viewed content version of a briefing
+ */
+export const MarkBriefingViewedParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const MarkBriefingViewedBody = zod.object({
+  "contentVersion": zod.string().min(1)
+})
+
+export const MarkBriefingViewedResponse = zod.void()
 
 
 /**

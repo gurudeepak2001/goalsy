@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
+const markBriefingViewed = vi.fn().mockResolvedValue(undefined);
+const setQueryData = vi.fn();
+const invalidateQueries = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
 vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({ invalidateQueries, setQueryData }),
 }));
 vi.mock('@workspace/api-client-react', () => ({
   getListBillsQueryKey: () => ['/api/bills'],
+  getListBriefingsQueryKey: () => ['/api/briefings'],
   usePayBill: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useMarkBriefingViewed: () => ({ mutateAsync: markBriefingViewed }),
   useListGoals: () => ({ data: [] }),
   useGetTodayMission: () => ({
     data: {
@@ -41,6 +47,8 @@ vi.mock('@workspace/api-client-react', () => ({
       summary: 'Review progress toward the saved goal.',
       scheduledDate: '2026-09-20',
       type: 'goal_review',
+      contentVersion: 'current-version',
+      viewedContentVersion: 'older-version',
     }],
   }),
 }));
@@ -59,7 +67,7 @@ import CalendarScreen from './CalendarScreen';
 
 describe('CalendarScreen data integrity', () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    vi.clearAllMocks();
   });
 
   it('shows saved API records without invented financial activity', () => {
@@ -83,11 +91,7 @@ describe('CalendarScreen data integrity', () => {
     expect(within(dialog).getByText('Review progress toward the saved goal')).toBeInTheDocument();
   });
 
-  it('keeps briefings visible and marks changed content as updated until it is opened', () => {
-    window.localStorage.setItem('goalsy:briefing-opened-versions', JSON.stringify({
-      'briefing-1': JSON.stringify(['Emergency Fund Review', 'Older briefing content.']),
-    }));
-
+  it('keeps briefings visible and records the server content version when opened', async () => {
     render(<CalendarScreen />);
     const card = screen.getByRole('button', { name: /Emergency Fund Review/i });
     expect(within(card).getByText('Updated')).toBeInTheDocument();
@@ -95,6 +99,9 @@ describe('CalendarScreen data integrity', () => {
     fireEvent.click(card);
     expect(screen.getByRole('dialog', { name: 'Emergency Fund Review' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Emergency Fund Review/i })).toBeInTheDocument();
-    expect(screen.queryByText('Updated')).not.toBeInTheDocument();
+    expect(markBriefingViewed).toHaveBeenCalledWith({
+      id: 'briefing-1',
+      data: { contentVersion: 'current-version' },
+    });
   });
 });

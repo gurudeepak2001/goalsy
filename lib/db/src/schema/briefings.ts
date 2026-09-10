@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -19,3 +19,24 @@ export const insertBriefingSchema = createInsertSchema(briefings).omit({
 });
 export type InsertBriefing = z.infer<typeof insertBriefingSchema>;
 export type Briefing = typeof briefings.$inferSelect;
+
+export const briefingViews = pgTable(
+  "briefing_views",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    briefingId: uuid("briefing_id").notNull(),
+    contentVersion: text("content_version").notNull(),
+    viewedAt: timestamp("viewed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("briefing_views_user_briefing_idx").on(table.userId, table.briefingId),
+  ],
+);
+
+export const insertBriefingViewSchema = createInsertSchema(briefingViews).omit({
+  id: true,
+  viewedAt: true,
+});
+export type InsertBriefingView = z.infer<typeof insertBriefingViewSchema>;
+export type BriefingView = typeof briefingViews.$inferSelect;

@@ -280,6 +280,14 @@ export interface Briefing {
   /** @nullable */
   summary?: string | null;
   createdAt: string;
+  contentVersion: string;
+  /** @nullable */
+  viewedContentVersion: string | null;
+}
+
+export interface BriefingViewInput {
+  /** @minLength 1 */
+  contentVersion: string;
 }
 
 export interface Expense {

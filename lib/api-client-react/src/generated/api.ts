@@ -24,6 +24,7 @@ import type {
   BadRequestResponse,
   Bill,
   Briefing,
+  BriefingViewInput,
   CreateExpenseBody,
   CreateGoalBody,
   CreateGoalProgressBody,
@@ -2234,6 +2235,78 @@ export function useListBriefings<TData = Awaited<ReturnType<typeof listBriefings
 
 
 
+
+export const getMarkBriefingViewedUrl = (id: string,) => {
+
+
+
+
+  return `/api/briefings/${id}/view`
+}
+
+/**
+ * @summary Record the viewed content version of a briefing
+ */
+export const markBriefingViewed = async (id: string,
+    briefingViewInput: BriefingViewInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getMarkBriefingViewedUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(briefingViewInput)
+  }
+);}
+
+
+
+
+
+export const getMarkBriefingViewedMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markBriefingViewed>>, TError,{id: string;data: BodyType<BriefingViewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markBriefingViewed>>, TError,{id: string;data: BodyType<BriefingViewInput>}, TContext> => {
+
+const mutationKey = ['markBriefingViewed'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markBriefingViewed>>, {id: string;data: BodyType<BriefingViewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  markBriefingViewed(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkBriefingViewedMutationResult = NonNullable<Awaited<ReturnType<typeof markBriefingViewed>>>
+    export type MarkBriefingViewedMutationBody = BodyType<BriefingViewInput>
+    export type MarkBriefingViewedMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>
+
+    /**
+ * @summary Record the viewed content version of a briefing
+ */
+export const useMarkBriefingViewed = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markBriefingViewed>>, TError,{id: string;data: BodyType<BriefingViewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markBriefingViewed>>,
+        TError,
+        {id: string;data: BodyType<BriefingViewInput>},
+        TContext
+      > => {
+      return useMutation(getMarkBriefingViewedMutationOptions(options));
+    }
 
 export const getListNotificationsUrl = () => {
 

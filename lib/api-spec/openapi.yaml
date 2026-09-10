@@ -560,6 +560,29 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /briefings/{id}/view:
+    put:
+      operationId: markBriefingViewed
+      tags: [briefings]
+      summary: Record the viewed content version of a briefing
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BriefingViewInput"
+      responses:
+        "204":
+          description: Viewed version recorded
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /notifications:
     get:
       operationId: listNotifications
@@ -1156,7 +1179,19 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
-      required: [id, userId, title, scheduledDate, createdAt]
+        contentVersion:
+          type: string
+        viewedContentVersion:
+          type: ["string", "null"]
+      required: [id, userId, title, scheduledDate, createdAt, contentVersion, viewedContentVersion]
+
+    BriefingViewInput:
+      type: object
+      properties:
+        contentVersion:
+          type: string
+          minLength: 1
+      required: [contentVersion]
 
     Expense:
       type: object

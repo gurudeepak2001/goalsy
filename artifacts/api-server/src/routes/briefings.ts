@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { Router } from "express";
 import { and, eq } from "drizzle-orm";
-import { db, bills, expenses, goals, plaidAccounts } from "@workspace/db";
+import { db, bills, briefingViews, expenses, goals, plaidAccounts } from "@workspace/db";
+import {
+  ListBriefingsResponse,
+  MarkBriefingViewedBody,
+  MarkBriefingViewedParams,
+} from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -33,6 +38,10 @@ function stableBriefingId(userId: string, type: string, monthKey: string): strin
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20)}`;
 }
 
+function briefingContentVersion(title: string, summary: string): string {
+  return createHash("sha256").update(JSON.stringify([title, summary])).digest("hex");
+}
+
 function monthlyExpenseAmount(expense: { amount: number; frequency: string }): number {
   return expense.frequency === "weekly" ? Math.round(expense.amount * 52 / 12) : expense.amount;
 }
@@ -40,7 +49,7 @@ function monthlyExpenseAmount(expense: { amount: number; frequency: string }): n
 // GET /api/briefings
 // These are generated from the authenticated user's current records. Stale seeded
 // demo briefings are intentionally not returned.
-router.get("/briefings", requireAuth, async (_req, res) => {
+router.get("/briefings", requireAuth, async (_req, res): Promise<void> => {
   const userId = res.locals.userId as string;
   try {
     const [userGoals, userExpenses, userBills, userAccounts] = await Promise.all([
@@ -124,7 +133,7 @@ router.get("/briefings", requireAuth, async (_req, res) => {
       ? `This future briefing will review market conditions against your ${marketGoalNames.join(" and ")} ${marketGoalNames.length === 1 ? "goal" : "goals"}.`
       : `This future briefing will explain market conditions in the context of your ${activeGoals.length} active ${activeGoals.length === 1 ? "goal" : "goals"} and ${formatDollars(netBalance)} linked total balance.`;
 
-    res.json([
+    const generatedBriefings = [
       {
         id: stableBriefingId(userId, "goal_review", currentMonth),
         userId,
@@ -152,10 +161,63 @@ router.get("/briefings", requireAuth, async (_req, res) => {
         summary: monthlySummary,
         createdAt,
       },
-    ].sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate)));
+    ].sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
+    const generatedIds = new Set(generatedBriefings.map((briefing) => briefing.id));
+    const viewedVersions = await db
+      .select()
+      .from(briefingViews)
+      .where(eq(briefingViews.userId, userId));
+    const viewedVersionById = new Map(
+      viewedVersions
+        .filter((view) => generatedIds.has(view.briefingId))
+        .map((view) => [view.briefingId, view.contentVersion]),
+    );
+
+    res.json(ListBriefingsResponse.parse(generatedBriefings.map((briefing) => ({
+      ...briefing,
+      contentVersion: briefingContentVersion(briefing.title, briefing.summary),
+      viewedContentVersion: viewedVersionById.get(briefing.id) ?? null,
+    }))));
   } catch {
     res.status(500).json({ message: "Failed to generate briefings" });
   }
+});
+
+router.put("/briefings/:id/view", requireAuth, async (req, res): Promise<void> => {
+  const params = MarkBriefingViewedParams.safeParse(req.params);
+  const body = MarkBriefingViewedBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ message: "Invalid briefing view" });
+    return;
+  }
+
+  const userId = res.locals.userId as string;
+  const currentMonth = isoDate(new Date()).slice(0, 7);
+  const validBriefingIds = new Set(
+    ["goal_review", "market_update", "monthly_summary"]
+      .map((type) => stableBriefingId(userId, type, currentMonth)),
+  );
+  if (!validBriefingIds.has(params.data.id)) {
+    res.status(404).json({ message: "Briefing not found" });
+    return;
+  }
+
+  await db
+    .insert(briefingViews)
+    .values({
+      userId,
+      briefingId: params.data.id,
+      contentVersion: body.data.contentVersion,
+    })
+    .onConflictDoUpdate({
+      target: [briefingViews.userId, briefingViews.briefingId],
+      set: {
+        contentVersion: body.data.contentVersion,
+        viewedAt: new Date(),
+      },
+    });
+
+  res.sendStatus(204);
 });
 
 export default router;

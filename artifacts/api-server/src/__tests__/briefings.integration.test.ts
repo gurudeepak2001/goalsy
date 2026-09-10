@@ -19,6 +19,7 @@ vi.mock("../middlewares/verifyClerkJwt.js", () => ({
 import app from "../app.js";
 import {
   bills,
+  briefingViews,
   db,
   expenses,
   goals,
@@ -127,6 +128,8 @@ describe("generated financial briefings", () => {
   });
 
   afterAll(async () => {
+    await db.delete(briefingViews).where(eq(briefingViews.userId, userA));
+    await db.delete(briefingViews).where(eq(briefingViews.userId, userB));
     await db.delete(plaidItems).where(eq(plaidItems.userId, userA));
     await db.delete(plaidItems).where(eq(plaidItems.userId, userB));
     await db.delete(expenses).where(eq(expenses.userId, userA));
@@ -172,5 +175,25 @@ describe("generated financial briefings", () => {
     expect(serialized).not.toContain("99,999");
     expect(serialized).not.toContain("88,888");
     expect(serialized).not.toContain("77,777");
+  });
+
+  it("persists viewed content versions per user and returns them on refresh", async () => {
+    const initial = await request(server).get("/api/briefings").set(auth(userA));
+    const briefing = initial.body[0];
+    expect(briefing.contentVersion).toMatch(/^[a-f0-9]{64}$/);
+    expect(briefing.viewedContentVersion).toBeNull();
+
+    const viewed = await request(server)
+      .put(`/api/briefings/${briefing.id}/view`)
+      .set(auth(userA))
+      .send({ contentVersion: briefing.contentVersion });
+    expect(viewed.status).toBe(204);
+
+    const refreshed = await request(server).get("/api/briefings").set(auth(userA));
+    expect(refreshed.body.find((item: any) => item.id === briefing.id).viewedContentVersion)
+      .toBe(briefing.contentVersion);
+
+    const otherUser = await request(server).get("/api/briefings").set(auth(userB));
+    expect(otherUser.body.every((item: any) => item.viewedContentVersion === null)).toBe(true);
   });
 });

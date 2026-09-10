@@ -19,9 +19,11 @@ import {
   useListBills,
   usePayBill,
   useListBriefings,
+  useMarkBriefingViewed,
   useListGoals,
   useGetTodayMission,
   getListBillsQueryKey,
+  getListBriefingsQueryKey,
 } from '@workspace/api-client-react';
 import type { Briefing, Goal } from '@workspace/api-client-react';
 
@@ -160,21 +162,6 @@ function briefingAccent(type: string | null | undefined): string {
   return '#3B82F6';
 }
 
-const BRIEFING_VIEWS_STORAGE_KEY = 'goalsy:briefing-opened-versions';
-
-function briefingVersion(briefing: Pick<Briefing, 'title' | 'summary'>): string {
-  return JSON.stringify([briefing.title, briefing.summary ?? '']);
-}
-
-function loadOpenedBriefingVersions(): Record<string, string> {
-  try {
-    const stored = window.localStorage.getItem(BRIEFING_VIEWS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) as Record<string, string> : {};
-  } catch {
-    return {};
-  }
-}
-
 export function splitBriefingSummary(summary: string | null | undefined): string[] {
   if (!summary?.trim()) return ['No additional details are available yet.'];
   return summary
@@ -193,26 +180,32 @@ export default function CalendarScreen() {
   const { data: goals } = useListGoals();
   const { data: todayMission } = useGetTodayMission();
   const { mutateAsync: payBill, isPending: paying } = usePayBill();
+  const { mutateAsync: markBriefingViewed } = useMarkBriefingViewed();
 
   const goalCheckpoints = computeGoalCheckpoints(goals);
 
   const [selectedBriefing, setSelectedBriefing] = useState<Briefing | null>(null);
-  const [openedBriefingVersions, setOpenedBriefingVersions] = useState<Record<string, string>>(
-    loadOpenedBriefingVersions,
-  );
 
-  const openBriefing = (briefing: Briefing) => {
-    const nextVersions = {
-      ...openedBriefingVersions,
-      [briefing.id]: briefingVersion(briefing),
-    };
-    setOpenedBriefingVersions(nextVersions);
-    try {
-      window.localStorage.setItem(BRIEFING_VIEWS_STORAGE_KEY, JSON.stringify(nextVersions));
-    } catch {
-      // The briefing remains readable when device storage is unavailable.
-    }
+  const openBriefing = async (briefing: Briefing) => {
     setSelectedBriefing(briefing);
+    try {
+      await markBriefingViewed({
+        id: briefing.id,
+        data: { contentVersion: briefing.contentVersion },
+      });
+      queryClient.setQueryData<Briefing[]>(getListBriefingsQueryKey(), (current) =>
+        current?.map((item) => item.id === briefing.id
+          ? { ...item, viewedContentVersion: item.contentVersion }
+          : item),
+      );
+      await queryClient.invalidateQueries({ queryKey: getListBriefingsQueryKey() });
+    } catch {
+      toast({
+        title: 'Could not sync briefing status',
+        description: 'The briefing is still available, but its update marker may remain on other devices.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Upcoming: the next unpaid bill sorted by due date
@@ -388,8 +381,8 @@ export default function CalendarScreen() {
           ) : (
             <div className="flex flex-col gap-4">
               {briefings.map((briefing) => {
-                const openedVersion = openedBriefingVersions[briefing.id];
-                const hasUpdate = !!openedVersion && openedVersion !== briefingVersion(briefing);
+                const hasUpdate = !!briefing.viewedContentVersion
+                  && briefing.viewedContentVersion !== briefing.contentVersion;
                 return (
                 <AccentCard key={briefing.id} onClick={() => openBriefing(briefing)}>
                   <div className="flex items-center justify-between">
