@@ -117,7 +117,7 @@ export default function ProfileScreen() {
   const [editOpen, setEditOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [selectedPlaidAccount, setSelectedPlaidAccount] = useState<PlaidAccount | null>(null);
-  const [accountToRemove, setAccountToRemove] = useState<PlaidAccount | null>(null);
+  const [removeAccountConfirming, setRemoveAccountConfirming] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -165,19 +165,19 @@ export default function ProfileScreen() {
   };
 
   const handleRemoveAccount = async () => {
-    if (!accountToRemove || removingAccount) return;
+    if (!selectedPlaidAccount || removingAccount) return;
     try {
-      await hidePlaidAccount({ id: accountToRemove.id });
+      await hidePlaidAccount({ id: selectedPlaidAccount.id });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetPlaidAccountsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetPlaidConnectionsQueryKey() }),
       ]);
       toast({
         title: 'Account removed from Goalsy',
-        description: `${accountToRemove.name} is hidden. Other accounts from the institution remain connected.`,
+        description: `${selectedPlaidAccount.name} is hidden. Other accounts from the institution remain connected.`,
       });
-      setAccountToRemove(null);
       setSelectedPlaidAccount(null);
+      setRemoveAccountConfirming(false);
     } catch {
       toast({
         title: 'Could not remove account',
@@ -522,10 +522,15 @@ export default function ProfileScreen() {
 
       <AppModal
         open={selectedPlaidAccount !== null}
-        onOpenChange={(open) => { if (!open) setSelectedPlaidAccount(null); }}
-        title={selectedPlaidAccount?.name ?? 'Account Details'}
+        onOpenChange={(open) => {
+          if (!open && !removingAccount) {
+            setSelectedPlaidAccount(null);
+            setRemoveAccountConfirming(false);
+          }
+        }}
+        title={removeAccountConfirming ? 'Remove Connected Account?' : selectedPlaidAccount?.name ?? 'Account Details'}
       >
-        {selectedPlaidAccount && (
+        {selectedPlaidAccount && !removeAccountConfirming && (
           <div className="flex flex-col gap-4 pb-4">
             <div className={`rounded-2xl border p-5 ${
               isPlaidLiabilityAccount(selectedPlaidAccount)
@@ -590,10 +595,7 @@ export default function ProfileScreen() {
             ))}
             <button
               type="button"
-              onClick={() => {
-                setAccountToRemove(selectedPlaidAccount);
-                setSelectedPlaidAccount(null);
-              }}
+              onClick={() => setRemoveAccountConfirming(true)}
               className="w-full h-12 rounded-xl border border-[#EF4444]/25 text-[#EF4444] font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
               <Trash2 size={16} />
@@ -601,17 +603,10 @@ export default function ProfileScreen() {
             </button>
           </div>
         )}
-      </AppModal>
-
-      <AppModal
-        open={accountToRemove !== null}
-        onOpenChange={(open) => { if (!open && !removingAccount) setAccountToRemove(null); }}
-        title="Remove Connected Account?"
-      >
-        {accountToRemove && (
+        {selectedPlaidAccount && removeAccountConfirming && (
           <div className="flex flex-col gap-5 pb-4">
             <div className="bg-[#111827] border border-white/5 rounded-2xl p-5">
-              <p className="text-white font-bold">{accountToRemove.name}</p>
+              <p className="text-white font-bold">{selectedPlaidAccount.name}</p>
               <p className="text-[#A7B0C0] text-sm font-semibold leading-5 mt-2">
                 This hides only this account from Goalsy. It does not remove the other accounts connected through the same institution.
               </p>
@@ -622,7 +617,7 @@ export default function ProfileScreen() {
                 text="Cancel"
                 className="flex-1"
                 disabled={removingAccount}
-                onClick={() => setAccountToRemove(null)}
+                onClick={() => setRemoveAccountConfirming(false)}
               />
               <ExecutiveButton
                 text={removingAccount ? 'Removing…' : 'Remove Account'}

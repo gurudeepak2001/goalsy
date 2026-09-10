@@ -250,6 +250,7 @@ describe('ProfileScreen achievements and help', () => {
     fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/ }));
     fireEvent.click(screen.getByRole('button', { name: 'View details for Checking' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove from Goalsy' }));
+    expect(screen.getByRole('dialog', { name: 'Remove Connected Account?' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove Account' }));
 
     await vi.waitFor(() => expect(mocks.hidePlaidAccount).toHaveBeenCalledWith({ id: 'account-1' }));
