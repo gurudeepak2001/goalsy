@@ -52,6 +52,7 @@ describe('Today linked balance details', () => {
     render(<TodayScreen />);
 
     expect(screen.getByText('$910')).toBeInTheDocument();
+    expect(screen.getByText('Assets exceed debt by $910')).toHaveClass('text-[#22C55E]');
     fireEvent.click(screen.getByRole('button', { name: 'View linked balance details' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Linked Balance Details' });

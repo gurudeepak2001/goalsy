@@ -11,6 +11,8 @@ import {
   Zap,
   SkipForward,
   FileText,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useUser } from '@clerk/react';
@@ -96,6 +98,8 @@ export default function TodayScreen() {
     : mission?.description;
   const balanceSummary = summarizePlaidBalances(plaidAccountData?.accounts ?? []);
   const totalBalance = balanceSummary.net;
+  const hasLinkedAccounts = !!plaidAccountData?.accounts.length;
+  const balanceIsNegative = totalBalance < 0;
 
   const pulseCards = [
     { label: 'Goalsy Score', value: String(currentScore), trend: '+4 wk', color: '#22C55E', icon: Sparkles, path: '/score' },
@@ -160,10 +164,25 @@ export default function TodayScreen() {
           onClick={() => setBalanceOpen(true)}
           className="w-full bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-3 relative overflow-hidden text-left active:scale-[0.98] transition-transform"
         >
-          <div className="absolute right-1 top-1 opacity-5 p-4">
-            <div className="w-24 h-24 bg-[#2563EB] rounded-full" />
+          <div
+            className={`absolute right-5 top-5 w-12 h-12 rounded-full border flex items-center justify-center ${
+              !hasLinkedAccounts
+                ? 'bg-[#808BA4]/10 border-[#808BA4]/20 text-[#808BA4]'
+                : balanceIsNegative
+                  ? 'bg-[#EF4444]/15 border-[#EF4444]/30 text-[#EF4444]'
+                  : 'bg-[#22C55E]/15 border-[#22C55E]/30 text-[#22C55E]'
+            }`}
+            aria-hidden="true"
+          >
+            {!hasLinkedAccounts ? (
+              <Wallet size={21} />
+            ) : balanceIsNegative ? (
+              <TrendingDown size={22} strokeWidth={2.5} />
+            ) : (
+              <TrendingUp size={22} strokeWidth={2.5} />
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pr-16">
             <Wallet size={16} className="text-[#808BA4]" />
             <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Total Balance</span>
           </div>
@@ -175,6 +194,19 @@ export default function TodayScreen() {
               {plaidAccountData?.accounts.length ? `${plaidAccountData.accounts.length} linked` : 'No accounts'}
             </span>
             <ChevronRight size={18} className="text-[#808BA4] mb-1.5 ml-auto" />
+          </div>
+          <div className={`text-xs font-bold ${
+            !hasLinkedAccounts
+              ? 'text-[#808BA4]'
+              : balanceIsNegative
+                ? 'text-[#EF4444]'
+                : 'text-[#22C55E]'
+          }`}>
+            {!hasLinkedAccounts
+              ? 'Connect accounts to calculate your balance'
+              : balanceIsNegative
+                ? `Debt exceeds assets by ${Math.abs(totalBalance).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}`
+                : `Assets exceed debt by ${totalBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}`}
           </div>
         </button>
 
