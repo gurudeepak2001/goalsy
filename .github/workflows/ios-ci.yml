@@ -139,22 +139,11 @@ jobs:
       - name: Boot simulator
         run: |
           UDID=$(xcrun simctl list devices available --json \
-            | python3 -c "
-import sys, json
-devs = json.load(sys.stdin)['devices']
-iphone16 = [d for runtimes in devs.values() for d in runtimes
-            if 'iPhone 16' in d.get('name','') and d.get('isAvailable')]
-print(iphone16[0]['udid'] if iphone16 else '')
-")
+            | python3 -c "import sys, json; devs = json.load(sys.stdin)['devices']; iphone16 = [d for devices in devs.values() for d in devices if 'iPhone 16' in d.get('name', '') and d.get('isAvailable')]; print(iphone16[0]['udid'] if iphone16 else '')")
           if [ -z "$UDID" ]; then
             echo "Creating iPhone 16 simulator..."
             RUNTIME=$(xcrun simctl list runtimes --json \
-              | python3 -c "
-import sys, json
-rts = json.load(sys.stdin)['runtimes']
-ios = [r['identifier'] for r in rts if r.get('isAvailable') and 'iOS' in r.get('name','')]
-print(ios[-1] if ios else '')
-")
+              | python3 -c "import sys, json; runtimes = json.load(sys.stdin)['runtimes']; ios = [r['identifier'] for r in runtimes if r.get('isAvailable') and 'iOS' in r.get('name', '')]; print(ios[-1] if ios else '')")
             UDID=$(xcrun simctl create "iPhone 16" "iPhone 16" "$RUNTIME")
           fi
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
