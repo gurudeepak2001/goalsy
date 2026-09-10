@@ -1,9 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
-const markBriefingViewed = vi.fn().mockResolvedValue(undefined);
-const setQueryData = vi.fn();
-const invalidateQueries = vi.fn().mockResolvedValue(undefined);
+const {
+  markBriefingViewed,
+  setQueryData,
+  invalidateQueries,
+  useListBriefings,
+  briefingState,
+} = vi.hoisted(() => ({
+  markBriefingViewed: vi.fn().mockResolvedValue(undefined),
+  setQueryData: vi.fn(),
+  invalidateQueries: vi.fn().mockResolvedValue(undefined),
+  briefingState: { viewedContentVersion: 'older-version' },
+  useListBriefings: vi.fn(() => ({
+    data: [{
+      id: 'briefing-1',
+      userId: 'user-1',
+      title: 'Emergency Fund Review',
+      summary: 'Review progress toward the saved goal.',
+      scheduledDate: '2026-09-20',
+      type: 'goal_review',
+      contentVersion: 'current-version',
+      viewedContentVersion: briefingState.viewedContentVersion,
+    }],
+  })),
+}));
 
 vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
 vi.mock('@tanstack/react-query', () => ({
@@ -39,18 +60,7 @@ vi.mock('@workspace/api-client-react', () => ({
       isPaid: false,
     }],
   }),
-  useListBriefings: () => ({
-    data: [{
-      id: 'briefing-1',
-      userId: 'user-1',
-      title: 'Emergency Fund Review',
-      summary: 'Review progress toward the saved goal.',
-      scheduledDate: '2026-09-20',
-      type: 'goal_review',
-      contentVersion: 'current-version',
-      viewedContentVersion: 'older-version',
-    }],
-  }),
+  useListBriefings,
 }));
 vi.mock('@/components/AppHeader', () => ({ default: () => null }));
 vi.mock('@/components/AppShell', () => ({
@@ -63,11 +73,12 @@ vi.mock('@/components/AppModal', () => ({
 }));
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 
-import CalendarScreen from './CalendarScreen';
+import CalendarScreen, { BRIEFING_VIEWED_STATE_REFRESH_INTERVAL_MS } from './CalendarScreen';
 
 describe('CalendarScreen data integrity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    briefingState.viewedContentVersion = 'older-version';
   });
 
   it('shows saved API records without invented financial activity', () => {
@@ -103,5 +114,29 @@ describe('CalendarScreen data integrity', () => {
       id: 'briefing-1',
       data: { contentVersion: 'current-version' },
     });
+  });
+
+  it('refreshes briefing viewed state while the calendar remains open', () => {
+    render(<CalendarScreen />);
+
+    expect(useListBriefings).toHaveBeenCalledWith({
+      query: {
+        queryKey: ['/api/briefings'],
+        refetchInterval: BRIEFING_VIEWED_STATE_REFRESH_INTERVAL_MS,
+        refetchOnWindowFocus: true,
+      },
+    });
+  });
+
+  it('keeps an open briefing modal stable when refreshed viewed state arrives', () => {
+    const { rerender } = render(<CalendarScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Emergency Fund Review/i }));
+
+    briefingState.viewedContentVersion = 'current-version';
+    rerender(<CalendarScreen />);
+
+    expect(screen.getByRole('dialog', { name: 'Emergency Fund Review' })).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /Emergency Fund Review/i })).queryByText('Updated'))
+      .not.toBeInTheDocument();
   });
 });

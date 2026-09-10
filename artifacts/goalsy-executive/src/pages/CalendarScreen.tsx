@@ -39,6 +39,8 @@ const GOAL_TYPE_COLORS: Record<string, string> = {
   other: '#6B7280',
 };
 
+export const BRIEFING_VIEWED_STATE_REFRESH_INTERVAL_MS = 30_000;
+
 function formatDollarsShort(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   return `$${n.toLocaleString()}`;
@@ -176,7 +178,13 @@ export default function CalendarScreen() {
   const queryClient = useQueryClient();
 
   const { data: bills } = useListBills();
-  const { data: briefings } = useListBriefings();
+  const { data: briefings } = useListBriefings({
+    query: {
+      queryKey: getListBriefingsQueryKey(),
+      refetchInterval: BRIEFING_VIEWED_STATE_REFRESH_INTERVAL_MS,
+      refetchOnWindowFocus: true,
+    },
+  });
   const { data: goals } = useListGoals();
   const { data: todayMission } = useGetTodayMission();
   const { mutateAsync: payBill, isPending: paying } = usePayBill();
