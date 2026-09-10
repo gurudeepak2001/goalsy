@@ -10,8 +10,19 @@ export function isPlaidLiabilityAccount(account: Pick<PlaidBalanceAccount, 'type
 }
 
 export function calculateNetPlaidBalance(accounts: PlaidBalanceAccount[]): number {
-  return accounts.reduce((total, account) => {
+  return summarizePlaidBalances(accounts).net;
+}
+
+export function summarizePlaidBalances(accounts: PlaidBalanceAccount[]) {
+  return accounts.reduce((summary, account) => {
     const balance = account.currentBalance ?? 0;
-    return total + (isPlaidLiabilityAccount(account) ? -balance : balance);
-  }, 0);
+    if (isPlaidLiabilityAccount(account)) {
+      summary.liabilities += balance;
+      summary.net -= balance;
+    } else {
+      summary.assets += balance;
+      summary.net += balance;
+    }
+    return summary;
+  }, { assets: 0, liabilities: 0, net: 0 });
 }

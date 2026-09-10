@@ -19,7 +19,7 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppModal from '@/components/AppModal';
 import AppShell from '@/components/AppShell';
-import { calculateNetPlaidBalance } from '@/lib/plaidBalances';
+import { isPlaidLiabilityAccount, summarizePlaidBalances } from '@/lib/plaidBalances';
 import {
   useGetTodayMission,
   useCompleteMission,
@@ -55,6 +55,7 @@ export default function TodayScreen() {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [skipOpen, setSkipOpen] = useState(false);
+  const [balanceOpen, setBalanceOpen] = useState(false);
   const [skipReason, setSkipReason] = useState<string | null>(null);
 
   const skipReasons = [
@@ -86,7 +87,8 @@ export default function TodayScreen() {
   const currentScore = scoreData?.score ?? 842;
   const missionStatus = mission?.status ?? 'pending';
   const missionDone = missionStatus === 'completed' || missionStatus === 'skipped';
-  const totalBalance = calculateNetPlaidBalance(plaidAccountData?.accounts ?? []);
+  const balanceSummary = summarizePlaidBalances(plaidAccountData?.accounts ?? []);
+  const totalBalance = balanceSummary.net;
 
   const pulseCards = [
     { label: 'Goalsy Score', value: String(currentScore), trend: '+4 wk', color: '#22C55E', icon: Sparkles, path: '/score' },
@@ -133,13 +135,18 @@ export default function TodayScreen() {
         </div>
 
         {/* Hero: Total Balance */}
-        <div className="bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-3 relative overflow-hidden">
+        <button
+          type="button"
+          aria-label="View linked balance details"
+          onClick={() => setBalanceOpen(true)}
+          className="w-full bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-3 relative overflow-hidden text-left active:scale-[0.98] transition-transform"
+        >
           <div className="absolute right-1 top-1 opacity-5 p-4">
             <div className="w-24 h-24 bg-[#2563EB] rounded-full" />
           </div>
           <div className="flex items-center gap-2">
             <Wallet size={16} className="text-[#808BA4]" />
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Net Linked Balance</span>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Total Balance</span>
           </div>
           <div className="flex items-end gap-3">
             <span className="text-white font-bold text-[40px] leading-[44px]" style={{ letterSpacing: '-1.5px' }}>
@@ -148,8 +155,9 @@ export default function TodayScreen() {
             <span className="text-[#808BA4] font-bold text-sm leading-5 mb-1.5 whitespace-nowrap">
               {plaidAccountData?.accounts.length ? `${plaidAccountData.accounts.length} linked` : 'No accounts'}
             </span>
+            <ChevronRight size={18} className="text-[#808BA4] mb-1.5 ml-auto" />
           </div>
-        </div>
+        </button>
 
         {/* AI Daily Summary */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-6 flex items-start gap-4">
@@ -309,6 +317,50 @@ export default function TodayScreen() {
       </div>
 
       {/* Skip mission modal */}
+      <AppModal open={balanceOpen} onOpenChange={setBalanceOpen} title="Linked Balance Details">
+        <div className="flex flex-col gap-4 pb-4">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ['Assets', balanceSummary.assets, 'text-[#22C55E]'],
+              ['Debt', balanceSummary.liabilities, 'text-[#EF4444]'],
+              ['Net', balanceSummary.net, 'text-white'],
+            ].map(([label, amount, color]) => (
+              <div key={String(label)} className="bg-[#111827] border border-white/5 rounded-xl p-3 min-w-0">
+                <div className="text-[#808BA4] text-[9px] font-bold uppercase tracking-[0.8px]">{label}</div>
+                <div className={`${color} text-sm font-bold mt-1 truncate`}>
+                  {Number(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            {(plaidAccountData?.accounts ?? []).map((account) => {
+              const isLiability = isPlaidLiabilityAccount(account);
+              return (
+                <div key={account.id} className="bg-[#111827] border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-white font-bold text-sm truncate">{account.name}</div>
+                    <div className="text-[#808BA4] font-semibold text-xs capitalize">
+                      {account.subtype ?? account.type}{account.mask ? ` •••• ${account.mask}` : ''}
+                    </div>
+                  </div>
+                  <div className={`${isLiability ? 'text-[#EF4444]' : 'text-white'} font-bold text-sm whitespace-nowrap`}>
+                    {isLiability ? '−' : ''}
+                    {(account.currentBalance ?? 0).toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: account.currencyCode ?? 'USD',
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {!plaidAccountData?.accounts.length && (
+              <p className="text-[#808BA4] text-sm font-semibold text-center py-4">No linked accounts yet.</p>
+            )}
+          </div>
+        </div>
+      </AppModal>
+
       <AppModal open={skipOpen} onOpenChange={setSkipOpen} title="Skip Today's Mission">
         <div className="flex flex-col gap-5 pb-4">
           <p className="text-[#808BA4] font-semibold text-sm leading-5">

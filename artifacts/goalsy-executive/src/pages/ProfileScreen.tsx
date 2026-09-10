@@ -45,6 +45,7 @@ import {
   useGetPlaidAccounts,
   useGetPlaidConnections,
   getListNotificationPreferencesQueryKey,
+  type PlaidAccount,
 } from '@workspace/api-client-react';
 
 // ── Notification type display metadata ────────────────────────────────────────
@@ -103,6 +104,7 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState(fullName);
   const [editOpen, setEditOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
+  const [selectedPlaidAccount, setSelectedPlaidAccount] = useState<PlaidAccount | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -439,26 +441,85 @@ export default function ProfileScreen() {
       {/* Connected accounts modal */}
       <AppModal open={accountsOpen} onOpenChange={setAccountsOpen} title="Connected Accounts">
         <div className="flex flex-col gap-3 pb-4">
-          {(plaidAccountData?.accounts ?? []).map((account) => (
-            <div key={account.id} className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+          {(plaidAccountData?.accounts ?? []).map((account) => {
+            const isLiability = isPlaidLiabilityAccount(account);
+            return (
+            <button
+              type="button"
+              key={account.id}
+              aria-label={`View details for ${account.name}`}
+              onClick={() => {
+                setAccountsOpen(false);
+                setSelectedPlaidAccount(account);
+              }}
+              className="w-full bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+            >
               <div className="w-11 h-11 rounded-xl bg-[#1F2937] border border-white/10 flex items-center justify-center flex-shrink-0">
-                <Building2 size={20} className="text-white" />
+                <Building2 size={20} className={isLiability ? 'text-[#EF4444]' : 'text-white'} />
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-white font-bold text-[15px] leading-[22px]">{account.name}</span>
                 <span className="text-[#808BA4] font-semibold text-[13px]">{account.subtype ?? account.type} {account.mask ? `•••• ${account.mask}` : ''}</span>
               </div>
-              <span className="text-white font-bold text-sm flex-shrink-0">
+              <span className={`${isLiability ? 'text-[#EF4444]' : 'text-white'} font-bold text-sm flex-shrink-0`}>
                 {(account.currentBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: account.currencyCode ?? 'USD' })}
-                {isPlaidLiabilityAccount(account) ? ' owed' : ''}
+                {isLiability ? ' owed' : ''}
               </span>
-            </div>
-          ))}
+              <ChevronRight size={16} className="text-[#808BA4] flex-shrink-0" />
+            </button>
+          )})}
           {!plaidAccountData?.accounts.length && (
             <p className="text-[#808BA4] text-sm font-semibold text-center py-3">No financial accounts connected yet.</p>
           )}
           <ExecutiveButton variant="outline" text="Add Institution" onClick={() => navigate('/financial-connection')} />
         </div>
+      </AppModal>
+
+      <AppModal
+        open={selectedPlaidAccount !== null}
+        onOpenChange={(open) => { if (!open) setSelectedPlaidAccount(null); }}
+        title={selectedPlaidAccount?.name ?? 'Account Details'}
+      >
+        {selectedPlaidAccount && (
+          <div className="flex flex-col gap-4 pb-4">
+            <div className={`rounded-2xl border p-5 ${
+              isPlaidLiabilityAccount(selectedPlaidAccount)
+                ? 'bg-[#EF4444]/10 border-[#EF4444]/20'
+                : 'bg-[#2563EB]/10 border-[#2563EB]/20'
+            }`}>
+              <span className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.2px]">
+                {isPlaidLiabilityAccount(selectedPlaidAccount) ? 'Current amount owed' : 'Current balance'}
+              </span>
+              <div className={`text-3xl font-bold mt-1 ${
+                isPlaidLiabilityAccount(selectedPlaidAccount) ? 'text-[#EF4444]' : 'text-white'
+              }`}>
+                {(selectedPlaidAccount.currentBalance ?? 0).toLocaleString('en-US', {
+                  style: 'currency',
+                  currency: selectedPlaidAccount.currencyCode ?? 'USD',
+                })}
+              </div>
+            </div>
+            {[
+              ['Account type', selectedPlaidAccount.subtype ?? selectedPlaidAccount.type],
+              ['Account number', selectedPlaidAccount.mask ? `•••• ${selectedPlaidAccount.mask}` : 'Not provided'],
+              [
+                isPlaidLiabilityAccount(selectedPlaidAccount) ? 'Available credit' : 'Available balance',
+                selectedPlaidAccount.availableBalance == null
+                  ? 'Not provided'
+                  : selectedPlaidAccount.availableBalance.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: selectedPlaidAccount.currencyCode ?? 'USD',
+                    }),
+              ],
+              ['Currency', selectedPlaidAccount.currencyCode ?? 'USD'],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">
+                <span className="text-[#808BA4] font-semibold text-sm">{label}</span>
+                <span className="text-white font-bold text-sm text-right capitalize">{value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </AppModal>
 
       {/* Notification preferences modal */}

@@ -5,6 +5,18 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   signOut: vi.fn(),
   updatePref: vi.fn(),
+  plaidAccounts: [] as Array<{
+    id: string;
+    itemId: string;
+    name: string;
+    officialName: string | null;
+    mask: string | null;
+    type: string;
+    subtype: string | null;
+    currentBalance: number | null;
+    availableBalance: number | null;
+    currencyCode: string | null;
+  }>,
   financialProfile: {
     profile: {
       netWorth: 125_000,
@@ -47,7 +59,7 @@ vi.mock('@workspace/api-client-react', () => ({
   useGetScore: () => ({ data: { score: 842, tier: 'Command', computedAt: '2026-08-21T12:00:00.000Z' } }),
   useGetFinancialProfile: () => ({ data: mocks.financialProfile }),
   useGetMissionStreak: () => ({ data: mocks.missionStreak }),
-  useGetPlaidAccounts: () => ({ data: { accounts: [] } }),
+  useGetPlaidAccounts: () => ({ data: { accounts: mocks.plaidAccounts } }),
   useGetPlaidConnections: () => ({ data: { connections: [] } }),
   useListNotificationPreferences: () => ({ data: [] }),
   useUpdateNotificationPreference: () => ({ mutateAsync: mocks.updatePref }),
@@ -94,6 +106,7 @@ describe('ProfileScreen achievements and help', () => {
     mocks.navigate.mockReset();
     mocks.signOut.mockReset();
     mocks.updatePref.mockReset();
+    mocks.plaidAccounts = [];
   });
 
   it('opens a persisted earned savings achievement detail with live profile progress', () => {
@@ -151,5 +164,35 @@ describe('ProfileScreen achievements and help', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Onboarding & Financial Profile' }));
     expect(helpDialog).toHaveTextContent(/update it any time from Strategic Intelligence/i);
+  });
+
+  it('shows credit balances as debt and opens detailed account information', () => {
+    mocks.plaidAccounts = [{
+      id: 'credit-account',
+      itemId: 'plaid-item',
+      name: 'Plaid Credit Card',
+      officialName: 'Plaid Credit Card',
+      mask: '3333',
+      type: 'credit',
+      subtype: 'credit card',
+      currentBalance: 410,
+      availableBalance: 4_590,
+      currencyCode: 'USD',
+    }];
+
+    render(<ProfileScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/i }));
+
+    const accountsDialog = screen.getByRole('dialog', { name: 'Connected Accounts' });
+    expect(within(accountsDialog).getByText('$410.00 owed')).toHaveClass('text-[#EF4444]');
+
+    fireEvent.click(within(accountsDialog).getByRole('button', { name: 'View details for Plaid Credit Card' }));
+
+    const detailDialog = screen.getByRole('dialog', { name: 'Plaid Credit Card' });
+    expect(within(detailDialog).getByText('Current amount owed')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('$410.00')).toHaveClass('text-[#EF4444]');
+    expect(within(detailDialog).getByText('Available credit')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('$4,590.00')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('•••• 3333')).toBeInTheDocument();
   });
 });

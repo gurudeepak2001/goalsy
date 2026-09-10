@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateNetPlaidBalance, isPlaidLiabilityAccount } from './plaidBalances';
+import { calculateNetPlaidBalance, isPlaidLiabilityAccount, summarizePlaidBalances } from './plaidBalances';
 
 describe('Plaid balance calculations', () => {
   it('subtracts credit-card debt from deposit balances', () => {
@@ -29,5 +29,12 @@ describe('Plaid balance calculations', () => {
     expect(isPlaidLiabilityAccount({ type: 'CREDIT' })).toBe(true);
     expect(isPlaidLiabilityAccount({ type: 'loan' })).toBe(true);
     expect(isPlaidLiabilityAccount({ type: 'depository' })).toBe(false);
+  });
+
+  it('separates assets, liabilities, and net balance for detail views', () => {
+    expect(summarizePlaidBalances([
+      { type: 'depository', currentBalance: 1_320 },
+      { type: 'credit', currentBalance: 410 },
+    ])).toEqual({ assets: 1_320, liabilities: 410, net: 910 });
   });
 });
