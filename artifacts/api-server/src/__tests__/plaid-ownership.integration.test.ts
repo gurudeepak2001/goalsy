@@ -10,6 +10,7 @@ const plaidMocks = vi.hoisted(() => ({
   getItem: vi.fn(),
   getInstitution: vi.fn(),
   getAccounts: vi.fn(),
+  getLiabilities: vi.fn(),
   removeItem: vi.fn(),
 }));
 
@@ -37,11 +38,12 @@ vi.mock("../lib/plaidClient.js", () => ({
   getPlaidItem: plaidMocks.getItem,
   getPlaidInstitution: plaidMocks.getInstitution,
   getPlaidAccounts: plaidMocks.getAccounts,
+  getPlaidLiabilities: plaidMocks.getLiabilities,
   removePlaidItem: plaidMocks.removeItem,
 }));
 
 import app from "../app.js";
-import { db, plaidAccounts, plaidItems } from "@workspace/db";
+import { db, plaidAccounts, plaidCreditLiabilities, plaidItems } from "@workspace/db";
 
 const runId = randomUUID().slice(0, 8);
 const userA = `test-plaid-${runId}-a`;
@@ -62,6 +64,15 @@ function plaidAccount(accountId: string, name = "Checking") {
       iso_currency_code: "USD",
     },
   };
+}
+
+function liabilities(accounts: ReturnType<typeof plaidAccount>[], credit: Array<Record<string, unknown>> = []) {
+  return { accounts, liabilities: { credit } };
+}
+
+function mockSnapshot(accounts: ReturnType<typeof plaidAccount>[], credit: Array<Record<string, unknown>> = []) {
+  plaidMocks.getAccounts.mockResolvedValue({ accounts });
+  plaidMocks.getLiabilities.mockResolvedValue(liabilities(accounts, credit));
 }
 
 async function seedItem(owner: string, plaidItemId: string, accessToken: string) {
@@ -136,7 +147,7 @@ describe("Plaid API ownership and isolation", () => {
   it("never returns User A's connections or accounts to User B", async () => {
     const item = await seedItem(userA, `item-${runId}-a`, "access-a");
     await seedAccount(userA, item.id, `account-${runId}-a`);
-    plaidMocks.getAccounts.mockResolvedValue({ accounts: [plaidAccount(`account-${runId}-a`, "A Checking")] });
+    mockSnapshot([plaidAccount(`account-${runId}-a`, "A Checking")]);
 
     const [aConnections, bConnections, aAccounts, bAccounts] = await Promise.all([
       request(server).get("/api/plaid/connection").set(auth(userA)),
@@ -156,7 +167,7 @@ describe("Plaid API ownership and isolation", () => {
     expect(aAccounts.body.accounts[0].name).toBe("A Checking");
     expect(bAccounts.status).toBe(200);
     expect(bAccounts.body.accounts).toEqual([]);
-    expect(plaidMocks.getAccounts).toHaveBeenCalledTimes(1);
+    expect(plaidMocks.getLiabilities).toHaveBeenCalledTimes(1);
 
     const serializedB = JSON.stringify([bConnections.body, bAccounts.body]);
     expect(serializedB).not.toContain(item.id);
@@ -178,6 +189,143 @@ describe("Plaid API ownership and isolation", () => {
 
     expect(await db.select().from(plaidAccounts)
       .where(eq(plaidAccounts.plaidAccountId, `account-${runId}-constraint`))).toEqual([]);
+  });
+
+  it("stores credit liability details for the owner and never returns them to another user", async () => {
+    const item = await seedItem(userA, `item-${runId}-liability`, "access-liability");
+    const creditAccounts = [
+      {
+        ...plaidAccount(`account-${runId}-liability`, "Owner Card"),
+        type: "credit",
+        subtype: "credit card",
+        balances: {
+          available: 4_590,
+          current: 410,
+          limit: 5_000,
+          iso_currency_code: "USD",
+        },
+      },
+    ];
+    mockSnapshot(creditAccounts, [{
+      account_id: `account-${runId}-liability`,
+      minimum_payment_amount: 35,
+      next_payment_due_date: "2026-09-28",
+      aprs: [{ apr_percentage: 21.49, apr_type: "purchase_apr" }],
+    }]);
+
+    const [ownerResponse, otherResponse] = await Promise.all([
+      request(server).get("/api/plaid/accounts").set(auth(userA)),
+      request(server)
+        .get(`/api/plaid/accounts?userId=${encodeURIComponent(userA)}&itemId=${item.id}`)
+        .set(auth(userB)),
+    ]);
+
+    expect(ownerResponse.status).toBe(200);
+    expect(ownerResponse.body.accounts[0]).toMatchObject({
+      name: "Owner Card",
+      creditLimit: 5_000,
+      minimumPaymentAmount: 35,
+      aprPercentage: 21.49,
+      aprType: "purchase_apr",
+      nextPaymentDueDate: "2026-09-28",
+    });
+    expect(otherResponse.status).toBe(200);
+    expect(otherResponse.body.accounts).toEqual([]);
+
+    const [storedAccount] = await db.select().from(plaidAccounts)
+      .where(eq(plaidAccounts.plaidAccountId, `account-${runId}-liability`));
+    const storedLiabilities = await db.select().from(plaidCreditLiabilities)
+      .where(eq(plaidCreditLiabilities.accountId, storedAccount.id));
+    expect(storedLiabilities).toHaveLength(1);
+    expect(storedLiabilities[0].userId).toBe(userA);
+  });
+
+  it("rejects a liability assigned to an account owned by another user", async () => {
+    const item = await seedItem(userA, `item-${runId}-liability-constraint`, "access-liability-constraint");
+    const account = await seedAccount(userA, item.id, `account-${runId}-liability-constraint`);
+
+    await expect(db.insert(plaidCreditLiabilities).values({
+      accountId: account.id,
+      userId: userB,
+      minimumPaymentAmount: 25,
+    })).rejects.toThrow();
+
+    expect(await db.select().from(plaidCreditLiabilities)
+      .where(eq(plaidCreditLiabilities.accountId, account.id))).toEqual([]);
+  });
+
+  it("clears stale liability terms when Plaid omits a previously stored credit liability", async () => {
+    const item = await seedItem(userA, `item-${runId}-liability-clear`, "access-liability-clear");
+    const account = await seedAccount(userA, item.id, `account-${runId}-liability-clear`);
+    await db.insert(plaidCreditLiabilities).values({
+      accountId: account.id,
+      userId: userA,
+      minimumPaymentAmount: 45,
+      aprPercentage: 24.99,
+      aprType: "purchase_apr",
+      nextPaymentDueDate: "2026-10-03",
+    });
+    const creditAccounts = [{
+      ...plaidAccount(account.plaidAccountId, "Owner Card"),
+      type: "credit",
+      subtype: "credit card",
+    }];
+    mockSnapshot(creditAccounts);
+
+    const response = await request(server).get("/api/plaid/accounts").set(auth(userA));
+
+    expect(response.status).toBe(200);
+    expect(response.body.accounts[0]).toMatchObject({
+      minimumPaymentAmount: null,
+      aprPercentage: null,
+      aprType: null,
+      nextPaymentDueDate: null,
+    });
+    expect(await db.select().from(plaidCreditLiabilities)
+      .where(eq(plaidCreditLiabilities.accountId, account.id))).toEqual([]);
+  });
+
+  it("still refreshes balances when an older Plaid item does not have Liabilities enabled", async () => {
+    const item = await seedItem(userA, `item-${runId}-accounts-only`, "access-accounts-only");
+    const account = await seedAccount(userA, item.id, `account-${runId}-accounts-only`);
+    await db.insert(plaidCreditLiabilities).values({
+      accountId: account.id,
+      userId: userA,
+      minimumPaymentAmount: 50,
+      aprPercentage: 19.99,
+      aprType: "purchase_apr",
+      nextPaymentDueDate: "2026-10-08",
+    });
+    plaidMocks.getAccounts.mockResolvedValue({
+      accounts: [{
+        ...plaidAccount(account.plaidAccountId, "Existing Card"),
+        type: "credit",
+        subtype: "credit card",
+        balances: {
+          available: 3_750,
+          current: 1_250,
+          limit: 5_000,
+          iso_currency_code: "USD",
+        },
+      }],
+    });
+    plaidMocks.getLiabilities.mockRejectedValue(new Error("PRODUCT_NOT_ENABLED"));
+
+    const response = await request(server).get("/api/plaid/accounts").set(auth(userA));
+
+    expect(response.status).toBe(200);
+    expect(response.body.accounts[0]).toMatchObject({
+      name: "Existing Card",
+      currentBalance: 1_250,
+      availableBalance: 3_750,
+      creditLimit: 5_000,
+      minimumPaymentAmount: null,
+      aprPercentage: null,
+      aprType: null,
+      nextPaymentDueDate: null,
+    });
+    expect(await db.select().from(plaidCreditLiabilities)
+      .where(eq(plaidCreditLiabilities.accountId, account.id))).toEqual([]);
   });
 
   it("returns 404 and never calls Plaid when User B directly deletes User A's connection", async () => {
@@ -230,7 +378,7 @@ describe("Plaid API ownership and isolation", () => {
     plaidMocks.exchangePublicToken.mockResolvedValue({ item_id: plaidItemId, access_token: "access-attacker-b" });
     plaidMocks.getItem.mockResolvedValue({ item: { item_id: plaidItemId, institution_id: "ins_attacker" } });
     plaidMocks.getInstitution.mockResolvedValue({ institution: { institution_id: "ins_attacker", name: "Attacker Bank" } });
-    plaidMocks.getAccounts.mockResolvedValue({ accounts: [plaidAccount(accountA.plaidAccountId, "Attacker Rewrite")] });
+    mockSnapshot([plaidAccount(accountA.plaidAccountId, "Attacker Rewrite")]);
 
     const response = await request(server)
       .post("/api/plaid/items/exchange")
@@ -256,7 +404,7 @@ describe("Plaid API ownership and isolation", () => {
     const itemBPlaidId = `item-${runId}-account-attacker`;
     plaidMocks.exchangePublicToken.mockResolvedValue({ item_id: itemBPlaidId, access_token: "access-account-attacker" });
     plaidMocks.getItem.mockResolvedValue({ item: { item_id: itemBPlaidId, institution_id: null } });
-    plaidMocks.getAccounts.mockResolvedValue({ accounts: [plaidAccount(sharedAccountId, "Collision Rewrite")] });
+    mockSnapshot([plaidAccount(sharedAccountId, "Collision Rewrite")]);
 
     const response = await request(server)
       .post("/api/plaid/items/exchange")
@@ -282,6 +430,7 @@ describe("Plaid API ownership and isolation", () => {
       }
       return { accounts: [] };
     });
+    plaidMocks.getLiabilities.mockResolvedValue(liabilities([]));
 
     const response = await request(server)
       .get(`/api/plaid/accounts?userId=${encodeURIComponent(userA)}&itemId=${itemA.id}`)
@@ -306,7 +455,7 @@ describe("Plaid API ownership and isolation", () => {
     }));
     plaidMocks.getItem.mockResolvedValue({ item: { item_id: plaidItemId, institution_id: "ins_race" } });
     plaidMocks.getInstitution.mockResolvedValue({ institution: { institution_id: "ins_race", name: "Race Bank" } });
-    plaidMocks.getAccounts.mockResolvedValue({ accounts: [plaidAccount(accountId, "Race Checking")] });
+    mockSnapshot([plaidAccount(accountId, "Race Checking")]);
 
     const [responseA, responseB] = await Promise.all([
       request(server).post("/api/plaid/items/exchange").set(auth(userA)).send({ publicToken: "public-a" }),

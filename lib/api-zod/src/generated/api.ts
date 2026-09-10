@@ -150,7 +150,12 @@ export const GetPlaidAccountsResponse = zod.object({
   "subtype": zod.string().nullable(),
   "currentBalance": zod.number().nullable(),
   "availableBalance": zod.number().nullable(),
-  "currencyCode": zod.string().nullable()
+  "creditLimit": zod.number().nullable(),
+  "currencyCode": zod.string().nullable(),
+  "minimumPaymentAmount": zod.number().nullable(),
+  "aprPercentage": zod.number().nullable(),
+  "aprType": zod.string().nullable(),
+  "nextPaymentDueDate": zod.coerce.date().nullable()
 }))
 })
 

@@ -16,8 +16,24 @@ export interface PlaidAccountData {
   balances: {
     available: number | null;
     current: number | null;
+    limit?: number | null;
     iso_currency_code: string | null;
   };
+}
+
+export interface PlaidCreditLiabilityData {
+  account_id: string;
+  minimum_payment_amount: number | null;
+  next_payment_due_date: string | null;
+  aprs: Array<{
+    apr_percentage: number;
+    apr_type: string;
+  }>;
+}
+
+export interface PlaidLiabilitiesData {
+  accounts: PlaidAccountData[];
+  liabilities: { credit: PlaidCreditLiabilityData[] | null };
 }
 
 function plaidConfig() {
@@ -75,6 +91,12 @@ export function getPlaidInstitution(institutionId: string) {
 
 export function getPlaidAccounts(accessToken: string) {
   return plaidRequest<{ accounts: PlaidAccountData[] }>("/accounts/get", {
+    access_token: accessToken,
+  });
+}
+
+export function getPlaidLiabilities(accessToken: string) {
+  return plaidRequest<PlaidLiabilitiesData>("/liabilities/get", {
     access_token: accessToken,
   });
 }

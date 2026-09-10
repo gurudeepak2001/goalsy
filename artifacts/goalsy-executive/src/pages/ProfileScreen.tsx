@@ -92,6 +92,15 @@ function Row({ icon, title, onClick, right }: RowProps) {
   );
 }
 
+function formatAccountCurrency(value: number | null, currencyCode: string | null) {
+  return value == null
+    ? 'Unavailable'
+    : value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: currencyCode ?? 'USD',
+      });
+}
+
 export default function ProfileScreen() {
   const [, navigate] = useLocation();
   const { user } = useUser();
@@ -501,16 +510,41 @@ export default function ProfileScreen() {
             </div>
             {[
               ['Account type', selectedPlaidAccount.subtype ?? selectedPlaidAccount.type],
-              ['Account number', selectedPlaidAccount.mask ? `•••• ${selectedPlaidAccount.mask}` : 'Not provided'],
+              ['Account number', selectedPlaidAccount.mask ? `•••• ${selectedPlaidAccount.mask}` : 'Unavailable'],
               [
                 isPlaidLiabilityAccount(selectedPlaidAccount) ? 'Available credit' : 'Available balance',
-                selectedPlaidAccount.availableBalance == null
-                  ? 'Not provided'
-                  : selectedPlaidAccount.availableBalance.toLocaleString('en-US', {
-                      style: 'currency',
-                      currency: selectedPlaidAccount.currencyCode ?? 'USD',
-                    }),
+                formatAccountCurrency(selectedPlaidAccount.availableBalance, selectedPlaidAccount.currencyCode),
               ],
+              ...(isPlaidLiabilityAccount(selectedPlaidAccount) ? [
+                ['Credit limit', formatAccountCurrency(selectedPlaidAccount.creditLimit, selectedPlaidAccount.currencyCode)],
+                [
+                  'Utilization',
+                  selectedPlaidAccount.creditLimit == null
+                    || selectedPlaidAccount.creditLimit <= 0
+                    || selectedPlaidAccount.currentBalance == null
+                    ? 'Unavailable'
+                    : `${((selectedPlaidAccount.currentBalance / selectedPlaidAccount.creditLimit) * 100).toLocaleString('en-US', {
+                        maximumFractionDigits: 1,
+                      })}%`,
+                ],
+                ['Minimum payment', formatAccountCurrency(selectedPlaidAccount.minimumPaymentAmount, selectedPlaidAccount.currencyCode)],
+                [
+                  'APR',
+                  selectedPlaidAccount.aprPercentage == null
+                    ? 'Unavailable'
+                    : `${selectedPlaidAccount.aprPercentage.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`,
+                ],
+                [
+                  'Next due date',
+                  selectedPlaidAccount.nextPaymentDueDate == null
+                    ? 'Unavailable'
+                    : new Date(`${selectedPlaidAccount.nextPaymentDueDate}T00:00:00`).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      }),
+                ],
+              ] : []),
               ['Currency', selectedPlaidAccount.currencyCode ?? 'USD'],
             ].map(([label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4 border-b border-white/5 pb-3">

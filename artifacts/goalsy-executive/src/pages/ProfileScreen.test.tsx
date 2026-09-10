@@ -15,7 +15,12 @@ const mocks = vi.hoisted(() => ({
     subtype: string | null;
     currentBalance: number | null;
     availableBalance: number | null;
+    creditLimit: number | null;
     currencyCode: string | null;
+    minimumPaymentAmount: number | null;
+    aprPercentage: number | null;
+    aprType: string | null;
+    nextPaymentDueDate: string | null;
   }>,
   financialProfile: {
     profile: {
@@ -177,11 +182,16 @@ describe('ProfileScreen achievements and help', () => {
       subtype: 'credit card',
       currentBalance: 410,
       availableBalance: 4_590,
+      creditLimit: 5_000,
       currencyCode: 'USD',
+      minimumPaymentAmount: 35,
+      aprPercentage: 21.49,
+      aprType: 'purchase_apr',
+      nextPaymentDueDate: '2026-09-28',
     }];
 
     render(<ProfileScreen />);
-    fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/ }));
 
     const accountsDialog = screen.getByRole('dialog', { name: 'Connected Accounts' });
     expect(within(accountsDialog).getByText('$410.00 owed')).toHaveClass('text-[#EF4444]');
@@ -193,6 +203,39 @@ describe('ProfileScreen achievements and help', () => {
     expect(within(detailDialog).getByText('$410.00')).toHaveClass('text-[#EF4444]');
     expect(within(detailDialog).getByText('Available credit')).toBeInTheDocument();
     expect(within(detailDialog).getByText('$4,590.00')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Credit limit')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('$5,000.00')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('8.2%')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('$35.00')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('21.49%')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Sep 28, 2026')).toBeInTheDocument();
     expect(within(detailDialog).getByText('•••• 3333')).toBeInTheDocument();
+  });
+
+  it('labels missing credit liability fields as unavailable', () => {
+    mocks.plaidAccounts = [{
+      id: 'credit-account',
+      itemId: 'plaid-item',
+      name: 'Limited Data Card',
+      officialName: null,
+      mask: null,
+      type: 'credit',
+      subtype: 'credit card',
+      currentBalance: 100,
+      availableBalance: null,
+      creditLimit: null,
+      currencyCode: 'USD',
+      minimumPaymentAmount: null,
+      aprPercentage: null,
+      aprType: null,
+      nextPaymentDueDate: null,
+    }];
+
+    render(<ProfileScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'View details for Limited Data Card' }));
+
+    const detailDialog = screen.getByRole('dialog', { name: 'Limited Data Card' });
+    expect(within(detailDialog).getAllByText('Unavailable')).toHaveLength(7);
   });
 });

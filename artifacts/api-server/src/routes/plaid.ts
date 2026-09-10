@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { and, eq, sql } from "drizzle-orm";
-import { db, plaidAccounts, plaidItems } from "@workspace/db";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import { db, plaidAccounts, plaidCreditLiabilities, plaidItems } from "@workspace/db";
 import { ExchangePlaidPublicTokenBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { decryptPlaidToken, encryptPlaidToken } from "../lib/tokenEncryption";
@@ -10,8 +10,11 @@ import {
   getPlaidAccounts,
   getPlaidInstitution,
   getPlaidItem,
+  getPlaidLiabilities,
   removePlaidItem,
   type PlaidAccountData,
+  type PlaidCreditLiabilityData,
+  type PlaidLiabilitiesData,
 } from "../lib/plaidClient";
 
 const router = Router();
@@ -28,6 +31,7 @@ function accountValues(account: PlaidAccountData, itemId: string, userId: string
     subtype: account.subtype,
     currentBalance: account.balances.current,
     availableBalance: account.balances.available,
+    creditLimit: account.balances.limit ?? null,
     currencyCode: account.balances.iso_currency_code,
     updatedAt: new Date(),
   };
@@ -51,6 +55,7 @@ async function upsertOwnedAccount(
         subtype: values.subtype,
         currentBalance: values.currentBalance,
         availableBalance: values.availableBalance,
+        creditLimit: values.creditLimit,
         currencyCode: values.currencyCode,
         updatedAt: values.updatedAt,
       },
@@ -63,6 +68,97 @@ async function upsertOwnedAccount(
 
   if (updated.length !== 1) {
     throw new Error("Plaid account ownership conflict");
+  }
+  return updated[0];
+}
+
+async function upsertOwnedCreditLiability(
+  tx: Pick<typeof db, "insert" | "select">,
+  liability: PlaidCreditLiabilityData,
+  userId: string,
+) {
+  const [account] = await tx.select({ id: plaidAccounts.id })
+    .from(plaidAccounts)
+    .where(and(
+      eq(plaidAccounts.plaidAccountId, liability.account_id),
+      eq(plaidAccounts.userId, userId),
+    ));
+  if (!account) throw new Error("Plaid liability account ownership conflict");
+
+  const apr = liability.aprs.find((entry) => entry.apr_type === "purchase_apr")
+    ?? liability.aprs[0]
+    ?? null;
+  const values = {
+    accountId: account.id,
+    userId,
+    minimumPaymentAmount: liability.minimum_payment_amount,
+    aprPercentage: apr?.apr_percentage ?? null,
+    aprType: apr?.apr_type ?? null,
+    nextPaymentDueDate: liability.next_payment_due_date,
+    updatedAt: new Date(),
+  };
+  const updated = await tx.insert(plaidCreditLiabilities).values(values)
+    .onConflictDoUpdate({
+      target: plaidCreditLiabilities.accountId,
+      set: {
+        minimumPaymentAmount: values.minimumPaymentAmount,
+        aprPercentage: values.aprPercentage,
+        aprType: values.aprType,
+        nextPaymentDueDate: values.nextPaymentDueDate,
+        updatedAt: values.updatedAt,
+      },
+      setWhere: eq(plaidCreditLiabilities.userId, userId),
+    })
+    .returning({ id: plaidCreditLiabilities.id });
+  if (updated.length !== 1) throw new Error("Plaid liability ownership conflict");
+}
+
+async function applyOwnedLiabilitiesSnapshot(
+  tx: Pick<typeof db, "delete" | "insert" | "select">,
+  response: PlaidLiabilitiesData,
+  itemId: string,
+  userId: string,
+) {
+  const accountIdsByPlaidId = new Map<string, string>();
+  for (const account of response.accounts) {
+    const stored = await upsertOwnedAccount(tx, account, itemId, userId);
+    accountIdsByPlaidId.set(account.account_id, stored.id);
+  }
+  const liabilities = response.liabilities.credit ?? [];
+  for (const liability of liabilities) {
+    await upsertOwnedCreditLiability(tx, liability, userId);
+  }
+
+  const liabilityPlaidIds = new Set(liabilities.map((liability) => liability.account_id));
+  const accountsWithoutLiability = response.accounts
+    .filter((account) => account.type === "credit" && !liabilityPlaidIds.has(account.account_id))
+    .map((account) => accountIdsByPlaidId.get(account.account_id))
+    .filter((accountId): accountId is string => accountId !== undefined);
+  if (accountsWithoutLiability.length > 0) {
+    await tx.delete(plaidCreditLiabilities).where(and(
+      eq(plaidCreditLiabilities.userId, userId),
+      inArray(plaidCreditLiabilities.accountId, accountsWithoutLiability),
+    ));
+  }
+}
+
+async function getPlaidAccountSnapshot(
+  accessToken: string,
+  onLiabilitiesUnavailable: (error: unknown) => void,
+): Promise<PlaidLiabilitiesData> {
+  const accountResponse = await getPlaidAccounts(accessToken);
+  try {
+    const liabilityResponse = await getPlaidLiabilities(accessToken);
+    return {
+      accounts: accountResponse.accounts,
+      liabilities: liabilityResponse.liabilities,
+    };
+  } catch (error) {
+    onLiabilitiesUnavailable(error);
+    return {
+      accounts: accountResponse.accounts,
+      liabilities: { credit: null },
+    };
   }
 }
 
@@ -91,7 +187,10 @@ router.post("/plaid/items/exchange", requireAuth, async (req, res): Promise<void
     const institutionName = institutionId
       ? (await getPlaidInstitution(institutionId)).institution.name
       : null;
-    const accountResponse = await getPlaidAccounts(exchanged.access_token);
+    const accountResponse = await getPlaidAccountSnapshot(
+      exchanged.access_token,
+      (error) => req.log.warn({ error }, "Plaid liabilities unavailable during item exchange"),
+    );
 
     const connection = await db.transaction(async (tx) => {
       // Serialize exchanges for the same Plaid item. The unique constraint alone
@@ -122,9 +221,7 @@ router.post("/plaid/items/exchange", requireAuth, async (req, res): Promise<void
         },
       }).returning();
 
-      for (const account of accountResponse.accounts) {
-        await upsertOwnedAccount(tx, account, item.id, userId);
-      }
+      await applyOwnedLiabilitiesSnapshot(tx, accountResponse, item.id, userId);
       return item;
     });
 
@@ -157,10 +254,14 @@ router.get("/plaid/accounts", requireAuth, async (req, res): Promise<void> => {
   try {
     const items = await db.select().from(plaidItems).where(eq(plaidItems.userId, userId));
     for (const item of items) {
-      const refreshed = await getPlaidAccounts(decryptPlaidToken(item.encryptedAccessToken));
-      for (const account of refreshed.accounts) {
-        await upsertOwnedAccount(db, account, item.id, userId);
-      }
+      const refreshed = await getPlaidAccountSnapshot(
+        decryptPlaidToken(item.encryptedAccessToken),
+        (error) => req.log.warn(
+          { error, itemId: item.id },
+          "Plaid liabilities unavailable during account refresh",
+        ),
+      );
+      await db.transaction((tx) => applyOwnedLiabilitiesSnapshot(tx, refreshed, item.id, userId));
     }
     const accounts = await db.select({
       id: plaidAccounts.id,
@@ -172,7 +273,12 @@ router.get("/plaid/accounts", requireAuth, async (req, res): Promise<void> => {
       subtype: plaidAccounts.subtype,
       currentBalance: plaidAccounts.currentBalance,
       availableBalance: plaidAccounts.availableBalance,
+      creditLimit: plaidAccounts.creditLimit,
       currencyCode: plaidAccounts.currencyCode,
+      minimumPaymentAmount: plaidCreditLiabilities.minimumPaymentAmount,
+      aprPercentage: plaidCreditLiabilities.aprPercentage,
+      aprType: plaidCreditLiabilities.aprType,
+      nextPaymentDueDate: plaidCreditLiabilities.nextPaymentDueDate,
     })
       .from(plaidAccounts)
       .innerJoin(
@@ -180,6 +286,13 @@ router.get("/plaid/accounts", requireAuth, async (req, res): Promise<void> => {
         and(
           eq(plaidAccounts.itemId, plaidItems.id),
           eq(plaidItems.userId, userId),
+        ),
+      )
+      .leftJoin(
+        plaidCreditLiabilities,
+        and(
+          eq(plaidCreditLiabilities.accountId, plaidAccounts.id),
+          eq(plaidCreditLiabilities.userId, userId),
         ),
       )
       .where(eq(plaidAccounts.userId, userId));

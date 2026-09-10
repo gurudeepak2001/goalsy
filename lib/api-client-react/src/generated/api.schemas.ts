@@ -98,7 +98,17 @@ export interface PlaidAccount {
   /** @nullable */
   availableBalance: number | null;
   /** @nullable */
+  creditLimit: number | null;
+  /** @nullable */
   currencyCode: string | null;
+  /** @nullable */
+  minimumPaymentAmount: number | null;
+  /** @nullable */
+  aprPercentage: number | null;
+  /** @nullable */
+  aprType: string | null;
+  /** @nullable */
+  nextPaymentDueDate: string | null;
 }
 
 export interface PlaidAccountsResponse {

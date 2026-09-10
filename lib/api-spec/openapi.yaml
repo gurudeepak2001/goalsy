@@ -845,9 +845,20 @@ components:
           type: ["number", "null"]
         availableBalance:
           type: ["number", "null"]
+        creditLimit:
+          type: ["number", "null"]
         currencyCode:
           type: ["string", "null"]
-      required: [id, itemId, name, officialName, mask, type, subtype, currentBalance, availableBalance, currencyCode]
+        minimumPaymentAmount:
+          type: ["number", "null"]
+        aprPercentage:
+          type: ["number", "null"]
+        aprType:
+          type: ["string", "null"]
+        nextPaymentDueDate:
+          type: ["string", "null"]
+          format: date
+      required: [id, itemId, name, officialName, mask, type, subtype, currentBalance, availableBalance, creditLimit, currencyCode, minimumPaymentAmount, aprPercentage, aprType, nextPaymentDueDate]
 
     PlaidAccountsResponse:
       type: object
