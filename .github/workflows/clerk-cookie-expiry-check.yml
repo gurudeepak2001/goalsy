@@ -76,6 +76,36 @@ jobs:
           steps.validate.outputs.validate_exit != '0'
         env:
           GH_TOKEN: ${{ github.token }}
+          ISSUE_BODY: |
+            ## CLERK_TEST_COOKIES has expired
+
+            The weekly expiry check detected that the **CLERK_TEST_COOKIES** repository secret
+            is expired (or invalid). The iOS session-restore smoke test will silently skip in CI
+            until the secret is rotated.
+
+            ### How to rotate
+
+            You need a Mac with Xcode and a booted iOS Simulator that has the Goalsy Executive
+            app installed and signed in with a Clerk test-environment account.
+
+            1. Launch the app on the simulator and confirm you are signed in.
+            2. Background the app (press Home / swipe up) so `saveClerkCookies()` fires.
+            3. Run the extraction helper:
+
+               ```bash
+               bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh | pbcopy
+               ```
+
+            4. Go to **Settings → Secrets and variables → Actions → Repository secrets** in
+               GitHub and update `CLERK_TEST_COOKIES` with the copied value.
+            5. Trigger the [Clerk Cookie Expiry Check](${{ github.server_url }}/${{ github.repository }}/actions/workflows/clerk-cookie-expiry-check.yml)
+               workflow manually to confirm the secret is now valid.
+
+            > **Note:** Cookie extraction requires a Mac with Xcode and a booted iOS Simulator.
+            > There is no CI-only rotation path — a local Mac is required to sign in and
+            > capture the session cookies.
+
+            /cc @${{ github.repository_owner }}
         run: |
           REPO="${{ github.repository }}"
           TITLE="Rotate CLERK_TEST_COOKIES — expired in CI"
@@ -94,38 +124,7 @@ jobs:
             gh issue create \
               --repo "$REPO" \
               --title "${TITLE}" \
-              --body "$(cat <<'EOF'
-## CLERK_TEST_COOKIES has expired
-
-The weekly expiry check detected that the **CLERK_TEST_COOKIES** repository secret
-is expired (or invalid). The iOS session-restore smoke test will silently skip in CI
-until the secret is rotated.
-
-### How to rotate
-
-You need a Mac with Xcode and a booted iOS Simulator that has the Goalsy Executive
-app installed and signed in with a Clerk test-environment account.
-
-1. Launch the app on the simulator and confirm you are signed in.
-2. Background the app (press Home / swipe up) so `saveClerkCookies()` fires.
-3. Run the extraction helper:
-
-   ```bash
-   bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh | pbcopy
-   ```
-
-4. Go to **Settings → Secrets and variables → Actions → Repository secrets** in
-   GitHub and update `CLERK_TEST_COOKIES` with the copied value.
-5. Trigger the [Clerk Cookie Expiry Check](${{ github.server_url }}/${{ github.repository }}/actions/workflows/clerk-cookie-expiry-check.yml)
-   workflow manually to confirm the secret is now valid.
-
-> **Note:** Cookie extraction requires a Mac with Xcode and a booted iOS Simulator.
-> There is no CI-only rotation path — a local Mac is required to sign in and
-> capture the session cookies.
-
-/cc @${{ github.repository_owner }}
-EOF
-)"
+              --body "${ISSUE_BODY}"
             echo "::error::CLERK_TEST_COOKIES is expired. A GitHub issue has been opened."
           fi
 
