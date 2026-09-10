@@ -1,0 +1,61 @@
+12 workflow runs
+Use Enteraxion identifier in artifacts/goalsy-executive/ios/App/AppUI…
+iOS Session-Restore Tests #12: Commit d0674df pushed by gurudeepak2001
+main	
+Sep 2, 4:29 PM EDT
+ 2m 59s
+Use Enteraxion identifier in artifacts/goalsy-executive/ios/App/AppTe…
+iOS Session-Restore Tests #11: Commit 7c34e5f pushed by gurudeepak2001
+main	
+Sep 2, 4:29 PM EDT
+ 5m 11s
+Use Enteraxion identifier in artifacts/goalsy-executive/ios/App/App.x…
+iOS Session-Restore Tests #10: Commit bd98a01 pushed by gurudeepak2001
+main	
+Sep 2, 4:29 PM EDT
+ 4m 40s
+Fix weekly milestone updates and notification dismissal
+iOS Session-Restore Tests #9: Commit c612564 pushed by gurudeepak2001
+main	
+Aug 22, 10:36 PM EDT
+ 2m 41s
+Implement new goal API logic and update corresponding executive app i…
+iOS Session-Restore Tests #8: Commit e760be0 pushed by gurudeepak2001
+main	
+Aug 22, 10:21 PM EDT
+ 4m 5s
+fix: add working-directory to symlink deref steps in ios-session-rest…
+iOS Session-Restore Tests #7: Commit 91e483f pushed by gurudeepak2001
+main	
+Aug 17, 2:50 PM EDT
+ 3m 6s
+feat: day-before contribution payment reminders
+iOS Session-Restore Tests #6: Commit c87a998 pushed by gurudeepak2001
+main	
+Aug 17, 2:47 PM EDT
+ 2m 18s
+chore: rename bundle ID com.goalsy.executive → com.myui.goalsyexecutive
+iOS Session-Restore Tests #5: Commit 53e569a pushed by gurudeepak2001
+main	
+Aug 15, 1:42 AM EDT
+ 3m 37s
+ci: dereference pnpm symlink for @capacitor/preferences so SPM reads …
+iOS Session-Restore Tests #4: Commit 18f4be8 pushed by gurudeepak2001
+main	
+Aug 15, 1:13 AM EDT
+ 2m 43s
+ci: patch CapApp-SPM package name from installed @capacitor/preferenc…
+iOS Session-Restore Tests #3: Commit 42aeca0 pushed by gurudeepak2001
+main	
+Aug 15, 12:59 AM EDT
+ 3m 56s
+ci: install node_modules before iOS xcodebuild so CapacitorPreference…
+iOS Session-Restore Tests #2: Commit 676c09e pushed by gurudeepak2001
+main	
+Aug 15, 12:52 AM EDT
+ 2m 50s
+Add new GitHub Actions workflow files
+iOS Session-Restore Tests #1: Commit 7c5b47e pushed by gurudeepak2001
+main	
+Aug 15, 12:32 AM EDT
+ 1m 58s
