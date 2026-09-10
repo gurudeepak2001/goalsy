@@ -74,6 +74,9 @@ export default function TodayScreen() {
 
   // ── Computed values from API ───────────────────────────────────────────────
   const activeGoals = (goals ?? []).filter((g) => g.status === 'active');
+  const highestPriorityGoal = [...activeGoals].sort(
+    (a, b) => a.priority - b.priority || a.createdAt.localeCompare(b.createdAt),
+  )[0] ?? null;
   const avgGoalProgress = activeGoals.length > 0
     ? Math.round(activeGoals.reduce((sum, g) => sum + (g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0), 0) / activeGoals.length)
     : 0;
@@ -87,6 +90,7 @@ export default function TodayScreen() {
   const currentScore = scoreData?.score ?? 842;
   const missionStatus = mission?.status ?? 'pending';
   const missionDone = missionStatus === 'completed' || missionStatus === 'skipped';
+  const isGoalContributionMission = mission?.title === 'Top up your highest-priority goal';
   const balanceSummary = summarizePlaidBalances(plaidAccountData?.accounts ?? []);
   const totalBalance = balanceSummary.net;
 
@@ -106,6 +110,18 @@ export default function TodayScreen() {
     } catch {
       toast({ title: 'Error', description: 'Could not mark mission complete. Please try again.', variant: 'destructive' });
     }
+  };
+
+  const handleMissionAction = async () => {
+    if (isGoalContributionMission) {
+      if (!highestPriorityGoal || !mission) {
+        navigate('/goals');
+        return;
+      }
+      navigate(`/goals/${highestPriorityGoal.id}?action=contribute&missionId=${mission.id}`);
+      return;
+    }
+    await handleComplete();
   };
 
   const handleConfirmSkip = async () => {
@@ -281,11 +297,17 @@ export default function TodayScreen() {
               )}
               <button
                 type="button"
-                onClick={handleComplete}
+                onClick={handleMissionAction}
                 disabled={completing}
                 className="h-11 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-70 flex items-center justify-center gap-2 bg-white text-[#05070A]"
               >
-                {completing ? <><Loader2 size={16} className="animate-spin" /> Processing</> : 'Mark Complete'}
+                {completing
+                  ? <><Loader2 size={16} className="animate-spin" /> Processing</>
+                  : isGoalContributionMission
+                    ? highestPriorityGoal
+                      ? `Add progress to ${highestPriorityGoal.name}`
+                      : 'Choose a goal'
+                    : 'Mark Complete'}
               </button>
               {!completing && (
                 <button

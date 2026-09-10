@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
 vi.mock('@tanstack/react-query', () => ({
@@ -67,5 +67,15 @@ describe('CalendarScreen data integrity', () => {
     expect(screen.getByText('Emergency Fund Review')).toBeInTheDocument();
 
     expect(screen.queryByText(/Wealthfront|4012|1\.2%|Optimize Debt Interest|Autopay Preview/i)).not.toBeInTheDocument();
+  });
+
+  it('formats briefing details as readable bullet points', () => {
+    render(<CalendarScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Emergency Fund Review/i }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Emergency Fund Review' });
+    expect(within(dialog).getByText('Goal Review')).toBeInTheDocument();
+    expect(within(dialog).getByText(/Scheduled for Sunday, September 20/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Review progress toward the saved goal')).toBeInTheDocument();
   });
 });

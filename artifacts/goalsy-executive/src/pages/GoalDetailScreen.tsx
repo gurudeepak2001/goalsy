@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
+import AppModal from '@/components/AppModal';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import { toast } from '@/hooks/use-toast';
@@ -34,7 +35,10 @@ import {
   getGetGoalQueryKey,
   useListGoalProgress,
   useCreateGoalProgress,
+  useCompleteMission,
   getListGoalProgressQueryKey,
+  getGetTodayMissionQueryKey,
+  getGetScoreQueryKey,
 } from '@workspace/api-client-react';
 import type { Goal, FinancialProfile } from '@workspace/api-client-react';
 
@@ -702,6 +706,7 @@ export default function GoalDetailScreen() {
   const { data: progressData } = useListGoalProgress(id ?? '');
   const { mutateAsync: updateGoal, isPending: updating } = useUpdateGoal();
   const { mutateAsync: logProgress, isPending: loggingProgress } = useCreateGoalProgress();
+  const { mutateAsync: completeMission, isPending: completingMission } = useCompleteMission();
   const { mutateAsync: deleteGoal, isPending: deleting } = useDeleteGoal();
 
   // Map of weekIndex → derived running total and individual weekly deposit.
@@ -835,6 +840,30 @@ export default function GoalDetailScreen() {
   const [confirmAmount, setConfirmAmount] = useState('');
   const [confirmError, setConfirmError] = useState<string | undefined>(undefined);
   const [milestoneExpanded, setMilestoneExpanded] = useState(false);
+  const contributionParams = new URLSearchParams(window.location.search);
+  const contributionMissionId = contributionParams.get('missionId');
+  const contributionRequested = contributionParams.get('action') === 'contribute' && !!contributionMissionId;
+  const [missionContributionOpen, setMissionContributionOpen] = useState(false);
+  const [missionContributionAmount, setMissionContributionAmount] = useState('');
+  const [missionContributionWeek, setMissionContributionWeek] = useState<number | null>(null);
+  const missionContributionOpened = useRef(false);
+
+  useEffect(() => {
+    if (!goal || !contributionRequested || missionContributionOpened.current) return;
+
+    const entryMap = new Map((progressData ?? []).map((entry) => [entry.weekIndex, entry.confirmedAmount]));
+    const schedule = computeWeeklyMilestones(goal, entryMap);
+    const eligible = schedule.filter((milestone) => canLogMilestoneProgress(milestone));
+    const selectedWeek = eligible.at(-1)?.weekIndex
+      ?? Math.max(1, Math.floor((Date.now() - new Date(goal.createdAt).getTime()) / MS_PER_WEEK) + 1);
+    const existingDeposit = (progressData ?? []).find((entry) => entry.weekIndex === selectedWeek)?.weeklyDeposit;
+    const suggestedDeposit = Math.max(25, Math.round(goal.monthlyContribution * 12 / 52));
+
+    setMissionContributionWeek(selectedWeek);
+    setMissionContributionAmount(String(existingDeposit ?? suggestedDeposit));
+    setMissionContributionOpen(true);
+    missionContributionOpened.current = true;
+  }, [contributionRequested, goal, progressData]);
 
   if (isLoading || !goal) {
     return (
@@ -978,6 +1007,42 @@ export default function GoalDetailScreen() {
       // Keep the form open so the user can retry — show error inline + toast
       setConfirmError('Could not save — check your connection and try again.');
       toast({ title: 'Failed to log progress', variant: 'destructive' });
+    }
+  };
+
+  const handleMissionContribution = async () => {
+    if (!goal || !contributionMissionId || missionContributionWeek === null) return;
+    const amount = parseInt(missionContributionAmount.replace(/[^0-9]/g, ''), 10);
+    if (!missionContributionAmount.trim() || !Number.isInteger(amount) || amount <= 0) {
+      toast({ title: 'Enter the amount added to this goal', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await logProgress({
+        id: goal.id,
+        data: { weekIndex: missionContributionWeek, weeklyDeposit: amount },
+      });
+      await completeMission({ id: contributionMissionId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetGoalQueryKey(goal.id) }),
+        queryClient.invalidateQueries({ queryKey: getListGoalProgressQueryKey(goal.id) }),
+        queryClient.invalidateQueries({ queryKey: getGetTodayMissionQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetScoreQueryKey() }),
+      ]);
+      setMissionContributionOpen(false);
+      toast({
+        title: 'Progress added and mission completed',
+        description: `${formatDollars(amount)} was added to ${goal.name}.`,
+      });
+      navigate('/today');
+    } catch {
+      toast({
+        title: 'Could not complete the mission',
+        description: 'Your progress was not confirmed. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -1475,6 +1540,37 @@ export default function GoalDetailScreen() {
           Remove Goal
         </button>
       </div>
+
+      <AppModal
+        open={missionContributionOpen}
+        onOpenChange={setMissionContributionOpen}
+        title={`Add Progress to ${goal.name}`}
+      >
+        <div className="flex flex-col gap-5 pb-4">
+          <div className="bg-[#111827] border border-white/5 rounded-2xl p-5">
+            <div className="text-[#808BA4] text-xs font-bold uppercase tracking-[1.2px]">Goal progress</div>
+            <div className="text-white text-lg font-bold mt-1">
+              {formatDollars(goal.currentAmount)} of {formatDollars(goal.targetAmount)}
+            </div>
+            <p className="text-[#808BA4] text-xs font-semibold mt-2">
+              Enter the total amount you added during this week. Saving it will complete today&apos;s mission and update your Goalsy Score.
+            </p>
+          </div>
+          <ExecutiveInput
+            label="Amount added"
+            leftIcon={<span className="font-bold">$</span>}
+            inputMode="numeric"
+            value={missionContributionAmount}
+            onChange={(event) => setMissionContributionAmount(event.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <ExecutiveButton
+            text={loggingProgress || completingMission ? 'Saving Progress…' : 'Save Progress & Complete Mission'}
+            icon={loggingProgress || completingMission ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+            disabled={loggingProgress || completingMission}
+            onClick={handleMissionContribution}
+          />
+        </div>
+      </AppModal>
     </AppShell>
   );
 }

@@ -147,6 +147,28 @@ function formatDateLabel(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function briefingTypeLabel(type: string | null | undefined): string {
+  if (type === 'goal_review') return 'Goal Review';
+  if (type === 'monthly_summary') return 'Monthly Financial Check-In';
+  if (type === 'market_update') return 'Market Update';
+  return 'Financial Briefing';
+}
+
+function briefingAccent(type: string | null | undefined): string {
+  if (type === 'goal_review') return '#22C55E';
+  if (type === 'market_update') return '#8B5CF6';
+  return '#3B82F6';
+}
+
+export function splitBriefingSummary(summary: string | null | undefined): string[] {
+  if (!summary?.trim()) return ['No additional details are available yet.'];
+  return summary
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.replace(/[.!?]+$/, '').trim())
+    .filter(Boolean);
+}
+
 export default function CalendarScreen() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -364,13 +386,57 @@ export default function CalendarScreen() {
         title={selectedBriefing?.title ?? ''}
       >
         {selectedBriefing && (
-          <div className="flex flex-col gap-4 pb-4">
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">
-              {formatDateLabel(selectedBriefing.scheduledDate)} &bull; {selectedBriefing.type ?? 'Briefing'}
-            </span>
-            <p className="text-[#E5E7EB] font-semibold text-base leading-6">
-              {selectedBriefing.summary ?? 'No additional details available.'}
-            </p>
+          <div className="flex flex-col gap-5 pb-4">
+            <div
+              className="rounded-2xl border p-4 flex items-center gap-3"
+              style={{
+                backgroundColor: `${briefingAccent(selectedBriefing.type)}12`,
+                borderColor: `${briefingAccent(selectedBriefing.type)}35`,
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${briefingAccent(selectedBriefing.type)}20` }}
+              >
+                {selectedBriefing.type === 'goal_review' ? (
+                  <Flag size={18} style={{ color: briefingAccent(selectedBriefing.type) }} />
+                ) : selectedBriefing.type === 'market_update' ? (
+                  <Lightbulb size={18} style={{ color: briefingAccent(selectedBriefing.type) }} />
+                ) : (
+                  <Wallet size={18} style={{ color: briefingAccent(selectedBriefing.type) }} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="font-bold text-[10px] uppercase tracking-[1.2px]"
+                  style={{ color: briefingAccent(selectedBriefing.type) }}
+                >
+                  {briefingTypeLabel(selectedBriefing.type)}
+                </div>
+                <div className="text-white font-bold text-sm mt-0.5">
+                  Scheduled for {new Date(`${selectedBriefing.scheduledDate}T12:00:00`).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {splitBriefingSummary(selectedBriefing.summary).map((point, index) => (
+                <div
+                  key={`${index}-${point}`}
+                  className="bg-[#111827] border border-white/5 rounded-2xl px-4 py-3.5 flex items-start gap-3"
+                >
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                    style={{ backgroundColor: briefingAccent(selectedBriefing.type) }}
+                  />
+                  <p className="text-[#E5E7EB] font-semibold text-sm leading-5">{point}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </AppModal>

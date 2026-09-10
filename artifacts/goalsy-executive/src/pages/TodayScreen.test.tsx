@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
-vi.mock('wouter', () => ({ useLocation: () => ['/today', vi.fn()] }));
+const mocks = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  mission: null as any,
+  goals: [] as any[],
+}));
+
+vi.mock('wouter', () => ({ useLocation: () => ['/today', mocks.navigate] }));
 vi.mock('@clerk/react', () => ({
   useUser: () => ({ user: { fullName: 'Alex Laurent', unsafeMetadata: {} } }),
 }));
@@ -10,10 +16,10 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 vi.mock('@workspace/api-client-react', () => ({
   getGetTodayMissionQueryKey: () => ['/api/missions/today'],
-  useGetTodayMission: () => ({ data: null, isLoading: false }),
+  useGetTodayMission: () => ({ data: mocks.mission, isLoading: false }),
   useCompleteMission: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSkipMission: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useListGoals: () => ({ data: [] }),
+  useListGoals: () => ({ data: mocks.goals }),
   useListBills: () => ({ data: [] }),
   useListBriefings: () => ({ data: [] }),
   useGetScore: () => ({ data: { score: 842 } }),
@@ -54,5 +60,25 @@ describe('Today linked balance details', () => {
     expect(within(dialog).getByText('$910')).toBeInTheDocument();
     expect(within(dialog).getByText('−$410.00')).toHaveClass('text-[#EF4444]');
     expect(within(dialog).getByText('Plaid Credit Card')).toBeInTheDocument();
+  });
+
+  it('opens the highest-priority goal contribution flow for the savings mission', () => {
+    mocks.navigate.mockReset();
+    mocks.mission = {
+      id: 'mission-savings',
+      title: 'Top up your highest-priority goal',
+      description: 'Add progress to your top goal.',
+      category: 'savings',
+      status: 'pending',
+    };
+    mocks.goals = [
+      { id: 'lower-goal', name: 'Vacation', status: 'active', priority: 3, createdAt: '2026-01-01', targetAmount: 2_000, currentAmount: 100 },
+      { id: 'top-goal', name: 'Emergency Fund', status: 'active', priority: 1, createdAt: '2026-02-01', targetAmount: 10_000, currentAmount: 2_000 },
+    ];
+
+    render(<TodayScreen />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add progress to Emergency Fund' }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/goals/top-goal?action=contribute&missionId=mission-savings');
   });
 });
