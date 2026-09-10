@@ -27,15 +27,9 @@ import {
   useListBills,
   useListBriefings,
   useGetScore,
+  useGetPlaidAccounts,
   getGetTodayMissionQueryKey,
 } from '@workspace/api-client-react';
-import { mockConnectedAccounts } from '@/lib/mockData';
-
-// Total balance is still from Plaid mock — real Plaid integration is out of scope.
-function parseBalance(balance: string): number {
-  return Number(balance.replace(/[^0-9.-]/g, ''));
-}
-const totalBalance = mockConnectedAccounts.reduce((sum, acc) => sum + parseBalance(acc.balance), 0);
 
 function formatDateLabel(iso: string): string {
   const d = new Date(iso);
@@ -53,6 +47,7 @@ export default function TodayScreen() {
   const { data: bills } = useListBills();
   const { data: briefings } = useListBriefings();
   const { data: scoreData } = useGetScore();
+  const { data: plaidAccountData } = useGetPlaidAccounts();
 
   const { mutateAsync: completeMission, isPending: completing } = useCompleteMission();
   const { mutateAsync: skipMission, isPending: skipping } = useSkipMission();
@@ -90,6 +85,10 @@ export default function TodayScreen() {
   const currentScore = scoreData?.score ?? 842;
   const missionStatus = mission?.status ?? 'pending';
   const missionDone = missionStatus === 'completed' || missionStatus === 'skipped';
+  const totalBalance = (plaidAccountData?.accounts ?? []).reduce(
+    (sum, account) => sum + (account.currentBalance ?? 0),
+    0,
+  );
 
   const pulseCards = [
     { label: 'Goalsy Score', value: String(currentScore), trend: '+4 wk', color: '#22C55E', icon: Sparkles, path: '/score' },
@@ -148,7 +147,9 @@ export default function TodayScreen() {
             <span className="text-white font-bold text-[40px] leading-[44px]" style={{ letterSpacing: '-1.5px' }}>
               ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
-            <span className="text-[#22C55E] font-bold text-sm leading-5 mb-1.5 whitespace-nowrap">+2.1% wk</span>
+            <span className="text-[#808BA4] font-bold text-sm leading-5 mb-1.5 whitespace-nowrap">
+              {plaidAccountData?.accounts.length ? `${plaidAccountData.accounts.length} linked` : 'No accounts'}
+            </span>
           </div>
         </div>
 

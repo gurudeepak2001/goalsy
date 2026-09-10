@@ -11,3 +11,4 @@ export * from "./briefings";
 export * from "./notifications";
 export * from "./pushTokens";
 export * from "./expenses";
+export * from "./plaidItems";

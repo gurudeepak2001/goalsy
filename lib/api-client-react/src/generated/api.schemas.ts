@@ -57,6 +57,54 @@ export interface FinancialProfileResponse {
   profile: FinancialProfile | null;
 }
 
+export interface PlaidLinkToken {
+  linkToken: string;
+}
+
+export interface PlaidPublicTokenInput {
+  /** @minLength 1 */
+  publicToken: string;
+}
+
+export interface PlaidConnection {
+  id: string;
+  /** @nullable */
+  institutionName: string | null;
+  status: string;
+  accountCount?: number;
+}
+
+export interface PlaidConnectionResponse {
+  connection: PlaidConnection;
+}
+
+export interface PlaidConnectionsResponse {
+  connections: PlaidConnection[];
+}
+
+export interface PlaidAccount {
+  id: string;
+  itemId: string;
+  name: string;
+  /** @nullable */
+  officialName: string | null;
+  /** @nullable */
+  mask: string | null;
+  type: string;
+  /** @nullable */
+  subtype: string | null;
+  /** @nullable */
+  currentBalance: number | null;
+  /** @nullable */
+  availableBalance: number | null;
+  /** @nullable */
+  currencyCode: string | null;
+}
+
+export interface PlaidAccountsResponse {
+  accounts: PlaidAccount[];
+}
+
 export interface UpdateFinancialProfileBody {
   /** @nullable */
   annualIncome?: number | null;
@@ -268,6 +316,11 @@ export interface AppNotification {
   isDismissed: boolean;
   createdAt: string;
 }
+
+/**
+ * Invalid request
+ */
+export type BadRequestResponse = ErrorResponse;
 
 /**
  * Not authenticated

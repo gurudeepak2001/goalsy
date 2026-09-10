@@ -12,6 +12,7 @@ import briefingsRouter from "./briefings";
 import notificationsRouter from "./notifications";
 import pushTokensRouter from "./pushTokens";
 import expensesRouter from "./expenses";
+import plaidRouter from "./plaid";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(briefingsRouter);
 router.use(notificationsRouter);
 router.use(pushTokensRouter);
 router.use(expensesRouter);
+router.use(plaidRouter);
 
 export default router;

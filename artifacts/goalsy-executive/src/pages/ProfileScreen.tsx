@@ -31,7 +31,6 @@ import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { Switch } from '@/components/ui/switch';
 import {
-  mockConnectedAccounts,
   mockSubscription,
 } from '@/lib/mockData';
 import { getScoreTier } from '@/lib/scoreUtils';
@@ -42,6 +41,8 @@ import {
   useGetMissionStreak,
   useListNotificationPreferences,
   useUpdateNotificationPreference,
+  useGetPlaidAccounts,
+  useGetPlaidConnections,
   getListNotificationPreferencesQueryKey,
 } from '@workspace/api-client-react';
 
@@ -117,6 +118,8 @@ export default function ProfileScreen() {
   // ── Real API: score + notification prefs ──────────────────────────────────
   const { data: scoreResult } = useGetScore();
   const { data: financialProfile } = useGetFinancialProfile();
+  const { data: plaidAccountData } = useGetPlaidAccounts();
+  const { data: plaidConnectionData } = useGetPlaidConnections();
   const { data: missionStreak } = useGetMissionStreak();
   const { data: notifPrefs } = useListNotificationPreferences();
   const { mutateAsync: updatePref } = useUpdateNotificationPreference();
@@ -337,7 +340,7 @@ export default function ProfileScreen() {
               onClick={() => setAccountsOpen(true)}
               right={
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-[#808BA4] font-semibold text-[13px]">{mockConnectedAccounts.length} Institutions</span>
+                  <span className="text-[#808BA4] font-semibold text-[13px]">{plaidConnectionData?.connections.length ?? 0} Institutions</span>
                   <ChevronRight size={16} className="text-[#808BA4]" />
                 </div>
               }
@@ -435,19 +438,24 @@ export default function ProfileScreen() {
       {/* Connected accounts modal */}
       <AppModal open={accountsOpen} onOpenChange={setAccountsOpen} title="Connected Accounts">
         <div className="flex flex-col gap-3 pb-4">
-          {mockConnectedAccounts.map((account) => (
+          {(plaidAccountData?.accounts ?? []).map((account) => (
             <div key={account.id} className="bg-[#111827] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-[#1F2937] border border-white/10 flex items-center justify-center flex-shrink-0">
                 <Building2 size={20} className="text-white" />
               </div>
               <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-white font-bold text-[15px] leading-[22px]">{account.institution}</span>
-                <span className="text-[#808BA4] font-semibold text-[13px]">{account.accountType} &bull;&bull;&bull;&bull; {account.last4}</span>
+                <span className="text-white font-bold text-[15px] leading-[22px]">{account.name}</span>
+                <span className="text-[#808BA4] font-semibold text-[13px]">{account.subtype ?? account.type} {account.mask ? `•••• ${account.mask}` : ''}</span>
               </div>
-              <span className="text-white font-bold text-sm flex-shrink-0">{account.balance}</span>
+              <span className="text-white font-bold text-sm flex-shrink-0">
+                {(account.currentBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: account.currencyCode ?? 'USD' })}
+              </span>
             </div>
           ))}
-          <ExecutiveButton variant="outline" text="Add Institution" onClick={() => toast({ title: 'Add Institution', description: 'Opens the secure Plaid link flow to connect a new bank.' })} />
+          {!plaidAccountData?.accounts.length && (
+            <p className="text-[#808BA4] text-sm font-semibold text-center py-3">No financial accounts connected yet.</p>
+          )}
+          <ExecutiveButton variant="outline" text="Add Institution" onClick={() => navigate('/financial-connection')} />
         </div>
       </AppModal>
 

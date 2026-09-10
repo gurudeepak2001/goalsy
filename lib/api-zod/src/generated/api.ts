@@ -96,6 +96,76 @@ export const UpdateFinancialProfileResponse = zod.object({
 
 
 /**
+ * @summary Create a Plaid Link token for the current user
+ */
+export const CreatePlaidLinkTokenResponse = zod.object({
+  "linkToken": zod.string()
+})
+
+
+/**
+ * @summary Exchange a Plaid public token and save the connection
+ */
+
+
+
+export const ExchangePlaidPublicTokenBody = zod.object({
+  "publicToken": zod.string().min(1)
+})
+
+export const ExchangePlaidPublicTokenResponse = zod.object({
+  "connection": zod.object({
+  "id": zod.string(),
+  "institutionName": zod.string().nullable(),
+  "status": zod.string(),
+  "accountCount": zod.number().optional()
+})
+})
+
+
+/**
+ * @summary List the current user's Plaid connections
+ */
+export const GetPlaidConnectionsResponse = zod.object({
+  "connections": zod.array(zod.object({
+  "id": zod.string(),
+  "institutionName": zod.string().nullable(),
+  "status": zod.string(),
+  "accountCount": zod.number().optional()
+}))
+})
+
+
+/**
+ * @summary Refresh and list the current user's Plaid accounts
+ */
+export const GetPlaidAccountsResponse = zod.object({
+  "accounts": zod.array(zod.object({
+  "id": zod.string(),
+  "itemId": zod.string(),
+  "name": zod.string(),
+  "officialName": zod.string().nullable(),
+  "mask": zod.string().nullable(),
+  "type": zod.string(),
+  "subtype": zod.string().nullable(),
+  "currentBalance": zod.number().nullable(),
+  "availableBalance": zod.number().nullable(),
+  "currencyCode": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Revoke and delete a Plaid connection
+ */
+export const DisconnectPlaidItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DisconnectPlaidItemResponse = zod.void()
+
+
+/**
  * @summary List all goals for the current user
  */
 export const ListGoalsResponseItem = zod.object({

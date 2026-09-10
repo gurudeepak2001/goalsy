@@ -8,9 +8,13 @@ import {
 import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveButton from '@/components/ExecutiveButton';
-import { mockConnectedAccounts, simulateAsync } from '@/lib/mockData';
+import { loadPlaidLink } from '@/lib/plaidLink';
 import {
   getGetFinancialProfileQueryKey,
+  getGetPlaidAccountsQueryKey,
+  getGetPlaidConnectionsQueryKey,
+  useCreatePlaidLinkToken,
+  useExchangePlaidPublicToken,
   useGetFinancialProfile,
   useUpdateFinancialProfile,
 } from '@workspace/api-client-react';
@@ -90,6 +94,8 @@ export default function FinancialConnectionScreen() {
 
   // ── Save mutation ──────────────────────────────────────────────────────────
   const { mutateAsync: saveProfile, isPending: saving } = useUpdateFinancialProfile();
+  const { mutateAsync: createLinkToken } = useCreatePlaidLinkToken();
+  const { mutateAsync: exchangePublicToken } = useExchangePlaidPublicToken();
 
   const handleProfileContinue = async () => {
     setProfileSaveError(null);
@@ -125,16 +131,58 @@ export default function FinancialConnectionScreen() {
     }
   };
 
-  // ── Plaid connect (existing, unchanged) ────────────────────────────────────
+  // ── Plaid Link ─────────────────────────────────────────────────────────────
   const handleConnect = async () => {
     if (connectStatus !== 'idle') return;
     setConnectStatus('connecting');
-    await simulateAsync(mockConnectedAccounts, 1800);
-    setConnectStatus('connected');
-    toast({
-      title: 'Accounts Connected',
-      description: `Linked ${mockConnectedAccounts.length} institutions successfully.`,
-    });
+    try {
+      const [{ linkToken }, Plaid] = await Promise.all([
+        createLinkToken(),
+        loadPlaidLink(),
+      ]);
+
+      const connected = await new Promise<boolean>((resolve, reject) => {
+        const handler = Plaid.create({
+          token: linkToken,
+          onSuccess: async (publicToken) => {
+            try {
+              const result = await exchangePublicToken({ data: { publicToken } });
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: getGetPlaidConnectionsQueryKey() }),
+                queryClient.invalidateQueries({ queryKey: getGetPlaidAccountsQueryKey() }),
+              ]);
+              setConnectStatus('connected');
+              toast({
+                title: 'Accounts Connected',
+                description: `Linked ${result.connection.accountCount ?? 0} account${result.connection.accountCount === 1 ? '' : 's'} successfully.`,
+              });
+              handler.destroy();
+              resolve(true);
+            } catch (error) {
+              handler.destroy();
+              reject(error);
+            }
+          },
+          onExit: (error) => {
+            handler.destroy();
+            if (error) reject(error);
+            else resolve(false);
+          },
+        });
+        handler.open();
+      });
+
+      if (!connected) {
+        setConnectStatus('idle');
+        return;
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unable to connect your accounts.';
+      setConnectStatus('idle');
+      toast({ title: 'Connection unsuccessful', description: detail, variant: 'destructive' });
+      return;
+    }
+
     setTimeout(() => navigate('/ai-home'), 700);
   };
 

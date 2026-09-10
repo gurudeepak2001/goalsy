@@ -29,6 +29,8 @@ tags:
     description: In-app notifications
   - name: expenses
     description: Expense tracking
+  - name: plaid
+    description: Secure financial account connections
 
 paths:
   /healthz:
@@ -111,6 +113,89 @@ paths:
                 $ref: "#/components/schemas/FinancialProfile"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  /plaid/link-token:
+    post:
+      operationId: createPlaidLinkToken
+      tags: [plaid]
+      summary: Create a Plaid Link token for the current user
+      responses:
+        "200":
+          description: Plaid Link token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaidLinkToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plaid/items/exchange:
+    post:
+      operationId: exchangePlaidPublicToken
+      tags: [plaid]
+      summary: Exchange a Plaid public token and save the connection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaidPublicTokenInput"
+      responses:
+        "200":
+          description: Saved Plaid connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaidConnectionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plaid/connection:
+    get:
+      operationId: getPlaidConnections
+      tags: [plaid]
+      summary: List the current user's Plaid connections
+      responses:
+        "200":
+          description: Plaid connections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaidConnectionsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plaid/accounts:
+    get:
+      operationId: getPlaidAccounts
+      tags: [plaid]
+      summary: Refresh and list the current user's Plaid accounts
+      responses:
+        "200":
+          description: Plaid accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaidAccountsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plaid/items/{id}:
+    delete:
+      operationId: disconnectPlaidItem
+      tags: [plaid]
+      summary: Revoke and delete a Plaid connection
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "204":
+          description: Connection removed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /goals:
     get:
@@ -598,6 +683,12 @@ components:
         type: string
 
   responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     Unauthorized:
       description: Not authenticated
       content:
@@ -688,6 +779,84 @@ components:
             - $ref: "#/components/schemas/FinancialProfile"
             - type: "null"
       required: [profile]
+
+    PlaidLinkToken:
+      type: object
+      properties:
+        linkToken:
+          type: string
+      required: [linkToken]
+
+    PlaidPublicTokenInput:
+      type: object
+      properties:
+        publicToken:
+          type: string
+          minLength: 1
+      required: [publicToken]
+
+    PlaidConnection:
+      type: object
+      properties:
+        id:
+          type: string
+        institutionName:
+          type: ["string", "null"]
+        status:
+          type: string
+        accountCount:
+          type: integer
+      required: [id, institutionName, status]
+
+    PlaidConnectionResponse:
+      type: object
+      properties:
+        connection:
+          $ref: "#/components/schemas/PlaidConnection"
+      required: [connection]
+
+    PlaidConnectionsResponse:
+      type: object
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaidConnection"
+      required: [connections]
+
+    PlaidAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+        officialName:
+          type: ["string", "null"]
+        mask:
+          type: ["string", "null"]
+        type:
+          type: string
+        subtype:
+          type: ["string", "null"]
+        currentBalance:
+          type: ["number", "null"]
+        availableBalance:
+          type: ["number", "null"]
+        currencyCode:
+          type: ["string", "null"]
+      required: [id, itemId, name, officialName, mask, type, subtype, currentBalance, availableBalance, currencyCode]
+
+    PlaidAccountsResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaidAccount"
+      required: [accounts]
 
     UpdateFinancialProfileBody:
       type: object

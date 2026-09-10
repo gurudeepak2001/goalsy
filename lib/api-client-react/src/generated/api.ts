@@ -21,6 +21,7 @@ import type {
 
 import type {
   AppNotification,
+  BadRequestResponse,
   Bill,
   Briefing,
   CreateExpenseBody,
@@ -38,6 +39,11 @@ import type {
   MissionStreak,
   NotFoundResponse,
   NotificationPreference,
+  PlaidAccountsResponse,
+  PlaidConnectionResponse,
+  PlaidConnectionsResponse,
+  PlaidLinkToken,
+  PlaidPublicTokenInput,
   ScoreResult,
   ScoreSnapshot,
   SkipMissionBody,
@@ -447,6 +453,373 @@ export const useUpdateFinancialProfile = <TError = ErrorType<UnauthorizedRespons
         TContext
       > => {
       return useMutation(getUpdateFinancialProfileMutationOptions(options));
+    }
+
+export const getCreatePlaidLinkTokenUrl = () => {
+
+
+
+
+  return `/api/plaid/link-token`
+}
+
+/**
+ * @summary Create a Plaid Link token for the current user
+ */
+export const createPlaidLinkToken = async ( options?: RequestInit): Promise<PlaidLinkToken> => {
+
+  return customFetch<PlaidLinkToken>(getCreatePlaidLinkTokenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreatePlaidLinkTokenMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlaidLinkToken>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlaidLinkToken>>, TError,void, TContext> => {
+
+const mutationKey = ['createPlaidLinkToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlaidLinkToken>>, void> = () => {
+
+
+          return  createPlaidLinkToken(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlaidLinkTokenMutationResult = NonNullable<Awaited<ReturnType<typeof createPlaidLinkToken>>>
+
+    export type CreatePlaidLinkTokenMutationError = ErrorType<UnauthorizedResponse>
+
+    /**
+ * @summary Create a Plaid Link token for the current user
+ */
+export const useCreatePlaidLinkToken = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlaidLinkToken>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlaidLinkToken>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreatePlaidLinkTokenMutationOptions(options));
+    }
+
+export const getExchangePlaidPublicTokenUrl = () => {
+
+
+
+
+  return `/api/plaid/items/exchange`
+}
+
+/**
+ * @summary Exchange a Plaid public token and save the connection
+ */
+export const exchangePlaidPublicToken = async (plaidPublicTokenInput: PlaidPublicTokenInput, options?: RequestInit): Promise<PlaidConnectionResponse> => {
+
+  return customFetch<PlaidConnectionResponse>(getExchangePlaidPublicTokenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(plaidPublicTokenInput)
+  }
+);}
+
+
+
+
+
+export const getExchangePlaidPublicTokenMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exchangePlaidPublicToken>>, TError,{data: BodyType<PlaidPublicTokenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exchangePlaidPublicToken>>, TError,{data: BodyType<PlaidPublicTokenInput>}, TContext> => {
+
+const mutationKey = ['exchangePlaidPublicToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exchangePlaidPublicToken>>, {data: BodyType<PlaidPublicTokenInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exchangePlaidPublicToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExchangePlaidPublicTokenMutationResult = NonNullable<Awaited<ReturnType<typeof exchangePlaidPublicToken>>>
+    export type ExchangePlaidPublicTokenMutationBody = BodyType<PlaidPublicTokenInput>
+    export type ExchangePlaidPublicTokenMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse>
+
+    /**
+ * @summary Exchange a Plaid public token and save the connection
+ */
+export const useExchangePlaidPublicToken = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exchangePlaidPublicToken>>, TError,{data: BodyType<PlaidPublicTokenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exchangePlaidPublicToken>>,
+        TError,
+        {data: BodyType<PlaidPublicTokenInput>},
+        TContext
+      > => {
+      return useMutation(getExchangePlaidPublicTokenMutationOptions(options));
+    }
+
+export const getGetPlaidConnectionsUrl = () => {
+
+
+
+
+  return `/api/plaid/connection`
+}
+
+/**
+ * @summary List the current user's Plaid connections
+ */
+export const getPlaidConnections = async ( options?: RequestInit): Promise<PlaidConnectionsResponse> => {
+
+  return customFetch<PlaidConnectionsResponse>(getGetPlaidConnectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlaidConnectionsQueryKey = () => {
+    return [
+    `/api/plaid/connection`
+    ] as const;
+    }
+
+
+export const getGetPlaidConnectionsQueryOptions = <TData = Awaited<ReturnType<typeof getPlaidConnections>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaidConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlaidConnectionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlaidConnections>>> = ({ signal }) => getPlaidConnections({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlaidConnections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlaidConnectionsQueryResult = NonNullable<Awaited<ReturnType<typeof getPlaidConnections>>>
+export type GetPlaidConnectionsQueryError = ErrorType<UnauthorizedResponse>
+
+
+/**
+ * @summary List the current user's Plaid connections
+ */
+
+export function useGetPlaidConnections<TData = Awaited<ReturnType<typeof getPlaidConnections>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaidConnections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlaidConnectionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlaidAccountsUrl = () => {
+
+
+
+
+  return `/api/plaid/accounts`
+}
+
+/**
+ * @summary Refresh and list the current user's Plaid accounts
+ */
+export const getPlaidAccounts = async ( options?: RequestInit): Promise<PlaidAccountsResponse> => {
+
+  return customFetch<PlaidAccountsResponse>(getGetPlaidAccountsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlaidAccountsQueryKey = () => {
+    return [
+    `/api/plaid/accounts`
+    ] as const;
+    }
+
+
+export const getGetPlaidAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getPlaidAccounts>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaidAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlaidAccountsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlaidAccounts>>> = ({ signal }) => getPlaidAccounts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlaidAccounts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlaidAccountsQueryResult = NonNullable<Awaited<ReturnType<typeof getPlaidAccounts>>>
+export type GetPlaidAccountsQueryError = ErrorType<UnauthorizedResponse>
+
+
+/**
+ * @summary Refresh and list the current user's Plaid accounts
+ */
+
+export function useGetPlaidAccounts<TData = Awaited<ReturnType<typeof getPlaidAccounts>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaidAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlaidAccountsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDisconnectPlaidItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/plaid/items/${id}`
+}
+
+/**
+ * @summary Revoke and delete a Plaid connection
+ */
+export const disconnectPlaidItem = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDisconnectPlaidItemUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectPlaidItemMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectPlaidItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectPlaidItem>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['disconnectPlaidItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectPlaidItem>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  disconnectPlaidItem(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectPlaidItemMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectPlaidItem>>>
+
+    export type DisconnectPlaidItemMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
+
+    /**
+ * @summary Revoke and delete a Plaid connection
+ */
+export const useDisconnectPlaidItem = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectPlaidItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectPlaidItem>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDisconnectPlaidItemMutationOptions(options));
     }
 
 export const getListGoalsUrl = () => {

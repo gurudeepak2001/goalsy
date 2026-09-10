@@ -4,6 +4,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   saveProfile: vi.fn(),
+  createLinkToken: vi.fn(),
+  exchangePublicToken: vi.fn(),
   queryClient: {
     setQueryData: vi.fn(),
     invalidateQueries: vi.fn().mockResolvedValue(undefined),
@@ -30,12 +32,22 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('@workspace/api-client-react', () => ({
   getGetFinancialProfileQueryKey: () => ['/api/financial-profile'],
+  getGetPlaidAccountsQueryKey: () => ['/api/plaid/accounts'],
+  getGetPlaidConnectionsQueryKey: () => ['/api/plaid/connection'],
   useGetFinancialProfile: () => ({
     data: mocks.financialProfile,
     isLoading: false,
   }),
   useUpdateFinancialProfile: () => ({
     mutateAsync: mocks.saveProfile,
+    isPending: false,
+  }),
+  useCreatePlaidLinkToken: () => ({
+    mutateAsync: mocks.createLinkToken,
+    isPending: false,
+  }),
+  useExchangePlaidPublicToken: () => ({
+    mutateAsync: mocks.exchangePublicToken,
     isPending: false,
   }),
 }));
@@ -57,10 +69,7 @@ vi.mock('@/components/ExecutiveButton', () => ({
   ),
 }));
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
-vi.mock('@/lib/mockData', () => ({
-  mockConnectedAccounts: [],
-  simulateAsync: vi.fn(),
-}));
+vi.mock('@/lib/plaidLink', () => ({ loadPlaidLink: vi.fn() }));
 
 import FinancialConnectionScreen from './FinancialConnectionScreen';
 

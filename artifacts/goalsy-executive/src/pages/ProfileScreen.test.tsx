@@ -47,6 +47,8 @@ vi.mock('@workspace/api-client-react', () => ({
   useGetScore: () => ({ data: { score: 842, tier: 'Command', computedAt: '2026-08-21T12:00:00.000Z' } }),
   useGetFinancialProfile: () => ({ data: mocks.financialProfile }),
   useGetMissionStreak: () => ({ data: mocks.missionStreak }),
+  useGetPlaidAccounts: () => ({ data: { accounts: [] } }),
+  useGetPlaidConnections: () => ({ data: { connections: [] } }),
   useListNotificationPreferences: () => ({ data: [] }),
   useUpdateNotificationPreference: () => ({ mutateAsync: mocks.updatePref }),
 }));
