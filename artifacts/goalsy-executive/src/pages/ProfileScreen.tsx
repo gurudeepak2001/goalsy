@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/userDisplay';
+import { isPlaidLiabilityAccount } from '@/lib/plaidBalances';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
 import Avatar from '@/components/Avatar';
@@ -449,6 +450,7 @@ export default function ProfileScreen() {
               </div>
               <span className="text-white font-bold text-sm flex-shrink-0">
                 {(account.currentBalance ?? 0).toLocaleString('en-US', { style: 'currency', currency: account.currencyCode ?? 'USD' })}
+                {isPlaidLiabilityAccount(account) ? ' owed' : ''}
               </span>
             </div>
           ))}

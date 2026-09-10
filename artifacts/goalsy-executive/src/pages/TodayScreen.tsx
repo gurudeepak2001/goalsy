@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast';
 import AppHeader from '@/components/AppHeader';
 import AppModal from '@/components/AppModal';
 import AppShell from '@/components/AppShell';
+import { calculateNetPlaidBalance } from '@/lib/plaidBalances';
 import {
   useGetTodayMission,
   useCompleteMission,
@@ -85,10 +86,7 @@ export default function TodayScreen() {
   const currentScore = scoreData?.score ?? 842;
   const missionStatus = mission?.status ?? 'pending';
   const missionDone = missionStatus === 'completed' || missionStatus === 'skipped';
-  const totalBalance = (plaidAccountData?.accounts ?? []).reduce(
-    (sum, account) => sum + (account.currentBalance ?? 0),
-    0,
-  );
+  const totalBalance = calculateNetPlaidBalance(plaidAccountData?.accounts ?? []);
 
   const pulseCards = [
     { label: 'Goalsy Score', value: String(currentScore), trend: '+4 wk', color: '#22C55E', icon: Sparkles, path: '/score' },
@@ -141,7 +139,7 @@ export default function TodayScreen() {
           </div>
           <div className="flex items-center gap-2">
             <Wallet size={16} className="text-[#808BA4]" />
-            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Total Balance</span>
+            <span className="text-[#808BA4] font-bold text-xs uppercase tracking-[1.5px]">Net Linked Balance</span>
           </div>
           <div className="flex items-end gap-3">
             <span className="text-white font-bold text-[40px] leading-[44px]" style={{ letterSpacing: '-1.5px' }}>
