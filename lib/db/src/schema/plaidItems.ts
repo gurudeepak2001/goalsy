@@ -1,4 +1,4 @@
-import { index, pgTable, real, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, pgTable, real, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -14,12 +14,13 @@ export const plaidItems = pgTable("plaid_items", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex("plaid_items_plaid_item_id_unique").on(table.plaidItemId),
+  unique("plaid_items_id_user_id_unique").on(table.id, table.userId),
   index("plaid_items_user_id_idx").on(table.userId),
 ]);
 
 export const plaidAccounts = pgTable("plaid_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  itemId: uuid("item_id").notNull().references(() => plaidItems.id, { onDelete: "cascade" }),
+  itemId: uuid("item_id").notNull(),
   userId: text("user_id").notNull(),
   plaidAccountId: text("plaid_account_id").notNull(),
   name: text("name").notNull(),
@@ -33,6 +34,11 @@ export const plaidAccounts = pgTable("plaid_accounts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
+  foreignKey({
+    columns: [table.itemId, table.userId],
+    foreignColumns: [plaidItems.id, plaidItems.userId],
+    name: "plaid_accounts_item_owner_fk",
+  }).onDelete("cascade"),
   uniqueIndex("plaid_accounts_plaid_account_id_unique").on(table.plaidAccountId),
   index("plaid_accounts_user_id_idx").on(table.userId),
   index("plaid_accounts_item_id_idx").on(table.itemId),
