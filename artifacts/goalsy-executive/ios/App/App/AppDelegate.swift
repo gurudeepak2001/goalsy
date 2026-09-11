@@ -90,16 +90,33 @@ private final class GoalsyAuthStateHandlerProxy: NSObject, WKScriptMessageHandle
     }
 }
 
+/// Keeps local plugin registration safe when more than one iOS lifecycle hook
+/// observes the same Capacitor bridge.
+private final class GoalsyPluginRegistrar {
+    static let shared = GoalsyPluginRegistrar()
+
+    private let biometricAuthPlugin = BiometricAuthPlugin()
+    private weak var registeredBridge: AnyObject?
+
+    private init() {}
+
+    func registerPlugins(on bridge: CAPBridgeProtocol?) {
+        guard let bridge else { return }
+        let bridgeObject = bridge as AnyObject
+        guard registeredBridge !== bridgeObject else { return }
+
+        bridge.registerPluginInstance(biometricAuthPlugin)
+        registeredBridge = bridgeObject
+        NSLog("[Goalsy:native] BiometricAuth plugin registered")
+    }
+}
+
 /// Registers local Capacitor plugins before the bundled web app begins loading.
-///
-/// `applicationDidBecomeActive` runs too late: by then Capacitor has already
-/// exported the JavaScript plugin bridge, so calls to a locally registered
-/// plugin are reported as "not implemented on ios".
 @objc(MainViewController)
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
-        bridge?.registerPluginInstance(BiometricAuthPlugin())
+        GoalsyPluginRegistrar.shared.registerPlugins(on: bridge)
     }
 }
 
@@ -195,6 +212,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationWillEnterForeground(_ application: UIApplication) {}
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        // Some simulator/Xcode launch paths instantiate the bridge without
+        // invoking our storyboard subclass hook. Register again here as a
+        // fallback; GoalsyPluginRegistrar makes this safe and idempotent.
+        if let bridgeVC = window?.rootViewController as? CAPBridgeViewController {
+            GoalsyPluginRegistrar.shared.registerPlugins(on: bridgeVC.bridge)
+        }
+
         // Register the auth-state script-message handler the first time the
         // Capacitor WKWebView is available (i.e. after viewDidLoad has run).
         // applicationDidBecomeActive is the earliest reliable point where
