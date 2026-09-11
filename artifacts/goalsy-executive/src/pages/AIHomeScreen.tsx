@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   Lightbulb,
@@ -7,6 +8,9 @@ import {
   Target,
   AlertTriangle,
   TrendingDown,
+  RefreshCw,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from '@/hooks/use-toast';
@@ -249,7 +253,7 @@ function computeForecast(fp: FP, goals: GoalRow[]) {
 }
 
 /** Show the impact of a modest contribution boost on the goal that benefits most. */
-function computeScenario(fp: FP, goals: GoalRow[], priorityItem: PriorityItem | null) {
+function computeScenario(fp: FP, goals: GoalRow[], priorityItem: PriorityItem | null, boostOverride?: number | null) {
   const active = goals.filter(
     (g) => g.status === 'active' && g.monthlyContribution > 0 && g.targetAmount > g.currentAmount,
   );
@@ -269,14 +273,29 @@ function computeScenario(fp: FP, goals: GoalRow[], priorityItem: PriorityItem | 
   const rawBoost = surplus > 0
     ? Math.round(surplus * 0.10 / 50) * 50
     : Math.round(targetGoal.monthlyContribution * 0.10 / 50) * 50;
-  const boostAmount = Math.max(50, Math.min(500, rawBoost));
+  const suggestedBoost = Math.max(50, Math.min(500, rawBoost));
+  const boostAmount = boostOverride == null ? suggestedBoost : Math.max(50, Math.min(1_000, boostOverride));
 
   const remaining = targetGoal.targetAmount - targetGoal.currentAmount;
   const currentMonths = remaining / targetGoal.monthlyContribution;
   const boostedMonths = remaining / (targetGoal.monthlyContribution + boostAmount);
   const monthsSaved = Math.max(1, Math.round(currentMonths - boostedMonths));
 
-  return { hasData: true, goalName: targetGoal.name, boostAmount, monthsSaved };
+  return { hasData: true, goalId: targetGoal.id, goalName: targetGoal.name, boostAmount, monthsSaved };
+}
+
+function getRecommendationAction(
+  rec: ReturnType<typeof computeStrategicRec>,
+  priorityItem: PriorityItem | null,
+) {
+  if (rec.title.startsWith('Boost ') || rec.title.startsWith('Fund ')) {
+    return priorityItem
+      ? { label: 'Adjust this goal', path: `/goals/${priorityItem.goal.id}` }
+      : { label: 'Review goals', path: '/goals' };
+  }
+  if (rec.title === 'Trim Monthly Expenses') return { label: 'Review expenses', path: '/expenses' };
+  if (rec.title === 'Grow Your Savings') return { label: 'Update savings plan', path: '/financial-connection?mode=edit' };
+  return { label: 'Review goals', path: '/goals' };
 }
 
 // ── Top Priority Goal Card ────────────────────────────────────────────────────
@@ -358,10 +377,11 @@ function CardSkeleton() {
 
 export default function AIHomeScreen() {
   const [, navigate] = useLocation();
+  const [scenarioBoost, setScenarioBoost] = useState<number | null>(null);
 
-  const { data: goalsData, isLoading: goalsLoading } = useListGoals();
-  const { data: fpData, isLoading: fpLoading } = useGetFinancialProfile();
-  const { isLoading: scoreLoading } = useGetScore();
+  const { data: goalsData, isLoading: goalsLoading, isError: goalsError, isFetching: goalsFetching, refetch: refetchGoals } = useListGoals();
+  const { data: fpData, isLoading: fpLoading, isError: profileError, isFetching: profileFetching, refetch: refetchProfile } = useGetFinancialProfile();
+  const { isLoading: scoreLoading, isError: scoreError, isFetching: scoreFetching, refetch: refetchScore } = useGetScore();
 
   const goals = (goalsData ?? []) as GoalRow[];
   const fp: FP = (fpData as { profile?: FP } | undefined)?.profile ?? null;
@@ -370,7 +390,10 @@ export default function AIHomeScreen() {
   const priorityItem = pickPriorityGoal(goals);
   const rec = computeStrategicRec(fp, goals, priorityItem);
   const forecast = computeForecast(fp, goals);
-  const scenario = computeScenario(fp, goals, priorityItem);
+  const scenario = computeScenario(fp, goals, priorityItem, scenarioBoost);
+  const recommendationAction = getRecommendationAction(rec, priorityItem);
+  const hasDataError = goalsError || profileError || scoreError;
+  const refreshing = goalsFetching || profileFetching || scoreFetching;
 
   // Daily Analysis — real cash flow numbers
   const activeGoals = goals.filter((g) => g.status === 'active');
@@ -390,6 +413,19 @@ export default function AIHomeScreen() {
     });
   };
 
+  const refreshInsights = async () => {
+    try {
+      await Promise.all([refetchGoals(), refetchProfile(), refetchScore()]);
+      toast({ title: 'Insights refreshed', description: 'Your recommendations now use your latest saved Goalsy data.' });
+    } catch {
+      toast({
+        title: 'Could not refresh insights',
+        description: 'Check your connection and try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <AppShell
       activeTab="ai"
@@ -398,6 +434,29 @@ export default function AIHomeScreen() {
       header={<AppHeader dashboard dashboardTitle="Strategic Intelligence" showNotification={false} />}
     >
       <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-[#808BA4] text-sm font-semibold leading-5">
+            Recommendations based on your saved goals and financial profile.
+          </p>
+          <button
+            type="button"
+            onClick={refreshInsights}
+            disabled={refreshing}
+            className="shrink-0 min-h-10 px-3 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-xs flex items-center gap-2 disabled:opacity-60"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
+
+        {hasDataError && (
+          <div className="bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-[#FCA5A5] text-sm font-semibold">Some insights may be out of date.</span>
+            <button type="button" onClick={refreshInsights} className="text-[#FCA5A5] font-bold text-sm underline">
+              Try again
+            </button>
+          </div>
+        )}
 
         {/* ── Top Priority Goal ────────────────────────────────────────── */}
         {priorityItem && (
@@ -430,6 +489,14 @@ export default function AIHomeScreen() {
               </div>
               <span className="text-white font-bold text-base leading-6">{rec.confidence}%</span>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate(recommendationAction.path)}
+              className="w-full min-h-12 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              {recommendationAction.label}
+              <ArrowRight size={15} />
+            </button>
           </div>
         )}
 
@@ -468,6 +535,13 @@ export default function AIHomeScreen() {
                 <span className="text-[#4B5563] font-semibold text-xs mt-1">
                   Based on current net worth + contributions + monthly savings
                 </span>
+                <button
+                  type="button"
+                  onClick={() => navigate('/financial-health')}
+                  className="self-start mt-3 text-[#60A5FA] font-bold text-sm underline"
+                >
+                  Review financial health →
+                </button>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -515,6 +589,54 @@ export default function AIHomeScreen() {
                     to reach your goal
                   </span>
                 </div>
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="scenario-boost" className="text-[#CBD5E1] font-bold text-sm">
+                      Monthly boost: {formatDollars(scenario.boostAmount)}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="Decrease monthly boost"
+                        onClick={() => setScenarioBoost(Math.max(50, scenario.boostAmount - 50))}
+                        disabled={scenario.boostAmount <= 50}
+                        className="w-8 h-8 rounded-lg border border-white/10 text-[#CBD5E1] flex items-center justify-center disabled:opacity-40"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Increase monthly boost"
+                        onClick={() => setScenarioBoost(Math.min(1_000, scenario.boostAmount + 50))}
+                        disabled={scenario.boostAmount >= 1_000}
+                        className="w-8 h-8 rounded-lg border border-white/10 text-[#CBD5E1] flex items-center justify-center disabled:opacity-40"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    id="scenario-boost"
+                    type="range"
+                    min="50"
+                    max="1000"
+                    step="50"
+                    value={scenario.boostAmount}
+                    onChange={(event) => setScenarioBoost(Number(event.target.value))}
+                    className="w-full accent-[#2563EB]"
+                  />
+                  <span className="text-[#808BA4] text-xs font-semibold">
+                    This is a what-if estimate. It does not change your goal until you update it.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/goals/${scenario.goalId}`)}
+                  className="w-full min-h-11 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-sm flex items-center justify-center gap-2"
+                >
+                  Adjust {scenario.goalName}
+                  <ArrowRight size={15} />
+                </button>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
