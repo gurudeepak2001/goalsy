@@ -14,6 +14,10 @@ on:
       - 'artifacts/goalsy-executive/ios/**'
       - '.github/workflows/ios-session-restore-tests.yml'
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   clerk-cookie-round-trip:
     name: Clerk Cookie Round-Trip (AppTests)
@@ -36,7 +40,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -158,7 +162,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
