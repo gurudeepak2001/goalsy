@@ -26,6 +26,7 @@ vi.mock('@capacitor/preferences', () => ({
 }));
 
 import {
+  authenticateForAppUnlock,
   disableBiometricLock,
   enableBiometricLock,
   getBiometricLockEnabled,
@@ -53,6 +54,13 @@ describe('biometric lock', () => {
       key: 'goalsy_biometric_lock_enabled',
       value: 'true',
     });
+  });
+
+  it('does not open a second Face ID prompt when enabling biometrics returns the app to the foreground', async () => {
+    await enableBiometricLock();
+    await authenticateForAppUnlock();
+
+    expect(native.authenticate).toHaveBeenCalledTimes(1);
   });
 
   it('does not enable the lock when no enrolled biometric method is available', async () => {

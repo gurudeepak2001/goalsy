@@ -2,6 +2,10 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
 const BIOMETRIC_LOCK_KEY = 'goalsy_biometric_lock_enabled';
+const BIOMETRIC_AUTH_GRACE_MS = 5_000;
+
+let biometricAuthenticationInProgress = false;
+let lastSuccessfulBiometricAuthenticationAt = 0;
 
 interface BiometricAuthPlugin {
   checkBiometry(): Promise<{
@@ -13,6 +17,24 @@ interface BiometricAuthPlugin {
 }
 
 const BiometricAuth = registerPlugin<BiometricAuthPlugin>('BiometricAuth');
+
+async function authenticateWithBiometrics(options: {
+  reason: string;
+  cancelTitle?: string;
+}): Promise<void> {
+  biometricAuthenticationInProgress = true;
+  try {
+    await BiometricAuth.authenticate(options);
+    lastSuccessfulBiometricAuthenticationAt = Date.now();
+  } finally {
+    biometricAuthenticationInProgress = false;
+  }
+}
+
+function canReuseCurrentBiometricAuthentication(): boolean {
+  return biometricAuthenticationInProgress
+    || Date.now() - lastSuccessfulBiometricAuthenticationAt < BIOMETRIC_AUTH_GRACE_MS;
+}
 
 export function isNativeBiometricDevice(): boolean {
   return Capacitor.isNativePlatform();
@@ -34,7 +56,7 @@ export async function enableBiometricLock(): Promise<string> {
     throw new Error(availability.reason || 'No enrolled biometric method is available on this device.');
   }
 
-  await BiometricAuth.authenticate({
+  await authenticateWithBiometrics({
     reason: 'Confirm biometric unlock for Goalsy.',
     cancelTitle: 'Not now',
   });
@@ -49,7 +71,12 @@ export async function disableBiometricLock(): Promise<void> {
 }
 
 export async function authenticateForAppUnlock(): Promise<void> {
-  await BiometricAuth.authenticate({
+  // Presenting Face ID can itself generate inactive/active app-state events.
+  // Reuse the authentication already in progress (or just completed) instead
+  // of opening a second prompt when the foreground listener runs.
+  if (canReuseCurrentBiometricAuthentication()) return;
+
+  await authenticateWithBiometrics({
     reason: 'Unlock your Goalsy account.',
     cancelTitle: 'Use password',
   });
