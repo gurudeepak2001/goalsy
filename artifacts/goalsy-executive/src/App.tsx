@@ -638,7 +638,7 @@ function BiometricLock({ children }: { children: ReactNode }) {
       <div className="w-16 h-16 rounded-2xl bg-[#1F2937] border border-white/10 flex items-center justify-center mb-5">
         <ScanFace size={32} className="text-[#60A5FA]" />
       </div>
-      <h1 className="text-white text-2xl font-bold">Unlock Goalsy</h1>
+      <h1 data-testid="biometric-unlock-screen" className="text-white text-2xl font-bold">Unlock Goalsy</h1>
       <p className="mt-3 max-w-xs text-[#94A3B8] text-sm leading-6">
         Use Face ID, Touch ID, or your device’s approved biometric method to continue.
       </p>

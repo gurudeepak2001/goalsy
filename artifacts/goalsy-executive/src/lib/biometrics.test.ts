@@ -129,7 +129,20 @@ describe('biometric lock', () => {
     await authenticateForAppUnlock();
     await authenticateForAppUnlock();
 
+    expect(native.checkBiometry).toHaveBeenCalledTimes(2);
     expect(native.authenticate).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles the native availability result before requesting app unlock', async () => {
+    native.checkBiometry.mockResolvedValue({
+      isAvailable: false,
+      biometryType: 'faceId',
+      reason: 'Biometry is not enrolled.',
+    });
+
+    await expect(authenticateForAppUnlock()).rejects.toThrow('Biometry is not enrolled.');
+    expect(native.checkBiometry).toHaveBeenCalledTimes(1);
+    expect(native.authenticate).not.toHaveBeenCalled();
   });
 
   it('does not enable the lock when no enrolled biometric method is available', async () => {

@@ -47,6 +47,7 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		AA000000000000000000AA05 /* ClerkCookiePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA04 /* ClerkCookiePersistence.swift */; };
 		C1A0B10C0A11000000000002 /* BiometricAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A0B10C0A11000000000001 /* BiometricAuthPlugin.swift */; };
+BB000000000000000000BB08 /* BiometricUnlockSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB09 /* BiometricUnlockSmokeTests.swift */; };
 		AA000000000000000000AA03 /* ClerkCookiePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */; };
 		C1A0B10C0A11000000000004 /* BiometricAuthRegistrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A0B10C0A11000000000003 /* BiometricAuthRegistrationTests.swift */; };
 		BB000000000000000000BB03 /* ForceKillSessionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB01 /* ForceKillSessionTest.swift */; };
@@ -68,6 +69,7 @@
 		C1A0B10C0A11000000000003 /* BiometricAuthRegistrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthRegistrationTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000AA04 /* ClerkCookiePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistence.swift; sourceTree = "<group>"; };
 		C1A0B10C0A11000000000001 /* BiometricAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthPlugin.swift; sourceTree = "<group>"; };
+BB000000000000000000BB09 /* BiometricUnlockSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricUnlockSmokeTests.swift; sourceTree = "<group>"; };
 		BB000000000000000000BB01 /* ForceKillSessionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceKillSessionTest.swift; sourceTree = "<group>"; };
 		BB000000000000000000BB05 /* AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -149,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				BB000000000000000000BB01 /* ForceKillSessionTest.swift */,
+BB000000000000000000BB09 /* BiometricUnlockSmokeTests.swift */,
 			);
 			path = AppUITests;
 			sourceTree = "<group>";
@@ -300,6 +303,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB000000000000000000BB03 /* ForceKillSessionTest.swift in Sources */,
+BB000000000000000000BB08 /* BiometricUnlockSmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

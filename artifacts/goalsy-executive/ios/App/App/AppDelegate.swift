@@ -177,6 +177,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             NSLog("[Goalsy:native] XCUITest seed — wrote GOALSY_UITEST_CLERK_COOKIES to UserDefaults (%d bytes)", data.count)
         }
 
+        // Let the biometric UI smoke test start in the same state as a returning
+        // signed-in user who enabled Face ID. This environment key is supplied
+        // only by XCUITest and cannot enable the preference in production.
+        if ProcessInfo.processInfo.environment["GOALSY_UITEST_ENABLE_BIOMETRIC_LOCK"] == "1" {
+            UserDefaults.standard.set(
+                "true",
+                forKey: "CapacitorStorage.goalsy_biometric_lock_enabled"
+            )
+            UserDefaults.standard.synchronize()
+            NSLog("[Goalsy:native] XCUITest seed — enabled biometric lock")
+        }
+
         // ── Dev-browser token diagnostic ─────────────────────────────────────
         // Log the saved __clerk_db_jwt token on every cold start so the Xcode
         // console confirms whether the native-handler save path is working.

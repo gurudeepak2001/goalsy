@@ -6,12 +6,16 @@ on:
       - main
     paths:
       - 'artifacts/goalsy-executive/ios/**'
+      - 'artifacts/goalsy-executive/src/App.tsx'
+      - 'artifacts/goalsy-executive/src/lib/biometrics.ts'
       - '.github/workflows/ios-session-restore-tests.yml'
   push:
     branches:
       - main
     paths:
       - 'artifacts/goalsy-executive/ios/**'
+      - 'artifacts/goalsy-executive/src/App.tsx'
+      - 'artifacts/goalsy-executive/src/lib/biometrics.ts'
       - '.github/workflows/ios-session-restore-tests.yml'
 
 permissions:
@@ -242,7 +246,7 @@ jobs:
           xcrun simctl boot "$UDID" 2>/dev/null || true
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
 
-      - name: Run AppUITests smoke test
+      - name: Run session-restore and Face ID bridge smoke tests
         # CLERK_TEST_COOKIES is forwarded to the test runner via the scheme's
         # TestAction EnvironmentVariables section ($(CLERK_TEST_COOKIES)
         # expansion) — no -testenv flag needed.
@@ -257,7 +261,7 @@ jobs:
             OTHER_SWIFT_FLAGS='$(inherited) -enable-upcoming-feature NonescapableTypes -enable-experimental-feature NonescapableTypes' \
           | xcpretty --color --report junit --output /tmp/smoke-junit.xml \
           || (xcpretty_exit=$?; \
-              echo "::error::AppUITests smoke test failed — session restore may be broken or CLERK_TEST_COOKIES is expired"; \
+              echo "::error::AppUITests smoke test failed — session restore or the BiometricAuth web-to-native call path may be broken"; \
               echo "::error::Rotate the secret by running: bash artifacts/goalsy-executive/ios/scripts/extract-clerk-test-cookies.sh"; \
               exit $xcpretty_exit)
 
@@ -276,5 +280,5 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         with:
           report_paths: /tmp/smoke-junit.xml
-          check_name: "AppUITests — Session-Restore Smoke"
+          check_name: "AppUITests — Session Restore and Face ID Bridge"
           fail_on_failure: true

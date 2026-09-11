@@ -71,6 +71,11 @@ export async function disableBiometricLock(): Promise<void> {
 }
 
 export async function authenticateForAppUnlock(): Promise<void> {
+  const availability = await BiometricAuth.checkBiometry();
+  if (!availability.isAvailable) {
+    throw new Error(availability.reason || 'No enrolled biometric method is available on this device.');
+  }
+
   // Presenting Face ID can itself generate inactive/active app-state events.
   // Concurrent foreground callbacks wait for the same in-flight native request.
   // Once that request settles, every later foreground event authenticates again.
