@@ -8,6 +8,7 @@ const { updateGoal, queryClient } = vi.hoisted(() => ({
     invalidateQueries: vi.fn().mockResolvedValue(undefined),
   },
 }));
+const scrollIntoView = vi.fn();
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: { isNativePlatform: () => false, getPlatform: () => 'web' },
@@ -75,6 +76,10 @@ import GoalDetailScreen from './GoalDetailScreen';
 describe('AI scenario contribution proposal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
     window.history.replaceState({}, '', '/goals/goal-1?proposedMonthlyContribution=1050');
   });
 
@@ -85,6 +90,7 @@ describe('AI scenario contribution proposal', () => {
       expect(screen.getByText(/AI scenario draft: \$1,050\/mo/i)).toBeInTheDocument();
     });
     expect(screen.getByPlaceholderText('e.g. 1500')).toHaveValue('1050');
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(updateGoal).not.toHaveBeenCalled();

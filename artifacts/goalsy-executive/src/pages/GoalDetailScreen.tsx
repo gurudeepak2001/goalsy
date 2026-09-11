@@ -744,6 +744,7 @@ export default function GoalDetailScreen() {
   const [dateAutoFilled, setDateAutoFilled] = useState(false);
   const [adjustFeasibility, setAdjustFeasibility] = useState<string | null>(null);
   const [aiProposedContribution, setAiProposedContribution] = useState<number | null>(null);
+  const planSectionRef = useRef<HTMLDivElement>(null);
 
   // Inline target-amount edit
   const [editingTarget, setEditingTarget] = useState(false);
@@ -894,6 +895,9 @@ export default function GoalDetailScreen() {
     setAiProposedContribution(aiProposedMonthlyContribution);
     setIsAdjusting(true);
     aiProposalOpened.current = proposalKey;
+    window.setTimeout(() => {
+      planSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    }, 0);
   }, [aiProposedMonthlyContribution, goal]);
 
   if (isLoading || !goal) {
@@ -1457,7 +1461,7 @@ export default function GoalDetailScreen() {
         </div>
 
         {/* ── Adjust Plan ────────────────────────────────────────────────── */}
-        <div>
+        <div ref={planSectionRef}>
           <span className={labelCls}>Plan</span>
           {isAdjusting ? (
             <div className="flex flex-col gap-3">
