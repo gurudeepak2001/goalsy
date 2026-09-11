@@ -12,6 +12,23 @@ jobs:
   api-server-test:
     name: api-server-test
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/goalsy_test
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: goalsy_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d goalsy_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -36,6 +53,9 @@ jobs:
       # stale and the test runner will fail to resolve table imports.
       - name: Build @workspace/db declarations
         run: pnpm --filter @workspace/db exec tsc -p tsconfig.json
+
+      - name: Create test database schema
+        run: pnpm --filter @workspace/db run push-force
 
       - name: Run API server tests
         run: pnpm --filter @workspace/api-server run test

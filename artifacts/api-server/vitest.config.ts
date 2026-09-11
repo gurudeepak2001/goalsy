@@ -11,8 +11,8 @@ export default defineConfig({
       ? configDefaults.exclude
       : [
           ...configDefaults.exclude,
-          // GitHub's unit-test job has no PostgreSQL service or DATABASE_URL.
-          // Keep database-backed endpoint coverage for environments that do.
+          // Keep local unit-test runs fast when a database is not configured.
+          // CI sets DATABASE_URL and runs these saved-data integration suites.
           databaseIntegrationTests,
         ],
   },
