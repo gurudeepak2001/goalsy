@@ -53,6 +53,9 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ${{ github.workspace }}
 
+      - name: Build and copy the iOS web bundle
+        run: pnpm run cap:copy
+
       # pnpm installs @capacitor/preferences as a symlink into its store.
       # SPM on macOS does not follow symlinks for local path dependencies —
       # it uses the symlink's directory name ("preferences") instead of reading
@@ -177,6 +180,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ${{ github.workspace }}
+
+      - name: Build and copy the iOS web bundle
+        run: pnpm run cap:copy
 
       - name: Dereference @capacitor/preferences symlink for SPM
         working-directory: artifacts/goalsy-executive
