@@ -40,6 +40,8 @@ export interface FinancialProfile {
   /** @nullable */
   monthlyExpenses?: number | null;
   /** @nullable */
+  emergencyFundAmount?: number | null;
+  /** @nullable */
   netWorth?: number | null;
   /** @nullable */
   savingsRate?: number | null;
@@ -120,6 +122,8 @@ export interface UpdateFinancialProfileBody {
   annualIncome?: number | null;
   /** @nullable */
   monthlyExpenses?: number | null;
+  /** @nullable */
+  emergencyFundAmount?: number | null;
   /** @nullable */
   netWorth?: number | null;
   /** @nullable */

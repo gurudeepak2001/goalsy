@@ -793,6 +793,8 @@ components:
           type: ["integer", "null"]
         monthlyExpenses:
           type: ["integer", "null"]
+        emergencyFundAmount:
+          type: ["integer", "null"]
         netWorth:
           type: ["integer", "null"]
         savingsRate:
@@ -913,6 +915,8 @@ components:
         annualIncome:
           type: ["integer", "null"]
         monthlyExpenses:
+          type: ["integer", "null"]
+        emergencyFundAmount:
           type: ["integer", "null"]
         netWorth:
           type: ["integer", "null"]

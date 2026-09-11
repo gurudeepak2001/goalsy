@@ -57,6 +57,7 @@ export const GetFinancialProfileResponse = zod.object({
   "userId": zod.string(),
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
+  "emergencyFundAmount": zod.number().nullish(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
@@ -74,6 +75,7 @@ export const GetFinancialProfileResponse = zod.object({
 export const UpdateFinancialProfileBody = zod.object({
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
+  "emergencyFundAmount": zod.number().nullish(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
@@ -85,6 +87,7 @@ export const UpdateFinancialProfileResponse = zod.object({
   "userId": zod.string(),
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
+  "emergencyFundAmount": zod.number().nullish(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),

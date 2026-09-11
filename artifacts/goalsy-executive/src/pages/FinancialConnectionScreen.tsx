@@ -64,6 +64,7 @@ export default function FinancialConnectionScreen() {
   // ── Form state ─────────────────────────────────────────────────────────────
   const [annualIncome, setAnnualIncome] = useState('');
   const [monthlyExpenses, setMonthlyExpenses] = useState('');
+  const [emergencyFundAmount, setEmergencyFundAmount] = useState('');
   const [netWorth, setNetWorth] = useState('');
   const [savingsRate, setSavingsRate] = useState('');
   const [riskTolerance, setRiskTolerance] = useState('');
@@ -84,6 +85,7 @@ export default function FinancialConnectionScreen() {
     if (fp) {
       if (fp.annualIncome != null) setAnnualIncome(String(fp.annualIncome));
       if (fp.monthlyExpenses != null) setMonthlyExpenses(String(fp.monthlyExpenses));
+      if (fp.emergencyFundAmount != null) setEmergencyFundAmount(String(fp.emergencyFundAmount));
       if (fp.netWorth != null) setNetWorth(String(fp.netWorth));
       if (fp.savingsRate != null) setSavingsRate(String(fp.savingsRate));
       if (fp.riskTolerance) setRiskTolerance(fp.riskTolerance);
@@ -99,11 +101,19 @@ export default function FinancialConnectionScreen() {
 
   const handleProfileContinue = async () => {
     setProfileSaveError(null);
+    const parsedMonthlyExpenses = parseDollar(monthlyExpenses);
+    if (parsedMonthlyExpenses == null || parsedMonthlyExpenses <= 0) {
+      const message = 'Enter your monthly expenses to create your Emergency Fund goal.';
+      setProfileSaveError(message);
+      toast({ title: 'Monthly expenses required', description: message, variant: 'destructive' });
+      return;
+    }
     try {
       const savedProfile = await saveProfile({
         data: {
           annualIncome: parseDollar(annualIncome),
-          monthlyExpenses: parseDollar(monthlyExpenses),
+          monthlyExpenses: parsedMonthlyExpenses,
+          emergencyFundAmount: parseDollar(emergencyFundAmount) ?? 0,
           netWorth: parseDollar(netWorth),
           savingsRate: parseDollar(savingsRate),
           riskTolerance: riskTolerance || null,
@@ -218,7 +228,7 @@ export default function FinancialConnectionScreen() {
                   {isEditMode ? <>Update Your Financial<br />Picture.</> : <>Your Financial<br />Picture.</>}
                 </h1>
                 <p className="text-[#CBD5E1] font-semibold text-base leading-[26px] opacity-90 pt-2">
-                  This helps Goalsy calibrate your score, missions, and strategy to your actual situation. All fields are optional.
+                  This helps Goalsy calibrate your score, missions, and strategy to your actual situation. Monthly expenses set your Emergency Fund target.
                 </p>
               </div>
             </div>
@@ -250,7 +260,7 @@ export default function FinancialConnectionScreen() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <label className={labelCls}>Monthly Expenses</label>
+                    <label className={labelCls}>Monthly Expenses <span className="text-[#3B82F6]">Required</span></label>
                     <div className="relative">
                       <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
@@ -266,6 +276,27 @@ export default function FinancialConnectionScreen() {
                       />
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Emergency Fund Today</label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={emergencyFundAmount}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setEmergencyFundAmount(e.target.value);
+                      }}
+                      className={`${inputCls} pl-8`}
+                    />
+                  </div>
+                  <p className="text-[#808BA4] text-[11px] font-semibold leading-4 mt-2">
+                    How much do you have set aside right now? Goalsy creates a target equal to three months of expenses.
+                  </p>
                 </div>
 
                 {/* Row: Net Worth + Savings Rate */}

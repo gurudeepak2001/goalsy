@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
     profile: {
       annualIncome: 100_000,
       monthlyExpenses: 4_000,
+      emergencyFundAmount: 2_500,
       netWorth: null,
       savingsRate: null,
       riskTolerance: null,
@@ -82,6 +83,7 @@ describe('FinancialConnectionScreen edit mode', () => {
     mocks.saveProfile.mockReset().mockResolvedValue({
       annualIncome: 120_000,
       monthlyExpenses: 4_500,
+      emergencyFundAmount: 2_500,
       netWorth: 80_000,
       savingsRate: 500,
       riskTolerance: 'moderate',
@@ -91,6 +93,7 @@ describe('FinancialConnectionScreen edit mode', () => {
       profile: {
         annualIncome: 100_000,
         monthlyExpenses: 4_000,
+        emergencyFundAmount: 2_500,
         netWorth: null,
         savingsRate: null,
         riskTolerance: null,
@@ -108,6 +111,7 @@ describe('FinancialConnectionScreen edit mode', () => {
     expect(screen.queryByText('Step 02: Financial Profile')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue('100000')).toBeInTheDocument();
     expect(screen.getByDisplayValue('4000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2500')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.queryByText('Secure Data')).not.toBeInTheDocument();
@@ -125,6 +129,7 @@ describe('FinancialConnectionScreen edit mode', () => {
         data: expect.objectContaining({
           annualIncome: 120_000,
           monthlyExpenses: 4_500,
+          emergencyFundAmount: 2_500,
         }),
       });
       expect(mocks.navigate).toHaveBeenCalledWith('/ai-home');
@@ -134,6 +139,7 @@ describe('FinancialConnectionScreen edit mode', () => {
           profile: expect.objectContaining({
             annualIncome: 120_000,
             monthlyExpenses: 4_500,
+            emergencyFundAmount: 2_500,
           }),
         }),
       );
@@ -155,6 +161,7 @@ describe('FinancialConnectionScreen edit mode', () => {
       profile: {
         annualIncome: 100_000,
         monthlyExpenses: 4_000,
+        emergencyFundAmount: 2_500,
         netWorth: null,
         savingsRate: null,
         riskTolerance: null,

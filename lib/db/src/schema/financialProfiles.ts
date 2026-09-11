@@ -10,6 +10,7 @@ export const financialProfiles = pgTable("financial_profiles", {
   // Dollar amounts stored as whole integers
   annualIncome: integer("annual_income"),
   monthlyExpenses: integer("monthly_expenses"),
+  emergencyFundAmount: integer("emergency_fund_amount"),
   netWorth: integer("net_worth"),
   // Monthly savings amount in dollars (e.g. 1500 = $1,500/mo); score engine derives % from income
   savingsRate: real("savings_rate"),
