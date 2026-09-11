@@ -53,6 +53,10 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ${{ github.workspace }}
 
+      - name: Build workspace libraries
+        run: pnpm run typecheck:libs
+        working-directory: ${{ github.workspace }}
+
       - name: Build and copy the iOS web bundle
         run: pnpm run cap:copy
 
@@ -179,6 +183,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
+
+      - name: Build workspace libraries
+        run: pnpm run typecheck:libs
         working-directory: ${{ github.workspace }}
 
       - name: Build and copy the iOS web bundle
