@@ -743,6 +743,7 @@ export default function GoalDetailScreen() {
   const [contribAutoFilled, setContribAutoFilled] = useState(false);
   const [dateAutoFilled, setDateAutoFilled] = useState(false);
   const [adjustFeasibility, setAdjustFeasibility] = useState<string | null>(null);
+  const [aiProposedContribution, setAiProposedContribution] = useState<number | null>(null);
 
   // Inline target-amount edit
   const [editingTarget, setEditingTarget] = useState(false);
@@ -843,11 +844,22 @@ export default function GoalDetailScreen() {
   const contributionParams = new URLSearchParams(window.location.search);
   const contributionMissionId = contributionParams.get('missionId');
   const contributionRequested = contributionParams.get('action') === 'contribute' && !!contributionMissionId;
+  const proposedMonthlyContributionParam = contributionParams.get('proposedMonthlyContribution');
+  const proposedMonthlyContribution = proposedMonthlyContributionParam === null
+    ? null
+    : Number(proposedMonthlyContributionParam);
+  const aiProposedMonthlyContribution = proposedMonthlyContribution !== null
+    && Number.isFinite(proposedMonthlyContribution)
+    && proposedMonthlyContribution > 0
+    && Number.isInteger(proposedMonthlyContribution)
+    ? proposedMonthlyContribution
+    : null;
   const [missionContributionOpen, setMissionContributionOpen] = useState(false);
   const [missionContributionAmount, setMissionContributionAmount] = useState('');
   const [missionContributionWeek, setMissionContributionWeek] = useState<number | null>(null);
   const [missionContributionExisting, setMissionContributionExisting] = useState(0);
   const missionContributionOpened = useRef(false);
+  const aiProposalOpened = useRef<string | null>(null);
 
   useEffect(() => {
     if (!goal || !contributionRequested || missionContributionOpened.current) return;
@@ -866,6 +878,23 @@ export default function GoalDetailScreen() {
     setMissionContributionOpen(true);
     missionContributionOpened.current = true;
   }, [contributionRequested, goal, progressData]);
+
+  useEffect(() => {
+    const proposalKey = goal && aiProposedMonthlyContribution
+      ? `${goal.id}:${aiProposedMonthlyContribution}`
+      : null;
+    if (!goal || !proposalKey || aiProposalOpened.current === proposalKey) return;
+
+    setAdjustFrequency('monthly');
+    setAdjustContrib(String(aiProposedMonthlyContribution));
+    setAdjustDate(goal.targetDate ?? '');
+    setContribAutoFilled(false);
+    setDateAutoFilled(false);
+    setAdjustFeasibility(null);
+    setAiProposedContribution(aiProposedMonthlyContribution);
+    setIsAdjusting(true);
+    aiProposalOpened.current = proposalKey;
+  }, [aiProposedMonthlyContribution, goal]);
 
   if (isLoading || !goal) {
     return (
@@ -977,6 +1006,7 @@ export default function GoalDetailScreen() {
       ]);
       toast({ title: 'Plan Updated' });
       setIsAdjusting(false);
+      setAiProposedContribution(null);
     } catch {
       toast({ title: 'Failed to update', variant: 'destructive' });
     }
@@ -1431,6 +1461,13 @@ export default function GoalDetailScreen() {
           <span className={labelCls}>Plan</span>
           {isAdjusting ? (
             <div className="flex flex-col gap-3">
+              {aiProposedContribution !== null && (
+                <div className="bg-[#2563EB]/10 border border-[#2563EB]/30 rounded-xl px-4 py-3">
+                  <p className="text-[#BFDBFE] text-xs font-semibold leading-5">
+                    AI scenario draft: {formatDollars(aiProposedContribution)}/mo. Review or edit this amount, then select Save Plan to confirm it.
+                  </p>
+                </div>
+              )}
               {/* Payment frequency toggle */}
               <div>
                 <label className="text-[#808BA4] text-[10px] font-bold uppercase tracking-[1.5px] mb-1.5 block">
@@ -1523,7 +1560,10 @@ export default function GoalDetailScreen() {
                   variant="outline"
                   text="Cancel"
                   className="flex-1"
-                  onClick={() => setIsAdjusting(false)}
+                  onClick={() => {
+                    setIsAdjusting(false);
+                    setAiProposedContribution(null);
+                  }}
                 />
                 <ExecutiveButton
                   text={updating ? 'Saving…' : 'Save Plan'}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const { navigate, toast, refetchGoals, refetchProfile, refetchScore } = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -41,13 +41,13 @@ describe('AIHomeScreen interactions', () => {
     expect(screen.getByText(/If you add \$500\/mo/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Increase monthly boost' }));
     expect(screen.getByText(/If you add \$550\/mo/i)).toBeInTheDocument();
-    expect(screen.getByText(/does not change your goal/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review and save the proposed amount/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Adjust Home Down Payment/i }));
-    expect(navigate).toHaveBeenCalledWith('/goals/goal-1');
+    expect(navigate).toHaveBeenCalledWith('/goals/goal-1?proposedMonthlyContribution=1050');
   });
 
-  it('opens the data behind recommendations and refreshes saved insights', async () => {
+  it('opens the data behind recommendations and hides Refresh after a successful update', async () => {
     render(<AIHomeScreen />);
 
     fireEvent.click(screen.getByRole('button', { name: /Update savings plan/i }));
@@ -60,5 +60,6 @@ describe('AIHomeScreen interactions', () => {
     expect(refetchGoals).toHaveBeenCalledOnce();
     expect(refetchProfile).toHaveBeenCalledOnce();
     expect(refetchScore).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Refresh/i })).not.toBeInTheDocument());
   });
 });

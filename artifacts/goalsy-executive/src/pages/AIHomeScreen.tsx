@@ -281,7 +281,14 @@ function computeScenario(fp: FP, goals: GoalRow[], priorityItem: PriorityItem | 
   const boostedMonths = remaining / (targetGoal.monthlyContribution + boostAmount);
   const monthsSaved = Math.max(1, Math.round(currentMonths - boostedMonths));
 
-  return { hasData: true, goalId: targetGoal.id, goalName: targetGoal.name, boostAmount, monthsSaved };
+  return {
+    hasData: true,
+    goalId: targetGoal.id,
+    goalName: targetGoal.name,
+    currentMonthlyContribution: targetGoal.monthlyContribution,
+    boostAmount,
+    monthsSaved,
+  };
 }
 
 function getRecommendationAction(
@@ -378,6 +385,7 @@ function CardSkeleton() {
 export default function AIHomeScreen() {
   const [, navigate] = useLocation();
   const [scenarioBoost, setScenarioBoost] = useState<number | null>(null);
+  const [insightsRefreshed, setInsightsRefreshed] = useState(false);
 
   const { data: goalsData, isLoading: goalsLoading, isError: goalsError, isFetching: goalsFetching, refetch: refetchGoals } = useListGoals();
   const { data: fpData, isLoading: fpLoading, isError: profileError, isFetching: profileFetching, refetch: refetchProfile } = useGetFinancialProfile();
@@ -416,6 +424,7 @@ export default function AIHomeScreen() {
   const refreshInsights = async () => {
     try {
       await Promise.all([refetchGoals(), refetchProfile(), refetchScore()]);
+      setInsightsRefreshed(true);
       toast({ title: 'Insights refreshed', description: 'Your recommendations now use your latest saved Goalsy data.' });
     } catch {
       toast({
@@ -438,15 +447,17 @@ export default function AIHomeScreen() {
           <p className="text-[#808BA4] text-sm font-semibold leading-5">
             Recommendations based on your saved goals and financial profile.
           </p>
-          <button
-            type="button"
-            onClick={refreshInsights}
-            disabled={refreshing}
-            className="shrink-0 min-h-10 px-3 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-xs flex items-center gap-2 disabled:opacity-60"
-          >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+          {!insightsRefreshed && (
+            <button
+              type="button"
+              onClick={refreshInsights}
+              disabled={refreshing}
+              className="shrink-0 min-h-10 px-3 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-xs flex items-center gap-2 disabled:opacity-60"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          )}
         </div>
 
         {hasDataError && (
@@ -626,12 +637,16 @@ export default function AIHomeScreen() {
                     className="w-full accent-[#2563EB]"
                   />
                   <span className="text-[#808BA4] text-xs font-semibold">
-                    This is a what-if estimate. It does not change your goal until you update it.
+                    This is a what-if estimate. Review and save the proposed amount in your goal before anything changes.
                   </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate(`/goals/${scenario.goalId}`)}
+                  onClick={() => navigate(
+                    `/goals/${scenario.goalId}?proposedMonthlyContribution=${encodeURIComponent(
+                      String((scenario.currentMonthlyContribution ?? 0) + scenario.boostAmount),
+                    )}`,
+                  )}
                   className="w-full min-h-11 rounded-xl border border-[#2563EB]/50 text-[#60A5FA] font-bold text-sm flex items-center justify-center gap-2"
                 >
                   Adjust {scenario.goalName}
