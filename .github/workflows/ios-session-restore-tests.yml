@@ -113,6 +113,7 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 16' \
             -resultBundlePath /tmp/AppTests.xcresult \
             CODE_SIGNING_ALLOWED=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -enable-upcoming-feature NonescapableTypes -enable-experimental-feature NonescapableTypes' \
           | xcpretty --color --report junit --output /tmp/junit.xml \
           || (xcpretty_exit=$?; \
               echo "::error::AppTests failed — see the xcresult bundle for details"; \
@@ -239,6 +240,7 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 16' \
             -resultBundlePath /tmp/AppUITests.xcresult \
             CODE_SIGNING_ALLOWED=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -enable-upcoming-feature NonescapableTypes -enable-experimental-feature NonescapableTypes' \
           | xcpretty --color --report junit --output /tmp/smoke-junit.xml \
           || (xcpretty_exit=$?; \
               echo "::error::AppUITests smoke test failed — session restore may be broken or CLERK_TEST_COOKIES is expired"; \
