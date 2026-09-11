@@ -232,10 +232,36 @@ export interface ScoreDriver {
   trend: string;
 }
 
+export type ScoreChangeStatus = typeof ScoreChangeStatus[keyof typeof ScoreChangeStatus];
+
+
+export const ScoreChangeStatus = {
+  insufficient_history: 'insufficient_history',
+  unchanged: 'unchanged',
+  changed: 'changed',
+} as const;
+
+export interface ScoreChangeReason {
+  label: string;
+  delta: number;
+  previousValue: number;
+  currentValue: number;
+  explanation: string;
+}
+
+export interface ScoreChange {
+  status: ScoreChangeStatus;
+  delta: number;
+  /** @nullable */
+  previousScore: number | null;
+  reasons: ScoreChangeReason[];
+}
+
 export interface ScoreResult {
   score: number;
   tier: string;
   drivers: ScoreDriver[];
+  scoreChange: ScoreChange;
   computedAt: string;
 }
 

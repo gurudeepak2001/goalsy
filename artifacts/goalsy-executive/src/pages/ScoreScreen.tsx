@@ -8,7 +8,7 @@ import {
   Tooltip,
   ReferenceDot,
 } from 'recharts';
-import { Flame, CheckCircle, Trophy, Target, TrendingUp, ShieldCheck, Database, Zap, Clock, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Flame, CheckCircle, Trophy, Target, TrendingUp, TrendingDown, ShieldCheck, Database, Zap, Clock, ArrowUpRight, Loader2, Minus } from 'lucide-react';
 import { getScoreTier } from '@/lib/scoreUtils';
 import AppHeader from '@/components/AppHeader';
 import AppShell from '@/components/AppShell';
@@ -116,6 +116,7 @@ export default function ScoreScreen() {
 
   const score = scoreResult?.score ?? 0;
   const drivers = scoreResult?.drivers ?? [];
+  const scoreChange = scoreResult?.scoreChange;
 
   // Build chart data from real history
   const allHistory = historyRaw ?? [];
@@ -142,11 +143,8 @@ export default function ScoreScreen() {
     );
   }
 
-  const changes = [
-    { text: 'Maintained goal contributions this week', value: '+2' },
-    { text: 'No missed bill payments', value: '+1' },
-    { text: 'Completed daily mission', value: '+1' },
-  ];
+  const changeIsPositive = (scoreChange?.delta ?? 0) > 0;
+  const changeIsNegative = (scoreChange?.delta ?? 0) < 0;
 
   return (
     <AppShell activeTab="profile" header={<AppHeader dashboard dashboardTitle="Goalsy Score" />}>
@@ -163,23 +161,48 @@ export default function ScoreScreen() {
           </p>
         </div>
 
-        {/* Why Your Score Changed */}
+        {/* Score change explanation */}
         <div className="bg-[#111827] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute right-1 top-1 opacity-5 p-4">
             <div className="w-24 h-24 bg-[#3B82F6] rounded-full" />
           </div>
-          <h2 className="text-white font-bold text-2xl leading-[30px]">Why Your Score Changed</h2>
-          <p className="text-[#E5E7EB] font-semibold text-base leading-[26px]">
-            Score computed from your goals, savings rate, expense ratio, net worth, and mission completion.
-          </p>
-          <div className="flex flex-col gap-3">
-            {changes.map((change, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-[#CBD5E1] text-sm leading-5">{change.text}</span>
-                <span className="text-[#22C55E] font-bold text-sm">{change.value}</span>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-white font-bold text-2xl leading-[30px]">What Changed</h2>
+            {scoreChange?.status === 'changed' && (
+              <div className={`rounded-full px-3 py-1.5 flex items-center gap-1.5 ${
+                changeIsPositive ? 'bg-[#22C55E]/10 text-[#22C55E]' : 'bg-[#EF4444]/10 text-[#EF4444]'
+              }`}>
+                {changeIsPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                <span className="font-bold text-xs">{changeIsPositive ? '+' : ''}{scoreChange.delta} pts</span>
               </div>
-            ))}
+            )}
           </div>
+          <p className="text-[#E5E7EB] font-semibold text-base leading-[26px]">
+            {scoreChange?.status === 'insufficient_history'
+              ? 'This is your first recorded score. Goalsy will explain changes after your next score update.'
+              : scoreChange?.status === 'unchanged'
+                ? `No score points changed since your last recorded score of ${scoreChange.previousScore}.`
+                : scoreChange?.reasons.length
+                  ? `Your score ${changeIsPositive ? 'increased' : 'decreased'} from ${scoreChange.previousScore} to ${score}.`
+                  : `Your score changed by ${scoreChange?.delta ?? 0} points, but the prior driver breakdown is unavailable.`}
+          </p>
+          {scoreChange?.reasons.length ? (
+            <div className="flex flex-col gap-3">
+              {scoreChange.reasons.slice(0, 3).map((reason) => (
+                <div key={reason.label} className="bg-[#0B111F] border border-white/5 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                  <span className="text-[#CBD5E1] text-sm leading-5">{reason.explanation}</span>
+                  <span className={`font-bold text-sm whitespace-nowrap ${reason.delta > 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                    {reason.delta > 0 ? '+' : ''}{reason.delta} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-[#808BA4] text-sm font-semibold">
+              <Minus size={15} />
+              <span>Changes are calculated only from recorded Goalsy score drivers.</span>
+            </div>
+          )}
           <div className="flex items-center gap-4 pt-4 border-t border-white/5">
             <div className="flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-[#808BA4]" />

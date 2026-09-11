@@ -16,3 +16,4 @@
 - [Plaid partial-refresh resilience](plaid-partial-refresh.md) — one failing institution must not blank all saved accounts; individual removal hides only that account.
 - [Bottom-sheet confirmation transitions](bottom-sheet-confirmations.md) — switch details to confirmation inside one sheet; stacked Radix sheets can intercept native taps.
 - [Emergency fund profile setup](emergency-fund-profile-setup.md) — setup creates a three-month fund goal once; later profile edits change only its target.
+- [Score change attribution](score-change-attribution.md) — explain score movement by comparing stored driver points; never fabricate reasons from unrelated activity.

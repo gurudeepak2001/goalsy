@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, financialProfiles, goals, dailyMissions, scoreSnapshots } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getScoreTier } from "../lib/scoreEngine";
+import { buildScoreChange } from "../lib/scoreChange";
 
 const router = Router();
 
@@ -24,12 +25,21 @@ router.get("/score", requireAuth, async (req, res) => {
     const tier = getScoreTier(score);
     const now = new Date();
 
-    // Persist snapshot (fire-and-forget, don't block the response)
-    db.insert(scoreSnapshots)
-      .values({ userId, score, tier, driversJson: JSON.stringify(drivers) })
-      .catch(() => {});
+    const [previousSnapshot] = await db
+      .select({
+        score: scoreSnapshots.score,
+        driversJson: scoreSnapshots.driversJson,
+      })
+      .from(scoreSnapshots)
+      .where(eq(scoreSnapshots.userId, userId))
+      .orderBy(desc(scoreSnapshots.computedAt))
+      .limit(1);
+    const scoreChange = buildScoreChange(score, drivers, previousSnapshot);
 
-    res.json({ score, tier, drivers, computedAt: now.toISOString() });
+    await db.insert(scoreSnapshots)
+      .values({ userId, score, tier, driversJson: JSON.stringify(drivers) });
+
+    res.json({ score, tier, drivers, scoreChange, computedAt: now.toISOString() });
   } catch {
     res.status(500).json({ message: "Failed to compute score" });
   }

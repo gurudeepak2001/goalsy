@@ -435,6 +435,18 @@ export const GetScoreResponse = zod.object({
   "maxValue": zod.number(),
   "trend": zod.string()
 })),
+  "scoreChange": zod.object({
+  "status": zod.enum(['insufficient_history', 'unchanged', 'changed']),
+  "delta": zod.number(),
+  "previousScore": zod.number().nullable(),
+  "reasons": zod.array(zod.object({
+  "label": zod.string(),
+  "delta": zod.number(),
+  "previousValue": zod.number(),
+  "currentValue": zod.number(),
+  "explanation": zod.string()
+}))
+}),
   "computedAt": zod.string()
 })
 

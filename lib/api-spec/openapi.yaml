@@ -1089,9 +1089,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ScoreDriver"
+        scoreChange:
+          $ref: "#/components/schemas/ScoreChange"
         computedAt:
           type: string
-      required: [score, tier, drivers, computedAt]
+      required: [score, tier, drivers, scoreChange, computedAt]
 
     ScoreDriver:
       type: object
@@ -1105,6 +1107,37 @@ components:
         trend:
           type: string
       required: [label, value, maxValue, trend]
+
+    ScoreChange:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [insufficient_history, unchanged, changed]
+        delta:
+          type: integer
+        previousScore:
+          type: ["integer", "null"]
+        reasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreChangeReason"
+      required: [status, delta, previousScore, reasons]
+
+    ScoreChangeReason:
+      type: object
+      properties:
+        label:
+          type: string
+        delta:
+          type: integer
+        previousValue:
+          type: integer
+        currentValue:
+          type: integer
+        explanation:
+          type: string
+      required: [label, delta, previousValue, currentValue, explanation]
 
     ScoreSnapshot:
       type: object
