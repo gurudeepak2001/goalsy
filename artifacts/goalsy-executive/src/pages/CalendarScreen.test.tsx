@@ -7,11 +7,26 @@ const {
   invalidateQueries,
   useListBriefings,
   briefingState,
+  todayMissionState,
+  navigate,
 } = vi.hoisted(() => ({
   markBriefingViewed: vi.fn().mockResolvedValue(undefined),
   setQueryData: vi.fn(),
   invalidateQueries: vi.fn().mockResolvedValue(undefined),
   briefingState: { viewedContentVersion: 'older-version' },
+  todayMissionState: {
+    id: 'mission-1',
+    userId: 'user-1',
+    missionDate: '2026-09-10',
+    title: 'Review emergency fund progress',
+    description: 'Compare this week’s saved amount with your emergency fund target.',
+    category: 'savings',
+    status: 'pending',
+    skipReason: null,
+    completedAt: null as string | null,
+    createdAt: '2026-09-10T12:00:00.000Z',
+  },
+  navigate: vi.fn(),
   useListBriefings: vi.fn(() => ({
     data: [{
       id: 'briefing-1',
@@ -26,7 +41,7 @@ const {
   })),
 }));
 
-vi.mock('wouter', () => ({ useLocation: () => ['/calendar', vi.fn()] }));
+vi.mock('wouter', () => ({ useLocation: () => ['/calendar', navigate] }));
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ invalidateQueries, setQueryData }),
 }));
@@ -37,18 +52,7 @@ vi.mock('@workspace/api-client-react', () => ({
   useMarkBriefingViewed: () => ({ mutateAsync: markBriefingViewed }),
   useListGoals: () => ({ data: [] }),
   useGetTodayMission: () => ({
-    data: {
-      id: 'mission-1',
-      userId: 'user-1',
-      missionDate: '2026-09-10',
-      title: 'Review emergency fund progress',
-      description: 'Compare this week’s saved amount with your emergency fund target.',
-      category: 'savings',
-      status: 'pending',
-      skipReason: null,
-      completedAt: null,
-      createdAt: '2026-09-10T12:00:00.000Z',
-    },
+    data: todayMissionState,
   }),
   useListBills: () => ({
     data: [{
@@ -79,6 +83,8 @@ describe('CalendarScreen data integrity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     briefingState.viewedContentVersion = 'older-version';
+    todayMissionState.status = 'pending';
+    todayMissionState.completedAt = null;
   });
 
   it('shows saved API records without invented financial activity', () => {
@@ -90,6 +96,22 @@ describe('CalendarScreen data integrity', () => {
     expect(screen.getByText('Emergency Fund Review')).toBeInTheDocument();
 
     expect(screen.queryByText(/Wealthfront|4012|1\.2%|Optimize Debt Interest|Autopay Preview/i)).not.toBeInTheDocument();
+  });
+
+  it('shows a completed mission as a non-actionable accomplishment', () => {
+    todayMissionState.status = 'completed';
+    todayMissionState.completedAt = '2026-09-10T13:00:00.000Z';
+    render(<CalendarScreen />);
+
+    expect(screen.getByText('Mission Accomplished')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Review emergency fund progress/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps a pending mission tappable so it can be completed in Today', () => {
+    render(<CalendarScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Review emergency fund progress/i }));
+
+    expect(navigate).toHaveBeenCalledWith('/today');
   });
 
   it('formats briefing details as readable bullet points', () => {

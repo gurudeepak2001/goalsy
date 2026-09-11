@@ -191,6 +191,7 @@ export default function CalendarScreen() {
   const { mutateAsync: markBriefingViewed } = useMarkBriefingViewed();
 
   const goalCheckpoints = computeGoalCheckpoints(goals);
+  const missionIsActionable = todayMission?.status === 'pending';
 
   const [selectedBriefing, setSelectedBriefing] = useState<Briefing | null>(null);
 
@@ -254,7 +255,7 @@ export default function CalendarScreen() {
             <AccentCard
               accentColor={todayMission.status === 'completed' ? '#22C55E' : '#3B82F6'}
               dimmed={todayMission.status === 'skipped'}
-              onClick={() => navigate('/today')}
+              onClick={missionIsActionable ? () => navigate('/today') : undefined}
             >
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 flex items-center justify-center">
