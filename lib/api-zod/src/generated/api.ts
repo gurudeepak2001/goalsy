@@ -47,10 +47,10 @@ export const UpdateProfileResponse = zod.object({
   "updatedAt": zod.string()
 })
 
-
 /**
  * @summary Get financial profile (null if not yet set)
  */
+export const getFinancialProfileResponseProfileOneEmergencyFundMonthsMax = 120;
 export const GetFinancialProfileResponse = zod.object({
   "profile": zod.union([zod.object({
   "id": zod.string(),
@@ -58,6 +58,7 @@ export const GetFinancialProfileResponse = zod.object({
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
   "emergencyFundAmount": zod.number().nullish(),
+  "emergencyFundMonths": zod.number().min(1).max(getFinancialProfileResponseProfileOneEmergencyFundMonthsMax).optional(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
@@ -68,26 +69,29 @@ export const GetFinancialProfileResponse = zod.object({
 }),zod.null()])
 })
 
-
 /**
  * @summary Create or update financial profile
  */
+export const updateFinancialProfileBodyEmergencyFundMonthsMax = 120;
 export const UpdateFinancialProfileBody = zod.object({
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
   "emergencyFundAmount": zod.number().nullish(),
+  "emergencyFundMonths": zod.number().min(1).max(updateFinancialProfileBodyEmergencyFundMonthsMax).optional(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
   "primaryGoalType": zod.string().nullish()
 })
 
+export const updateFinancialProfileResponseEmergencyFundMonthsMax = 120;
 export const UpdateFinancialProfileResponse = zod.object({
   "id": zod.string(),
   "userId": zod.string(),
   "annualIncome": zod.number().nullish(),
   "monthlyExpenses": zod.number().nullish(),
   "emergencyFundAmount": zod.number().nullish(),
+  "emergencyFundMonths": zod.number().min(1).max(updateFinancialProfileResponseEmergencyFundMonthsMax).optional(),
   "netWorth": zod.number().nullish(),
   "savingsRate": zod.number().nullish(),
   "riskTolerance": zod.string().nullish(),
@@ -109,7 +113,6 @@ export const CreatePlaidLinkTokenResponse = zod.object({
 /**
  * @summary Exchange a Plaid public token and save the connection
  */
-
 
 
 export const ExchangePlaidPublicTokenBody = zod.object({
@@ -332,7 +335,6 @@ export const CreateGoalProgressParams = zod.object({
 })
 
 export const createGoalProgressBodyWeeklyDepositMin = 0;
-
 
 
 export const CreateGoalProgressBody = zod.object({
@@ -560,8 +562,6 @@ export const MarkBriefingViewedParams = zod.object({
 })
 
 
-
-
 export const MarkBriefingViewedBody = zod.object({
   "contentVersion": zod.string().min(1)
 })
@@ -686,5 +686,4 @@ export const DismissNotificationResponse = zod.object({
   "isDismissed": zod.boolean(),
   "createdAt": zod.string()
 })
-
 

@@ -44,10 +44,29 @@ const GOAL_TYPE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-// ── Dollar formatter ─────────────────────────────────────────────────────────
-function parseDollar(raw: string): number | null {
-  const n = parseInt(raw.replace(/[^0-9]/g, ''), 10);
-  return isNaN(n) ? null : n;
+const DEFAULT_EMERGENCY_FUND_MONTHS = 3;
+const EMERGENCY_FUND_DURATION_OPTIONS = [
+  { value: '3', label: '3 months — recommended' },
+  { value: '6', label: '6 months' },
+  { value: '9', label: '9 months' },
+  { value: '12', label: '12 months' },
+  { value: 'custom', label: 'Choose a different duration…' },
+];
+
+// ── Whole-dollar parser ──────────────────────────────────────────────────────
+function parseDollar(raw: string, allowNegative = false): number | null {
+  const value = raw.trim();
+  const wholeDollarPattern = allowNegative ? /^-?\d+$/ : /^\d+$/;
+  if (!wholeDollarPattern.test(value)) return null;
+
+  const amount = Number(value);
+  return Number.isSafeInteger(amount) ? amount : null;
+}
+
+function parseDurationMonths(raw: string): number | null {
+  if (!/^\d+$/.test(raw)) return null;
+  const months = Number(raw);
+  return Number.isSafeInteger(months) && months >= 1 && months <= 120 ? months : null;
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -65,6 +84,8 @@ export default function FinancialConnectionScreen() {
   const [annualIncome, setAnnualIncome] = useState('');
   const [monthlyExpenses, setMonthlyExpenses] = useState('');
   const [emergencyFundAmount, setEmergencyFundAmount] = useState('');
+  const [emergencyFundDuration, setEmergencyFundDuration] = useState(String(DEFAULT_EMERGENCY_FUND_MONTHS));
+  const [customEmergencyFundMonths, setCustomEmergencyFundMonths] = useState('');
   const [netWorth, setNetWorth] = useState('');
   const [savingsRate, setSavingsRate] = useState('');
   const [riskTolerance, setRiskTolerance] = useState('');
@@ -86,6 +107,15 @@ export default function FinancialConnectionScreen() {
       if (fp.annualIncome != null) setAnnualIncome(String(fp.annualIncome));
       if (fp.monthlyExpenses != null) setMonthlyExpenses(String(fp.monthlyExpenses));
       if (fp.emergencyFundAmount != null) setEmergencyFundAmount(String(fp.emergencyFundAmount));
+      if (fp.emergencyFundMonths != null) {
+        const duration = String(fp.emergencyFundMonths);
+        if (EMERGENCY_FUND_DURATION_OPTIONS.some((option) => option.value === duration)) {
+          setEmergencyFundDuration(duration);
+        } else {
+          setEmergencyFundDuration('custom');
+          setCustomEmergencyFundMonths(duration);
+        }
+      }
       if (fp.netWorth != null) setNetWorth(String(fp.netWorth));
       if (fp.savingsRate != null) setSavingsRate(String(fp.savingsRate));
       if (fp.riskTolerance) setRiskTolerance(fp.riskTolerance);
@@ -101,21 +131,48 @@ export default function FinancialConnectionScreen() {
 
   const handleProfileContinue = async () => {
     setProfileSaveError(null);
+    const parsedAnnualIncome = parseDollar(annualIncome);
     const parsedMonthlyExpenses = parseDollar(monthlyExpenses);
+    const parsedEmergencyFundAmount = parseDollar(emergencyFundAmount);
+    const parsedNetWorth = parseDollar(netWorth, true);
+    const parsedSavingsRate = parseDollar(savingsRate);
+    const invalidDollarField = [
+      { label: 'Annual income', raw: annualIncome, value: parsedAnnualIncome },
+      { label: 'Monthly expenses', raw: monthlyExpenses, value: parsedMonthlyExpenses },
+      { label: 'Emergency fund balance', raw: emergencyFundAmount, value: parsedEmergencyFundAmount },
+      { label: 'Net worth', raw: netWorth, value: parsedNetWorth },
+      { label: 'Monthly savings', raw: savingsRate, value: parsedSavingsRate },
+    ].find((field) => field.raw.trim() !== '' && field.value == null);
+    if (invalidDollarField) {
+      const message = `${invalidDollarField.label} must be a whole-dollar amount.`;
+      setProfileSaveError(message);
+      toast({ title: 'Enter whole dollars', description: message, variant: 'destructive' });
+      return;
+    }
     if (parsedMonthlyExpenses == null || parsedMonthlyExpenses <= 0) {
       const message = 'Enter your monthly expenses to create your Emergency Fund goal.';
       setProfileSaveError(message);
       toast({ title: 'Monthly expenses required', description: message, variant: 'destructive' });
       return;
     }
+    const emergencyFundMonths = emergencyFundDuration === 'custom'
+      ? parseDurationMonths(customEmergencyFundMonths)
+      : parseDurationMonths(emergencyFundDuration);
+    if (emergencyFundMonths == null) {
+      const message = 'Choose an emergency fund duration between 1 and 120 months.';
+      setProfileSaveError(message);
+      toast({ title: 'Emergency fund duration required', description: message, variant: 'destructive' });
+      return;
+    }
     try {
       const savedProfile = await saveProfile({
         data: {
-          annualIncome: parseDollar(annualIncome),
+          annualIncome: parsedAnnualIncome,
           monthlyExpenses: parsedMonthlyExpenses,
-          emergencyFundAmount: parseDollar(emergencyFundAmount) ?? 0,
-          netWorth: parseDollar(netWorth),
-          savingsRate: parseDollar(savingsRate),
+          emergencyFundAmount: parsedEmergencyFundAmount ?? 0,
+          emergencyFundMonths,
+          netWorth: parsedNetWorth,
+          savingsRate: parsedSavingsRate,
           riskTolerance: riskTolerance || null,
           primaryGoalType: primaryGoalType || null,
         },
@@ -228,7 +285,7 @@ export default function FinancialConnectionScreen() {
                   {isEditMode ? <>Update Your Financial<br />Picture.</> : <>Your Financial<br />Picture.</>}
                 </h1>
                 <p className="text-[#CBD5E1] font-semibold text-base leading-[26px] opacity-90 pt-2">
-                  This helps Goalsy calibrate your score, missions, and strategy to your actual situation. Monthly expenses set your Emergency Fund target.
+                  This helps Goalsy calibrate your score, missions, and strategy to your actual situation. Your Emergency Fund starts with a three-month expense target that you can tailor below.
                 </p>
               </div>
             </div>
@@ -249,6 +306,7 @@ export default function FinancialConnectionScreen() {
                       <input
                         type="number"
                         min="0"
+                        step="1"
                         placeholder="120000"
                         value={annualIncome}
                         onChange={(e) => {
@@ -266,6 +324,7 @@ export default function FinancialConnectionScreen() {
                       <input
                         type="number"
                         min="0"
+                        step="1"
                         placeholder="4500"
                         value={monthlyExpenses}
                         onChange={(e) => {
@@ -285,6 +344,7 @@ export default function FinancialConnectionScreen() {
                     <input
                       type="number"
                       min="0"
+                        step="1"
                       placeholder="0"
                       value={emergencyFundAmount}
                       onChange={(e) => {
@@ -295,7 +355,50 @@ export default function FinancialConnectionScreen() {
                     />
                   </div>
                   <p className="text-[#808BA4] text-[11px] font-semibold leading-4 mt-2">
-                    How much do you have set aside right now? Goalsy creates a target equal to three months of expenses.
+                    How much do you have set aside right now? This is your opening balance and will not change when you adjust your target.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Emergency Fund Target</label>
+                  <div className="relative">
+                    <select
+                      aria-label="Emergency Fund Target Duration"
+                      value={emergencyFundDuration}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setEmergencyFundDuration(e.target.value);
+                      }}
+                      className={selectCls}
+                    >
+                      {EMERGENCY_FUND_DURATION_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value} className="bg-[#111827]">
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4B5563] rotate-90 pointer-events-none" />
+                  </div>
+                  {emergencyFundDuration === 'custom' && (
+                    <input
+                      aria-label="Custom Emergency Fund Target Duration"
+                      type="number"
+                      min="1"
+                      max="120"
+                      step="1"
+                      placeholder="Months"
+                      value={customEmergencyFundMonths}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setCustomEmergencyFundMonths(e.target.value);
+                      }}
+                      className={`${inputCls} mt-3`}
+                    />
+                  )}
+                  <p className="text-[#808BA4] text-[11px] font-semibold leading-4 mt-2">
+                    Your target is {emergencyFundDuration === 'custom'
+                      ? `${customEmergencyFundMonths || 'the duration you choose'} months`
+                      : `${emergencyFundDuration} months`} of your current monthly expenses.
                   </p>
                 </div>
 
@@ -307,6 +410,7 @@ export default function FinancialConnectionScreen() {
                       <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
                       <input
                         type="number"
+                        step="1"
                         placeholder="250000"
                         value={netWorth}
                         onChange={(e) => {
@@ -331,6 +435,7 @@ export default function FinancialConnectionScreen() {
                       <input
                         type="number"
                         min="0"
+                        step="1"
                         placeholder="1500"
                         value={savingsRate}
                         onChange={(e) => {

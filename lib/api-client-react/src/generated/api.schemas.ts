@@ -41,6 +41,11 @@ export interface FinancialProfile {
   monthlyExpenses?: number | null;
   /** @nullable */
   emergencyFundAmount?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 120
+     */
+  emergencyFundMonths?: number;
   /** @nullable */
   netWorth?: number | null;
   /** @nullable */
@@ -124,6 +129,11 @@ export interface UpdateFinancialProfileBody {
   monthlyExpenses?: number | null;
   /** @nullable */
   emergencyFundAmount?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 120
+     */
+  emergencyFundMonths?: number;
   /** @nullable */
   netWorth?: number | null;
   /** @nullable */
@@ -386,4 +396,3 @@ export type ListExpensesParams = {
  */
 month?: string;
 };
-

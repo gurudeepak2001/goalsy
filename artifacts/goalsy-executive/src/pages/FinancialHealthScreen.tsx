@@ -128,6 +128,7 @@ export default function FinancialHealthScreen() {
   const utilization = totalCreditLimit > 0 ? (totalCreditDebt / totalCreditLimit) * 100 : 0;
 
   const emergencyGoal = (goals ?? []).find((goal) => goal.type === 'emergency_fund');
+  const emergencyFundMonths = profile?.emergencyFundMonths ?? 3;
   const emergencyPct = emergencyGoal && emergencyGoal.targetAmount > 0
     ? Math.min(100, (emergencyGoal.currentAmount / emergencyGoal.targetAmount) * 100)
     : 0;
@@ -326,6 +327,10 @@ export default function FinancialHealthScreen() {
                   <span className="text-white font-bold text-3xl tracking-tight">${emergencyGoal.currentAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   <span className="text-[#808BA4] font-semibold text-sm">/ ${emergencyGoal.targetAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
+                <p className="text-[#808BA4] font-semibold text-[11px]">
+                  Target: {emergencyFundMonths} {emergencyFundMonths === 1 ? 'month' : 'months'} of expenses
+                  {monthlyExpenses > 0 ? ` (${`$${monthlyExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} per month)` : ''}.
+                </p>
                 <div className="h-1.5 w-full bg-[#1F2937] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-[#2563EB] transition-all duration-700"

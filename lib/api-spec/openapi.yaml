@@ -795,6 +795,10 @@ components:
           type: ["integer", "null"]
         emergencyFundAmount:
           type: ["integer", "null"]
+        emergencyFundMonths:
+          type: integer
+          minimum: 1
+          maximum: 120
         netWorth:
           type: ["integer", "null"]
         savingsRate:
@@ -918,6 +922,10 @@ components:
           type: ["integer", "null"]
         emergencyFundAmount:
           type: ["integer", "null"]
+        emergencyFundMonths:
+          type: integer
+          minimum: 1
+          maximum: 120
         netWorth:
           type: ["integer", "null"]
         savingsRate:

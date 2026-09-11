@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
       annualIncome: 100_000,
       monthlyExpenses: 4_000,
       emergencyFundAmount: 2_500,
+      emergencyFundMonths: 6,
       netWorth: null,
       savingsRate: null,
       riskTolerance: null,
@@ -84,6 +85,7 @@ describe('FinancialConnectionScreen edit mode', () => {
       annualIncome: 120_000,
       monthlyExpenses: 4_500,
       emergencyFundAmount: 2_500,
+      emergencyFundMonths: 6,
       netWorth: 80_000,
       savingsRate: 500,
       riskTolerance: 'moderate',
@@ -94,6 +96,7 @@ describe('FinancialConnectionScreen edit mode', () => {
         annualIncome: 100_000,
         monthlyExpenses: 4_000,
         emergencyFundAmount: 2_500,
+        emergencyFundMonths: 6,
         netWorth: null,
         savingsRate: null,
         riskTolerance: null,
@@ -112,6 +115,7 @@ describe('FinancialConnectionScreen edit mode', () => {
     expect(screen.getByDisplayValue('100000')).toBeInTheDocument();
     expect(screen.getByDisplayValue('4000')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2500')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Emergency Fund Target Duration' })).toHaveValue('6');
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.queryByText('Secure Data')).not.toBeInTheDocument();
@@ -130,6 +134,7 @@ describe('FinancialConnectionScreen edit mode', () => {
           annualIncome: 120_000,
           monthlyExpenses: 4_500,
           emergencyFundAmount: 2_500,
+          emergencyFundMonths: 6,
         }),
       });
       expect(mocks.navigate).toHaveBeenCalledWith('/ai-home');
@@ -140,6 +145,7 @@ describe('FinancialConnectionScreen edit mode', () => {
             annualIncome: 120_000,
             monthlyExpenses: 4_500,
             emergencyFundAmount: 2_500,
+            emergencyFundMonths: 6,
           }),
         }),
       );
@@ -162,6 +168,7 @@ describe('FinancialConnectionScreen edit mode', () => {
         annualIncome: 100_000,
         monthlyExpenses: 4_000,
         emergencyFundAmount: 2_500,
+        emergencyFundMonths: 6,
         netWorth: null,
         savingsRate: null,
         riskTolerance: null,
@@ -197,5 +204,44 @@ describe('FinancialConnectionScreen edit mode', () => {
 
     expect(mocks.navigate).toHaveBeenCalledWith('/ai-home');
     expect(screen.queryByText('Secure Data')).not.toBeInTheDocument();
+  });
+
+  it('saves a custom emergency fund duration', async () => {
+    render(<FinancialConnectionScreen />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Emergency Fund Target Duration' }), {
+      target: { value: 'custom' },
+    });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Custom Emergency Fund Target Duration' }), {
+      target: { value: '8' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mocks.saveProfile).toHaveBeenCalledWith({
+        data: expect.objectContaining({ emergencyFundMonths: 8 }),
+      });
+    });
+  });
+
+  it.each([
+    ['monthly expenses', '4500.50', 'Monthly expenses', '4500'],
+    ['monthly expenses', '-4500', 'Monthly expenses', '4500'],
+    ['monthly expenses', '4e3', 'Monthly expenses', '4500'],
+    ['emergency fund balance', '2000.50', 'Emergency fund balance', '0'],
+    ['emergency fund balance', '-2000', 'Emergency fund balance', '0'],
+    ['emergency fund balance', '2e3', 'Emergency fund balance', '0'],
+  ])('does not submit a %s value of %s', async (_field, value, label, placeholder) => {
+    render(<FinancialConnectionScreen />);
+
+    fireEvent.change(screen.getByPlaceholderText(placeholder), {
+      target: { value },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mocks.saveProfile).not.toHaveBeenCalled();
+      expect(screen.getByText(`${label} must be a whole-dollar amount.`)).toBeInTheDocument();
+    });
   });
 });

@@ -46,7 +46,7 @@ describe('FinancialHealthScreen', () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
     vi.mocked(useGetFinancialProfile).mockReturnValue({
-      data: { profile: { annualIncome: 120000, monthlyExpenses: 5000 } },
+      data: { profile: { annualIncome: 120000, monthlyExpenses: 5000, emergencyFundMonths: 6 } },
       isLoading: false,
       isError: false,
     } as any);
@@ -111,6 +111,7 @@ describe('FinancialHealthScreen', () => {
     // Emergency Fund
     expect(screen.getByText('50% Complete')).toBeInTheDocument();
     expect(screen.getByText('$5,000 to go')).toBeInTheDocument();
+    expect(screen.getByText('Target: 6 months of expenses ($5,000 per month).')).toBeInTheDocument();
 
     // Current Expenses
     expect(screen.getAllByText('$2,000')).toHaveLength(2);

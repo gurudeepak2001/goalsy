@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-# Rebuild db type declarations so downstream packages (api-server, etc.) typecheck cleanly
-pnpm --filter @workspace/db exec tsc -p tsconfig.json
-pnpm --filter db push
+# Rebuild every shared-library declaration after a merge so artifact typechecks
+# use the current API and database contracts.
+pnpm exec tsc --build --force
+pnpm --filter @workspace/db run push
