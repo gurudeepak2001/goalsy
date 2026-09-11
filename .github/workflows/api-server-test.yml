@@ -59,3 +59,33 @@ jobs:
 
       - name: Run API server tests
         run: pnpm --filter @workspace/api-server run test
+
+      - name: Create prior-version upgrade database
+        run: |
+          createdb \
+            --host localhost \
+            --username postgres \
+            goalsy_upgrade_test
+          psql \
+            --host localhost \
+            --username postgres \
+            --dbname goalsy_upgrade_test \
+            --set ON_ERROR_STOP=on \
+            --file lib/db/test-fixtures/prior-schema.sql
+        env:
+          PGPASSWORD: postgres
+
+      - name: Upgrade prior-version database schema
+        run: pnpm --filter @workspace/db run push-force
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/goalsy_upgrade_test
+
+      - name: Verify saved data survived schema upgrade
+        run: |
+          psql \
+            --host localhost \
+            --username postgres \
+            --dbname goalsy_upgrade_test \
+            --file lib/db/test-fixtures/verify-upgrade.sql
+        env:
+          PGPASSWORD: postgres
