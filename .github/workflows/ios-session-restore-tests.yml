@@ -21,7 +21,7 @@ permissions:
 jobs:
   clerk-cookie-round-trip:
     name: Clerk Cookie Round-Trip (AppTests)
-    runs-on: macos-14          # Xcode 15, iOS 17 simulator toolchain
+    runs-on: macos-14          # Xcode 16.2, iOS 18 simulator toolchain
 
     defaults:
       run:
@@ -31,8 +31,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
 
       - name: Install xcpretty
         run: gem install xcpretty --no-document
@@ -136,7 +138,7 @@ jobs:
 
   clerk-session-restore-smoke:
     name: Clerk Session-Restore Smoke Test (AppUITests)
-    runs-on: macos-14          # Xcode 15, iOS 17 simulator toolchain
+    runs-on: macos-14          # Xcode 16.2, iOS 18 simulator toolchain
     # Run after the round-trip unit tests; both jobs are independent of each
     # other at the GitHub level, but sequencing keeps the smoke test from
     # consuming a runner slot when the cheaper unit tests have already failed.
@@ -153,8 +155,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
 
       - name: Install xcpretty
         run: gem install xcpretty --no-document
