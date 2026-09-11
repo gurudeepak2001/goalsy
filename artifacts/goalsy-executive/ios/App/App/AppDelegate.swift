@@ -90,6 +90,19 @@ private final class GoalsyAuthStateHandlerProxy: NSObject, WKScriptMessageHandle
     }
 }
 
+/// Registers local Capacitor plugins before the bundled web app begins loading.
+///
+/// `applicationDidBecomeActive` runs too late: by then Capacitor has already
+/// exported the JavaScript plugin bridge, so calls to a locally registered
+/// plugin are reported as "not implemented on ios".
+@objc(MainViewController)
+class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        super.capacitorDidLoad()
+        bridge?.registerPluginInstance(BiometricAuthPlugin())
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -99,7 +112,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private let authStateHandler = GoalsyAuthStateHandler()
     private let dbJwtHandler = GoalsyDbJwtHandler()
     private var authHandlerRegistered = false
-    private var biometricPluginRegistered = false
 
     /// Handles the Clerk cookie backup/restore round-trip.
     /// Instantiated once; AppDelegate supplies the live Capacitor cookie store
@@ -213,11 +225,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         guard !authHandlerRegistered,
               let bridgeVC = window?.rootViewController as? CAPBridgeViewController,
               let webView = bridgeVC.webView else { return }
-
-        if !biometricPluginRegistered {
-            bridgeVC.bridge?.registerPluginInstance(BiometricAuthPlugin())
-            biometricPluginRegistered = true
-        }
 
         // Point the handler at Capacitor's root view so the identifier is
         // always visible at the top of the accessibility tree.
