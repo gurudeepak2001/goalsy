@@ -1,6 +1,7 @@
 import { configDefaults, defineConfig } from "vitest/config";
 
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL?.trim());
+const databaseIntegrationTests = "**/*.integration.test.ts";
 
 export default defineConfig({
   test: {
@@ -10,7 +11,9 @@ export default defineConfig({
       ? configDefaults.exclude
       : [
           ...configDefaults.exclude,
-          "**/missions-collision.integration.test.ts",
+          // GitHub's unit-test job has no PostgreSQL service or DATABASE_URL.
+          // Keep database-backed endpoint coverage for environments that do.
+          databaseIntegrationTests,
         ],
   },
 });
