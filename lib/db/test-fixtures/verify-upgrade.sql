@@ -37,6 +37,50 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO preserved_count
+  FROM plaid_items i
+  WHERE i.id = '10000000-0000-4000-8000-000000000004'
+    AND i.user_id = 'partial-item-fixture-user'
+    AND i.plaid_item_id = 'partial-item-fixture'
+    AND i.encrypted_access_token = 'encrypted-partial-item-token'
+    AND i.institution_id = 'ins_partial_item'
+    AND i.institution_name = 'Partial Item Fixture Bank'
+    AND i.status = 'active'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM plaid_accounts a
+      WHERE a.item_id = i.id
+    );
+  IF preserved_count <> 1 THEN
+    RAISE EXCEPTION 'Plaid item without accounts was not preserved as an owner-scoped partial sync';
+  END IF;
+
+  SELECT count(*) INTO preserved_count
+  FROM plaid_items i
+  JOIN plaid_accounts a
+    ON a.item_id = i.id AND a.user_id = i.user_id
+  WHERE i.id = '10000000-0000-4000-8000-000000000005'
+    AND i.user_id = 'partial-account-fixture-user'
+    AND i.plaid_item_id = 'partial-account-fixture'
+    AND i.encrypted_access_token = 'encrypted-partial-account-token'
+    AND i.institution_name = 'Partial Account Fixture Bank'
+    AND a.id = '10000000-0000-4000-8000-000000000006'
+    AND a.user_id = 'partial-account-fixture-user'
+    AND a.plaid_account_id = 'partial-account-fixture-account'
+    AND a.name = 'Partially Synced Credit Card'
+    AND a.current_balance = 310.75
+    AND a.available_balance IS NULL
+    AND a.credit_limit = 2400
+    AND a.is_hidden = false
+    AND NOT EXISTS (
+      SELECT 1
+      FROM plaid_credit_liabilities l
+      WHERE l.account_id = a.id
+    );
+  IF preserved_count <> 1 THEN
+    RAISE EXCEPTION 'Plaid account without liability was not preserved as an owner-scoped partial sync';
+  END IF;
+
+  SELECT count(*) INTO preserved_count
   FROM financial_profiles
   WHERE id = '20000000-0000-4000-8000-000000000001'
     AND user_id = 'upgrade-fixture-user'

@@ -115,19 +115,37 @@ CREATE TABLE briefings (
 
 INSERT INTO plaid_items (
   id, user_id, plaid_item_id, encrypted_access_token, institution_id, institution_name
-) VALUES (
+) VALUES
+(
   '10000000-0000-4000-8000-000000000001',
   'upgrade-fixture-user',
   'upgrade-fixture-item',
   'encrypted-upgrade-fixture-token',
   'ins_upgrade',
   'Upgrade Fixture Bank'
+),
+(
+  '10000000-0000-4000-8000-000000000004',
+  'partial-item-fixture-user',
+  'partial-item-fixture',
+  'encrypted-partial-item-token',
+  'ins_partial_item',
+  'Partial Item Fixture Bank'
+),
+(
+  '10000000-0000-4000-8000-000000000005',
+  'partial-account-fixture-user',
+  'partial-account-fixture',
+  'encrypted-partial-account-token',
+  'ins_partial_account',
+  'Partial Account Fixture Bank'
 );
 
 INSERT INTO plaid_accounts (
   id, item_id, user_id, plaid_account_id, name, mask, type, subtype,
   current_balance, available_balance, credit_limit, currency_code, is_hidden
-) VALUES (
+) VALUES
+(
   '10000000-0000-4000-8000-000000000002',
   '10000000-0000-4000-8000-000000000001',
   'upgrade-fixture-user',
@@ -141,6 +159,21 @@ INSERT INTO plaid_accounts (
   5000,
   'USD',
   true
+),
+(
+  '10000000-0000-4000-8000-000000000006',
+  '10000000-0000-4000-8000-000000000005',
+  'partial-account-fixture-user',
+  'partial-account-fixture-account',
+  'Partially Synced Credit Card',
+  '6060',
+  'credit',
+  'credit card',
+  310.75,
+  NULL,
+  2400,
+  'USD',
+  false
 );
 
 INSERT INTO plaid_credit_liabilities (
