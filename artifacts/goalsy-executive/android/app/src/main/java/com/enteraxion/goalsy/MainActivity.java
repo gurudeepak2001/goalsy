@@ -9,6 +9,12 @@ public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "Goalsy";
 
+    @Override
+    public void onCreate(android.os.Bundle savedInstanceState) {
+        registerPlugin(BiometricAuthPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+
     /**
      * Force-flush WebView cookies to disk before the OS may kill the process.
      *

@@ -6,44 +6,44 @@ export interface HelpArticle {
 
 export const profileHelpArticles: HelpArticle[] = [
   {
-    id: 'onboarding-financial-profile',
-    title: 'Onboarding & Financial Profile',
-    body: 'Your Financial Profile captures the income, expenses, net worth, savings rate, risk tolerance, and primary goal that power your recommendations. You can update it any time from Strategic Intelligence by choosing Update Profile.',
+    id: 'financial-profile-emergency-fund',
+    title: 'Financial Profile & Emergency Fund',
+    body: 'Your Financial Profile captures the income, expenses, net worth, savings rate, risk tolerance, and primary goal used throughout Goalsy. When you save positive monthly expenses, Goalsy creates one Emergency Fund goal with a target equal to three months of those expenses. Updating your profile later changes that target without resetting saved progress.',
   },
   {
-    id: 'goals-roadmaps',
-    title: 'Goals & Roadmaps',
-    body: 'Create a goal with a target, current balance, contribution amount, and target date. Goalsy uses the remaining balance to show milestone checkpoints and a projected completion date; roadmaps bring your active goals together in one plan.',
+    id: 'goals-progress-roadmaps',
+    title: 'Goals, Progress & Roadmaps',
+    body: 'Create goals with a target, current balance, contribution amount, and target date. Goalsy uses your saved weekly progress to show milestone checkpoints and projected completion dates. If you correct an earlier weekly amount, later projections recalculate from that corrected history.',
   },
   {
-    id: 'expenses',
-    title: 'Expenses',
-    body: 'Use Expenses to review and organize recurring or planned spending. Keeping expenses current gives your Financial Profile and planning views a more useful picture of your cash flow.',
+    id: 'connected-accounts-total-balance',
+    title: 'Connected Accounts & Total Balance',
+    body: 'Connected Accounts shows the institutions and accounts currently shared with Goalsy. Credit-card and loan balances are treated as debt when Total Balance is calculated. Removing an account hides it from Goalsy without deleting anything at your financial institution.',
   },
   {
-    id: 'bills-calendar',
-    title: 'Bills & Calendar',
-    body: 'Add bills with their due dates and payment status, then use Calendar to see upcoming bills, goal milestones, and other planning events in one place.',
+    id: 'expenses-bills-calendar',
+    title: 'Expenses, Bills & Calendar',
+    body: 'Keep expenses and bill due dates current to give your planning views a useful cash-flow picture. Calendar brings together upcoming bills, goal milestones, and daily missions. Completed or skipped missions stay visible as history but cannot be reopened as new actions.',
+  },
+  {
+    id: 'ai-planning-scenarios',
+    title: 'AI Planning & Scenario Drafts',
+    body: 'AI recommendations use your saved Financial Profile, goals, expenses, linked accounts, and score. Scenario adjustments are drafts only: selecting one opens the related goal plan with the proposed monthly contribution filled in. Review, edit, or cancel it; nothing changes until you select Save Plan.',
+  },
+  {
+    id: 'financial-health-goalsy-score',
+    title: 'Financial Health & Goalsy Score',
+    body: 'Financial Health and the Goalsy Score use saved profile, goal, bill, expense, and linked-account data. The Goalsy Score is a financial readiness measure, not a credit score. Its change explanation compares the current score drivers with the previous saved score snapshot.',
   },
   {
     id: 'notifications',
     title: 'Notifications',
-    body: 'Choose which mission, goal, market, weekly summary, and AI insight alerts you receive in Profile > Notification Preferences. Device notification permission is managed by your phone settings.',
+    body: 'Choose which mission, goal, market, weekly summary, and AI insight alerts you receive in Profile > Notification Preferences. Your phone’s notification permission is managed in its system settings.',
   },
   {
-    id: 'strategic-intelligence',
-    title: 'Strategic Intelligence',
-    body: 'Strategic Intelligence uses the details in your Financial Profile, goals, expenses, and score to organize planning insights. Update your profile there whenever your financial situation changes.',
-  },
-  {
-    id: 'goalsy-score',
-    title: 'Goalsy Score',
-    body: 'Your Goalsy Score is a financial readiness measure, not a credit score. It reflects factors such as your goals, savings rate, expense ratio, net worth, and mission completion. Open the score card to view its current breakdown and history.',
-  },
-  {
-    id: 'profile-account-settings',
-    title: 'Profile & Account Settings',
-    body: 'Profile lets you update your display name and photo, review connected-account information, manage notification preferences, and sign out. Security and biometrics settings apply to this device.',
+    id: 'security-face-id-account',
+    title: 'Security, Face ID & Account',
+    body: 'Profile lets you update your display name and photo, manage notifications, review connected accounts, and sign out. On the mobile app, enable Security & Biometrics to require the device’s Face ID, Touch ID, or supported biometric method before a saved Goalsy session can be reopened.',
   },
 ];
 

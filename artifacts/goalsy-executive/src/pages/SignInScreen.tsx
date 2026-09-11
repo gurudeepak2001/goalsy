@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSignIn } from '@clerk/react/legacy';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Target, Loader2, ScanFace, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
-import { simulateAsync } from '@/lib/mockData';
 import { getClerkErrorMessage } from '@/lib/clerkErrors';
 
 // Clerk's Capacitor startup can replace the native route tree once while it
@@ -41,7 +40,6 @@ export default function SignInScreen() {
   // which produces "You need to send a verification code before attempting to verify".
   const { isLoaded, signIn, setActive } = useSignIn();
 
-  const [faceIdStatus, setFaceIdStatus] = useState<'idle' | 'scanning' | 'verified'>('idle');
   const [email, setEmail] = useState(() => getSignInDraft().email);
   const [password, setPassword] = useState(() => getSignInDraft().password);
   const [submitting, setSubmitting] = useState(false);
@@ -218,17 +216,6 @@ export default function SignInScreen() {
         variant: 'destructive',
       });
     }
-  };
-
-  const handleFaceId = async () => {
-    if (faceIdStatus !== 'idle') return;
-    setFaceIdStatus('scanning');
-    // MOCK DATA - FaceID/biometrics are an intentional visual preview only; no real
-    // biometric check and no session is created, so it must not grant navigation.
-    await simulateAsync(true, 1400);
-    setFaceIdStatus('verified');
-    toast({ title: 'Biometric Login Coming Soon', description: 'This is a preview of the FaceID experience.' });
-    setTimeout(() => setFaceIdStatus('idle'), 1800);
   };
 
   const handleForgotPassword = async () => {
@@ -550,38 +537,6 @@ export default function SignInScreen() {
           </form>
 
           <div className="pt-12 flex flex-col items-center gap-6">
-            <div className="flex items-center gap-4 w-full">
-              <div className="h-px flex-1 bg-white/5"></div>
-              <span className="text-[#444444] text-xs font-bold uppercase tracking-[1px]">
-                Secure Biometric
-              </span>
-              <div className="h-px flex-1 bg-white/5"></div>
-            </div>
-
-            <div className="flex flex-col items-center gap-3">
-              <button
-                onClick={handleFaceId}
-                disabled={faceIdStatus !== 'idle'}
-                className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#1F2937] border border-white/5 disabled:opacity-80"
-                style={{ boxShadow: '0 0 40px rgba(37, 99, 235, 0.1)' }}
-                aria-label="Sign in with FaceID"
-                data-testid="button-faceid"
-              >
-                {faceIdStatus === 'scanning' ? (
-                  <Loader2 size={28} className="text-[#3B82F6] animate-spin" strokeWidth={2} />
-                ) : faceIdStatus === 'verified' ? (
-                  <ScanFace size={28} className="text-[#22C55E]" strokeWidth={2} />
-                ) : (
-                  <Target size={32} className="text-white" strokeWidth={1.5} />
-                )}
-              </button>
-              <span
-                className="text-[#CBD5E1] font-bold text-sm"
-                style={{ letterSpacing: '0.00292969em' }}
-              >
-                {faceIdStatus === 'scanning' ? 'Scanning...' : faceIdStatus === 'verified' ? 'Verified' : 'Use FaceID'}
-              </span>
-            </div>
           </div>
         </main>
 

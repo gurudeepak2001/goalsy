@@ -2,10 +2,12 @@
 // FIRST executable line — confirms JS execution reached this module.
 console.log('[Goalsy] App.tsx module loading');
 
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth } from '@clerk/react';
+import { ClerkProvider, ClerkLoading, ClerkLoaded, Show, useAuth, useClerk } from '@clerk/react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
+import { Loader2, ScanFace } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { initApiClient } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +43,11 @@ import ProfileScreen from '@/pages/ProfileScreen';
 import ScoreScreen from '@/pages/ScoreScreen';
 import ExpensesScreen from '@/pages/ExpensesScreen';
 import RouteScrollReset from '@/components/RouteScrollReset';
+import {
+  authenticateForAppUnlock,
+  getBiometricLockEnabled,
+  isNativeBiometricDevice,
+} from '@/lib/biometrics';
 
 console.log('[Goalsy] imports done');
 
@@ -546,6 +553,114 @@ function AuthGate({ component: Component }: { component: ComponentType }) {
   );
 }
 
+type BiometricLockState = 'checking' | 'unlocked' | 'locked';
+
+function BiometricLock({ children }: { children: ReactNode }) {
+  const { isSignedIn } = useAuth();
+  const { signOut } = useClerk();
+  const [lockState, setLockState] = useState<BiometricLockState>('checking');
+  const [lockError, setLockError] = useState<string | null>(null);
+
+  const requestUnlock = useCallback(async () => {
+    if (!isNativeBiometricDevice() || isSignedIn !== true) {
+      setLockState('unlocked');
+      return;
+    }
+
+    try {
+      const biometricLockEnabled = await getBiometricLockEnabled();
+      if (!biometricLockEnabled) {
+        setLockState('unlocked');
+        return;
+      }
+
+      setLockState('checking');
+      setLockError(null);
+      await authenticateForAppUnlock();
+      setLockState('unlocked');
+    } catch (error) {
+      setLockError(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Face ID did not verify. Try again or sign in with your password.',
+      );
+      setLockState('locked');
+    }
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    void requestUnlock();
+  }, [requestUnlock]);
+
+  useEffect(() => {
+    if (!isNativeBiometricDevice()) return;
+
+    let disposed = false;
+    let removeListener: (() => Promise<void>) | undefined;
+
+    void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        void getBiometricLockEnabled().then((enabled) => {
+          if (enabled) setLockState('locked');
+        });
+        return;
+      }
+      void requestUnlock();
+    }).then((listener) => {
+      if (disposed) {
+        void listener.remove();
+      } else {
+        removeListener = () => listener.remove();
+      }
+    });
+
+    return () => {
+      disposed = true;
+      void removeListener?.();
+    };
+  }, [requestUnlock]);
+
+  if (!isNativeBiometricDevice() || isSignedIn !== true || lockState === 'unlocked') {
+    return <>{children}</>;
+  }
+
+  if (lockState === 'checking') {
+    return (
+      <div className="min-h-[100dvh] bg-[#05070A] flex flex-col items-center justify-center gap-4">
+        <Loader2 size={28} className="text-[#3B82F6] animate-spin" />
+        <p className="text-[#CBD5E1] font-semibold text-sm">Preparing secure unlock…</p>
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-[100dvh] bg-[#05070A] px-6 flex flex-col items-center justify-center text-center">
+      <div className="w-16 h-16 rounded-2xl bg-[#1F2937] border border-white/10 flex items-center justify-center mb-5">
+        <ScanFace size={32} className="text-[#60A5FA]" />
+      </div>
+      <h1 className="text-white text-2xl font-bold">Unlock Goalsy</h1>
+      <p className="mt-3 max-w-xs text-[#94A3B8] text-sm leading-6">
+        Use Face ID, Touch ID, or your device’s approved biometric method to continue.
+      </p>
+      {lockError && <p role="alert" className="mt-4 max-w-sm text-[#FCA5A5] text-xs leading-5">{lockError}</p>}
+      <button
+        type="button"
+        onClick={() => void requestUnlock()}
+        className="mt-7 min-h-12 px-6 rounded-xl bg-[#2563EB] text-white text-sm font-bold"
+      >
+        Try again
+      </button>
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        className="mt-4 min-h-11 px-5 text-[#94A3B8] text-sm font-semibold"
+      >
+        Sign in with password
+      </button>
+    </main>
+  );
+}
+
 export function GuestOnly({ component: Component }: { component: ComponentType }) {
   const { isSignedIn } = useAuth();
 
@@ -857,7 +972,9 @@ function ClerkProviderWithRoutes() {
       <ClerkLoaded>
         <ApiClientBootstrap />
         <RouteScrollReset />
-        <Router />
+        <BiometricLock>
+          <Router />
+        </BiometricLock>
       </ClerkLoaded>
     </ClerkProvider>
   );

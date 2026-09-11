@@ -37,6 +37,12 @@ import {
 import { getScoreTier } from '@/lib/scoreUtils';
 import { buildProfileAchievements, profileHelpArticles, type ProfileAchievement } from '@/lib/profileContent';
 import {
+  disableBiometricLock,
+  enableBiometricLock,
+  getBiometricLockEnabled,
+  isNativeBiometricDevice,
+} from '@/lib/biometrics';
+import {
   useGetScore,
   useGetFinancialProfile,
   useGetMissionStreak,
@@ -129,7 +135,10 @@ export default function ProfileScreen() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(true);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricsReady, setBiometricsReady] = useState(false);
+  const [biometricsUpdating, setBiometricsUpdating] = useState(false);
+  const isNativeDevice = isNativeBiometricDevice();
 
   // ── Real API: score + notification prefs ──────────────────────────────────
   const { data: scoreResult } = useGetScore();
@@ -154,6 +163,53 @@ export default function ProfileScreen() {
   useEffect(() => {
     setAvatarSrc(user?.hasImage ? user.imageUrl : undefined);
   }, [user?.hasImage, user?.imageUrl]);
+
+  useEffect(() => {
+    let active = true;
+    void getBiometricLockEnabled()
+      .then((enabled) => {
+        if (active) setBiometricsEnabled(enabled);
+      })
+      .finally(() => {
+        if (active) setBiometricsReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleBiometricChange = async (checked: boolean) => {
+    if (biometricsUpdating) return;
+    const previousValue = biometricsEnabled;
+    setBiometricsUpdating(true);
+
+    try {
+      if (checked) {
+        const label = await enableBiometricLock();
+        setBiometricsEnabled(true);
+        toast({
+          title: 'Biometrics Enabled',
+          description: `${label} will unlock your saved Goalsy session on this device.`,
+        });
+      } else {
+        await disableBiometricLock();
+        setBiometricsEnabled(false);
+        toast({
+          title: 'Biometrics Disabled',
+          description: 'This device will no longer require a biometric unlock.',
+        });
+      }
+    } catch (error) {
+      setBiometricsEnabled(previousValue);
+      toast({
+        title: 'Could Not Update Biometrics',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBiometricsUpdating(false);
+    }
+  };
 
   const handleToggleNotif = async (type: string, currentEnabled: boolean) => {
     try {
@@ -399,13 +455,8 @@ export default function ProfileScreen() {
               right={
                 <Switch
                   checked={biometricsEnabled}
-                  onCheckedChange={(checked) => {
-                    setBiometricsEnabled(checked);
-                    toast({
-                      title: checked ? 'Biometrics Enabled' : 'Biometrics Disabled',
-                      description: checked ? 'Face ID / Touch ID will be used to secure sign-in.' : 'Face ID / Touch ID has been turned off for this device.',
-                    });
-                  }}
+                  disabled={!biometricsReady || biometricsUpdating || !isNativeDevice}
+                  onCheckedChange={(checked) => void handleBiometricChange(checked)}
                 />
               }
             />

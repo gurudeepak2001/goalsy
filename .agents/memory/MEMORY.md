@@ -2,7 +2,7 @@
 - [Clerk session restore on Capacitor](clerk-capacitor-session-restore.md) — persist __clerk_db_jwt, restore via URL param before clerk-js init; fetch injection fails.
 - [Clerk custom web UI gotchas](clerk-custom-web-ui.md) — legacy hooks subpath, required captcha div, Turnstile fails under headless testing, +clerk_test OTP trick.
 - [Clerk FAPI session detection](clerk-fapi-session-detection.md) — sign-in/touch responses put sessions under data.client.sessions, not data.response.sessions; check both.
-- [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both android/ and ios/ platform folders committed; biometrics stays simulated until post-demo.
+- [Capacitor mobile setup](capacitor-setup.md) — Capacitor wraps the Vite build; both native folders are committed; biometrics is a native lock for saved sessions.
 - [Capacitor identifier synchronization](capacitor-identifier-sync.md) — cap sync copies appId into generated JSON but does not update Xcode bundle IDs or Android package/application IDs.
 - [Android build commands](android-build-commands.md) — exact sequence from ~/StudioProjects/goalsy-main after every git pull.
 - [Clerk API server auth](clerk-api-auth.md) — use jose JWKS, never @clerk/express; CLERK_SECRET_KEY is an invalid placeholder.

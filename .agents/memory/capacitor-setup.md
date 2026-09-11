@@ -10,7 +10,11 @@ description: How Goalsy Executive is packaged as Android/iOS apps via Capacitor,
 - Build + sync command: `pnpm cap:build` (runs vite build then cap sync)
 
 ## Key decisions
-- **Biometrics stays simulated** — the Profile screen Face ID toggle remains a fake switch/toast. Real biometric wiring (using @capacitor/biometric-auth) was explicitly deferred until after the core mobile build is tested and working.
+- **Biometrics is a native app lock** — enabling the Profile setting must first pass the operating system’s real Face ID, Touch ID, or supported Android biometric prompt. Once enabled, the app requests the same check when an already authenticated session opens or returns from the background.
+
+**Why:** biometric authentication can only unlock an existing valid Clerk session; it must not impersonate a password sign-in or provide access after the session expires.
+
+**How to apply:** keep the Profile preference device-local. Do not restore the former simulated sign-in control. Any change to the native bridge must preserve an explicit password route for cancelled prompts, unavailable biometrics, and expired sessions.
 - **Clerk in WebView** — works via VITE_CLERK_PUBLISHABLE_KEY baked in at build time. hostname is `localhost` inside Capacitor WebView so publishableKeyFromHost falls back to the env var. No code change needed.
 - **Allowed origins for Clerk** — before submitting to stores, user must add `http://localhost` and `capacitor://localhost` to Clerk dashboard → Configure → Domains → Allowed Origins. Without this, sign-in fails on production Clerk keys on real devices.
 

@@ -46,6 +46,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		AA000000000000000000AA05 /* ClerkCookiePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA04 /* ClerkCookiePersistence.swift */; };
+		AA000000000000000000AA09 /* BiometricAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA08 /* BiometricAuthPlugin.swift */; };
 		AA000000000000000000AA03 /* ClerkCookiePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */; };
 		BB000000000000000000BB03 /* ForceKillSessionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000BB01 /* ForceKillSessionTest.swift */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,7 @@
 		AA000000000000000000AA01 /* AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000000000000000000AA02 /* ClerkCookiePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistenceTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000AA04 /* ClerkCookiePersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClerkCookiePersistence.swift; sourceTree = "<group>"; };
+		AA000000000000000000AA08 /* BiometricAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthPlugin.swift; sourceTree = "<group>"; };
 		BB000000000000000000BB01 /* ForceKillSessionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceKillSessionTest.swift; sourceTree = "<group>"; };
 		BB000000000000000000BB05 /* AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -121,6 +123,7 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				AA000000000000000000AA04 /* ClerkCookiePersistence.swift */,
+				AA000000000000000000AA08 /* BiometricAuthPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -276,6 +279,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				AA000000000000000000AA05 /* ClerkCookiePersistence.swift in Sources */,
+				AA000000000000000000AA09 /* BiometricAuthPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

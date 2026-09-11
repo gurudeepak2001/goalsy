@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Goalsy uses your camera only when you choose to take a profile photo.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Goalsy uses Face ID to unlock your saved session on this device.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Goalsy uses your photo library only when you choose a profile photo.</string>
 	<key>UILaunchStoryboardName</key>

@@ -164,24 +164,23 @@ describe('ProfileScreen achievements and help', () => {
     expect(within(detailDialog).getByText('Date earned: Aug 10, 2026')).toBeInTheDocument();
   });
 
-  it('covers every current app feature area in Help & Support without unsupported promises', () => {
+  it('covers every current app feature area in Help & Support with accurate guidance', () => {
     render(<ProfileScreen />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Help & Support' }));
 
     const helpDialog = screen.getByRole('dialog', { name: 'Help & Support' });
-    expect(helpDialog).toHaveTextContent('Onboarding & Financial Profile');
-    expect(helpDialog).toHaveTextContent('Goals & Roadmaps');
-    expect(helpDialog).toHaveTextContent('Expenses');
-    expect(helpDialog).toHaveTextContent('Bills & Calendar');
+    expect(helpDialog).toHaveTextContent('Financial Profile & Emergency Fund');
+    expect(helpDialog).toHaveTextContent('Goals, Progress & Roadmaps');
+    expect(helpDialog).toHaveTextContent('Connected Accounts & Total Balance');
+    expect(helpDialog).toHaveTextContent('Expenses, Bills & Calendar');
+    expect(helpDialog).toHaveTextContent('AI Planning & Scenario Drafts');
+    expect(helpDialog).toHaveTextContent('Financial Health & Goalsy Score');
     expect(helpDialog).toHaveTextContent('Notifications');
-    expect(helpDialog).toHaveTextContent('Strategic Intelligence');
-    expect(helpDialog).toHaveTextContent('Goalsy Score');
-    expect(helpDialog).toHaveTextContent('Profile & Account Settings');
-    expect(helpDialog).not.toHaveTextContent(/Plaid|cancel my subscription/i);
+    expect(helpDialog).toHaveTextContent('Security, Face ID & Account');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Onboarding & Financial Profile' }));
-    expect(helpDialog).toHaveTextContent(/update it any time from Strategic Intelligence/i);
+    fireEvent.click(screen.getByRole('button', { name: 'AI Planning & Scenario Drafts' }));
+    expect(helpDialog).toHaveTextContent(/nothing changes until you select Save Plan/i);
   });
 
   it('shows credit balances as debt and opens detailed account information', () => {
