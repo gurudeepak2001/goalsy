@@ -6,6 +6,29 @@ import XCTest
 final class BiometricAuthRegistrationTests: XCTestCase {
     private let pluginName = "BiometricAuth"
 
+    func testBiometricAuthExportsJavaScriptBridgeMethods() {
+        let plugin = BiometricAuthPlugin()
+        let methodsByName = Dictionary(
+            uniqueKeysWithValues: plugin.pluginMethods.map { ($0.name, $0.selector) }
+        )
+
+        XCTAssertEqual(
+            Set(methodsByName.keys),
+            Set(["checkBiometry", "authenticate"]),
+            "\(pluginName) must export the JavaScript methods used by the Face ID unlock flow"
+        )
+
+        for methodName in ["checkBiometry", "authenticate"] {
+            guard let selector = methodsByName[methodName] else {
+                continue
+            }
+            XCTAssertTrue(
+                plugin.responds(to: selector),
+                "\(pluginName).\(methodName) must resolve to an implemented native bridge method"
+            )
+        }
+    }
+
     func testStoryboardStartupRegistersBiometricAuthOnCapacitorBridge() throws {
         let appDelegate = try XCTUnwrap(
             UIApplication.shared.delegate as? AppDelegate,
