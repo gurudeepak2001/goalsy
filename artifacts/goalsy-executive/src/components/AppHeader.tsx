@@ -192,7 +192,12 @@ export default function AppHeader({
                 <ChevronLeft size={22} strokeWidth={2.5} />
               </button>
             ) : (
-              <img src="/logo-icon.png" alt="Goalsy" className="w-10 h-10 rounded-xl" draggable={false} />
+              <img
+                src={`${import.meta.env.BASE_URL}logo-icon.png`}
+                alt="Goalsy"
+                className="w-10 h-10 rounded-xl"
+                draggable={false}
+              />
             )}
             <span className="text-white font-bold text-lg leading-[27px]" style={{ letterSpacing: '-0.45px' }}>
               {dashboardTitle || 'Goalsy'}
