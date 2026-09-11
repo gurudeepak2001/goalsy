@@ -1,0 +1,61 @@
+import Capacitor
+import XCTest
+@testable import App
+
+@MainActor
+final class BiometricAuthRegistrationTests: XCTestCase {
+    private let pluginName = "BiometricAuth"
+
+    func testStoryboardStartupRegistersBiometricAuthOnCapacitorBridge() throws {
+        let appDelegate = try XCTUnwrap(
+            UIApplication.shared.delegate as? AppDelegate,
+            "The AppTests host must launch through AppDelegate"
+        )
+        let mainViewController = try XCTUnwrap(
+            appDelegate.window?.rootViewController as? MainViewController,
+            "Main.storyboard must create MainViewController so capacitorDidLoad runs"
+        )
+
+        mainViewController.loadViewIfNeeded()
+
+        let bridge = try XCTUnwrap(
+            mainViewController.bridge,
+            "The storyboard launch must create a Capacitor bridge"
+        )
+        XCTAssertNotNil(
+            bridge.plugin(withName: pluginName),
+            "\(pluginName) must be registered during the normal storyboard startup path"
+        )
+    }
+
+    func testDidBecomeActiveRegistersBiometricAuthWhenStoryboardHookIsUnavailable() throws {
+        let appDelegate = try XCTUnwrap(
+            UIApplication.shared.delegate as? AppDelegate,
+            "The AppTests host must launch through AppDelegate"
+        )
+        let originalRootViewController = appDelegate.window?.rootViewController
+        defer {
+            appDelegate.window?.rootViewController = originalRootViewController
+        }
+
+        let fallbackViewController = CAPBridgeViewController()
+        appDelegate.window?.rootViewController = fallbackViewController
+        fallbackViewController.loadViewIfNeeded()
+
+        let bridge = try XCTUnwrap(
+            fallbackViewController.bridge,
+            "The fallback controller must create a Capacitor bridge"
+        )
+        XCTAssertNil(
+            bridge.plugin(withName: pluginName),
+            "A plain CAPBridgeViewController should not register the app's custom plugin itself"
+        )
+
+        appDelegate.applicationDidBecomeActive(UIApplication.shared)
+
+        XCTAssertNotNil(
+            bridge.plugin(withName: pluginName),
+            "\(pluginName) must be registered by the foreground lifecycle fallback"
+        )
+    }
+}
