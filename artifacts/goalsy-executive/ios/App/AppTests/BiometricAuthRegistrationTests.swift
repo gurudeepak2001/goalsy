@@ -30,18 +30,18 @@ final class BiometricAuthRegistrationTests: XCTestCase {
     }
 
     func testStoryboardStartupRegistersBiometricAuthOnCapacitorBridge() throws {
-        let appDelegate = try XCTUnwrap(
-            UIApplication.shared.delegate as? AppDelegate,
+        let appDelegate: App.AppDelegate = try XCTUnwrap(
+            UIApplication.shared.delegate as? App.AppDelegate,
             "The AppTests host must launch through AppDelegate"
         )
-        let mainViewController = try XCTUnwrap(
-            appDelegate.window?.rootViewController as? MainViewController,
+        let mainViewController: App.MainViewController = try XCTUnwrap(
+            appDelegate.window?.rootViewController as? App.MainViewController,
             "Main.storyboard must create MainViewController so capacitorDidLoad runs"
         )
 
         mainViewController.loadViewIfNeeded()
 
-        let bridge = try XCTUnwrap(
+        let bridge: CAPBridgeProtocol = try XCTUnwrap(
             mainViewController.bridge,
             "The storyboard launch must create a Capacitor bridge"
         )
@@ -52,8 +52,8 @@ final class BiometricAuthRegistrationTests: XCTestCase {
     }
 
     func testDidBecomeActiveRegistersBiometricAuthWhenStoryboardHookIsUnavailable() throws {
-        let appDelegate = try XCTUnwrap(
-            UIApplication.shared.delegate as? AppDelegate,
+        let appDelegate: App.AppDelegate = try XCTUnwrap(
+            UIApplication.shared.delegate as? App.AppDelegate,
             "The AppTests host must launch through AppDelegate"
         )
         let originalRootViewController = appDelegate.window?.rootViewController
@@ -65,7 +65,7 @@ final class BiometricAuthRegistrationTests: XCTestCase {
         appDelegate.window?.rootViewController = fallbackViewController
         fallbackViewController.loadViewIfNeeded()
 
-        let bridge = try XCTUnwrap(
+        let bridge: CAPBridgeProtocol = try XCTUnwrap(
             fallbackViewController.bridge,
             "The fallback controller must create a Capacitor bridge"
         )
