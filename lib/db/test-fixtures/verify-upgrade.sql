@@ -1,8 +1,18 @@
 \set ON_ERROR_STOP on
 
+-- Shared by every supported historical baseline. Common saved records use the
+-- same assertions; the one release-specific record has an explicit expectation.
+SELECT set_config(
+  'goalsy.fixture_expect_briefing_view',
+  :'expect_briefing_view',
+  false
+);
+
 DO $$
 DECLARE
   preserved_count integer;
+  expect_briefing_view boolean :=
+    current_setting('goalsy.fixture_expect_briefing_view')::boolean;
 BEGIN
   SELECT count(*) INTO preserved_count
   FROM plaid_items i
@@ -18,7 +28,7 @@ BEGIN
     AND a.id = '10000000-0000-4000-8000-000000000002'
     AND a.name = 'Saved Credit Card'
     AND a.current_balance = 725.5
-    AND a.is_hidden = false
+    AND a.is_hidden = true
     AND l.minimum_payment_amount = 45.5
     AND abs(l.apr_percentage - 19.99) < 0.001
     AND l.next_payment_due_date = '2026-10-15';
@@ -32,13 +42,13 @@ BEGIN
     AND user_id = 'upgrade-fixture-user'
     AND annual_income = 120000
     AND monthly_expenses = 4800
-    AND emergency_fund_amount = 14400
+    AND emergency_fund_amount IS NULL
     AND emergency_fund_months = 3
     AND net_worth = 87500
     AND savings_rate = 1800
     AND risk_tolerance = 'moderate'
     AND primary_goal_type = 'emergency_fund'
-    AND savings_milestone_100k_at IS NULL;
+    AND savings_milestone_100k_at = '2026-08-21T14:45:00Z';
   IF preserved_count <> 1 THEN
     RAISE EXCEPTION 'Financial profile was not preserved by the schema upgrade';
   END IF;
@@ -50,9 +60,9 @@ BEGIN
     AND name = 'Preserved Emergency Fund'
     AND target_amount = 20000
     AND current_amount = 7250
-    AND opening_amount = 0
+    AND opening_amount = 1250
     AND monthly_contribution = 600
-    AND payment_frequency = 'monthly'
+    AND payment_frequency = 'weekly'
     AND target_date = '2027-12-31'
     AND status = 'active';
   IF preserved_count <> 1 THEN
@@ -73,17 +83,24 @@ BEGIN
 
   SELECT count(*) INTO preserved_count
   FROM briefings b
-  JOIN briefing_views v
-    ON v.briefing_id = b.id AND v.user_id = b.user_id
   WHERE b.id = '50000000-0000-4000-8000-000000000001'
     AND b.user_id = 'upgrade-fixture-user'
     AND b.title = 'Saved Monthly Briefing'
     AND b.scheduled_date = '2026-09-30'
     AND b.type = 'monthly_summary'
-    AND b.summary = 'A briefing saved before the schema upgrade.'
-    AND v.content_version = 'upgrade-fixture-content-v1'
-    AND v.viewed_at = '2026-09-11T12:00:00Z';
+    AND b.summary = 'A briefing saved before the schema upgrade.';
   IF preserved_count <> 1 THEN
-    RAISE EXCEPTION 'Briefing history was not preserved by the schema upgrade';
+    RAISE EXCEPTION 'Briefing was not preserved by the schema upgrade';
+  END IF;
+
+  SELECT count(*) INTO preserved_count
+  FROM briefing_views
+  WHERE user_id = 'upgrade-fixture-user'
+    AND briefing_id = '50000000-0000-4000-8000-000000000001'
+    AND content_version = 'upgrade-fixture-content-v1'
+    AND viewed_at = '2026-09-11T12:00:00Z';
+  IF preserved_count <> (CASE WHEN expect_briefing_view THEN 1 ELSE 0 END) THEN
+    RAISE EXCEPTION
+      'Briefing view expectation was not preserved by the schema upgrade';
   END IF;
 END $$;

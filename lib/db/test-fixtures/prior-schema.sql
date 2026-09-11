@@ -1,6 +1,6 @@
--- Representative saved-data schema from before the current defaulted columns
--- and ownership constraints were introduced. Keep this fixture intentionally
--- smaller than the current schema so CI exercises an actual schema upgrade.
+-- Supported baseline: 2026-09-10 account-hiding release (eafc434).
+-- This reproduces the saved-data tables from that release before persistent
+-- briefing views and Emergency Fund profile fields were introduced.
 
 CREATE TABLE plaid_items (
   id uuid PRIMARY KEY,
@@ -29,6 +29,7 @@ CREATE TABLE plaid_accounts (
   available_balance real,
   credit_limit real,
   currency_code text,
+  is_hidden boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT plaid_accounts_item_owner_fk
@@ -60,11 +61,11 @@ CREATE TABLE financial_profiles (
   user_id text NOT NULL UNIQUE,
   annual_income integer,
   monthly_expenses integer,
-  emergency_fund_amount integer,
   net_worth integer,
   savings_rate real,
   risk_tolerance text,
   primary_goal_type text,
+  savings_milestone_100k_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT financial_profiles_user_id_unique UNIQUE (user_id)
@@ -77,7 +78,9 @@ CREATE TABLE goals (
   type text NOT NULL,
   target_amount integer NOT NULL,
   current_amount integer NOT NULL DEFAULT 0,
+  opening_amount integer NOT NULL DEFAULT 0,
   monthly_contribution integer NOT NULL DEFAULT 0,
+  payment_frequency text NOT NULL DEFAULT 'monthly',
   target_date text,
   status text NOT NULL DEFAULT 'active',
   priority integer NOT NULL DEFAULT 1,
@@ -110,16 +113,6 @@ CREATE TABLE briefings (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE briefing_views (
-  id uuid PRIMARY KEY,
-  user_id text NOT NULL,
-  briefing_id uuid NOT NULL,
-  content_version text NOT NULL,
-  viewed_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE UNIQUE INDEX briefing_views_user_briefing_idx
-  ON briefing_views(user_id, briefing_id);
-
 INSERT INTO plaid_items (
   id, user_id, plaid_item_id, encrypted_access_token, institution_id, institution_name
 ) VALUES (
@@ -133,7 +126,7 @@ INSERT INTO plaid_items (
 
 INSERT INTO plaid_accounts (
   id, item_id, user_id, plaid_account_id, name, mask, type, subtype,
-  current_balance, available_balance, credit_limit, currency_code
+  current_balance, available_balance, credit_limit, currency_code, is_hidden
 ) VALUES (
   '10000000-0000-4000-8000-000000000002',
   '10000000-0000-4000-8000-000000000001',
@@ -146,7 +139,8 @@ INSERT INTO plaid_accounts (
   725.5,
   1250.25,
   5000,
-  'USD'
+  'USD',
+  true
 );
 
 INSERT INTO plaid_credit_liabilities (
@@ -163,23 +157,23 @@ INSERT INTO plaid_credit_liabilities (
 );
 
 INSERT INTO financial_profiles (
-  id, user_id, annual_income, monthly_expenses, emergency_fund_amount,
-  net_worth, savings_rate, risk_tolerance, primary_goal_type
+  id, user_id, annual_income, monthly_expenses, net_worth, savings_rate,
+  risk_tolerance, primary_goal_type, savings_milestone_100k_at
 ) VALUES (
   '20000000-0000-4000-8000-000000000001',
   'upgrade-fixture-user',
   120000,
   4800,
-  14400,
   87500,
   1800,
   'moderate',
-  'emergency_fund'
+  'emergency_fund',
+  '2026-08-21T14:45:00Z'
 );
 
 INSERT INTO goals (
-  id, user_id, name, type, target_amount, current_amount,
-  monthly_contribution, target_date, status, priority
+  id, user_id, name, type, target_amount, current_amount, opening_amount,
+  monthly_contribution, payment_frequency, target_date, status, priority
 ) VALUES (
   '30000000-0000-4000-8000-000000000001',
   'upgrade-fixture-user',
@@ -187,7 +181,9 @@ INSERT INTO goals (
   'emergency_fund',
   20000,
   7250,
+  1250,
   600,
+  'weekly',
   '2027-12-31',
   'active',
   1
@@ -215,14 +211,4 @@ INSERT INTO briefings (
   '2026-09-30',
   'monthly_summary',
   'A briefing saved before the schema upgrade.'
-);
-
-INSERT INTO briefing_views (
-  id, user_id, briefing_id, content_version, viewed_at
-) VALUES (
-  '50000000-0000-4000-8000-000000000002',
-  'upgrade-fixture-user',
-  '50000000-0000-4000-8000-000000000001',
-  'upgrade-fixture-content-v1',
-  '2026-09-11T12:00:00Z'
 );

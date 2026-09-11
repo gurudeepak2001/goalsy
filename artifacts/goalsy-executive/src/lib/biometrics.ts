@@ -2,10 +2,8 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
 const BIOMETRIC_LOCK_KEY = 'goalsy_biometric_lock_enabled';
-const BIOMETRIC_AUTH_GRACE_MS = 5_000;
 
-let biometricAuthenticationInProgress = false;
-let lastSuccessfulBiometricAuthenticationAt = 0;
+let biometricAuthenticationPromise: Promise<void> | null = null;
 
 interface BiometricAuthPlugin {
   checkBiometry(): Promise<{
@@ -22,18 +20,20 @@ async function authenticateWithBiometrics(options: {
   reason: string;
   cancelTitle?: string;
 }): Promise<void> {
-  biometricAuthenticationInProgress = true;
-  try {
-    await BiometricAuth.authenticate(options);
-    lastSuccessfulBiometricAuthenticationAt = Date.now();
-  } finally {
-    biometricAuthenticationInProgress = false;
+  if (biometricAuthenticationPromise) {
+    return biometricAuthenticationPromise;
   }
-}
 
-function canReuseCurrentBiometricAuthentication(): boolean {
-  return biometricAuthenticationInProgress
-    || Date.now() - lastSuccessfulBiometricAuthenticationAt < BIOMETRIC_AUTH_GRACE_MS;
+  const authentication = BiometricAuth.authenticate(options);
+  biometricAuthenticationPromise = authentication;
+
+  try {
+    await authentication;
+  } finally {
+    if (biometricAuthenticationPromise === authentication) {
+      biometricAuthenticationPromise = null;
+    }
+  }
 }
 
 export function isNativeBiometricDevice(): boolean {
@@ -72,10 +72,8 @@ export async function disableBiometricLock(): Promise<void> {
 
 export async function authenticateForAppUnlock(): Promise<void> {
   // Presenting Face ID can itself generate inactive/active app-state events.
-  // Reuse the authentication already in progress (or just completed) instead
-  // of opening a second prompt when the foreground listener runs.
-  if (canReuseCurrentBiometricAuthentication()) return;
-
+  // Concurrent foreground callbacks wait for the same in-flight native request.
+  // Once that request settles, every later foreground event authenticates again.
   await authenticateWithBiometrics({
     reason: 'Unlock your Goalsy account.',
     cancelTitle: 'Use password',

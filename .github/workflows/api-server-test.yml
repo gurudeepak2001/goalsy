@@ -60,32 +60,47 @@ jobs:
       - name: Run API server tests
         run: pnpm --filter @workspace/api-server run test
 
-      - name: Create prior-version upgrade database
+      - name: Upgrade supported historical schemas and verify saved data
         run: |
-          createdb \
-            --host localhost \
-            --username postgres \
-            goalsy_upgrade_test
-          psql \
-            --host localhost \
-            --username postgres \
-            --dbname goalsy_upgrade_test \
-            --set ON_ERROR_STOP=on \
-            --file lib/db/test-fixtures/prior-schema.sql
-        env:
-          PGPASSWORD: postgres
+          set -euo pipefail
+          shopt -s nullglob
 
-      - name: Upgrade prior-version database schema
-        run: pnpm --filter @workspace/db run push-force
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/goalsy_upgrade_test
+          fixtures=(lib/db/test-fixtures/prior-schema*.sql)
+          if (( ${#fixtures[@]} < 2 )); then
+            echo "Expected at least two supported historical schema fixtures" >&2
+            exit 1
+          fi
 
-      - name: Verify saved data survived schema upgrade
-        run: |
-          psql \
-            --host localhost \
-            --username postgres \
-            --dbname goalsy_upgrade_test \
-            --file lib/db/test-fixtures/verify-upgrade.sql
+          for fixture in "${fixtures[@]}"; do
+            baseline="$(basename "${fixture}" .sql)"
+            database="goalsy_upgrade_${baseline//-/_}"
+            expect_briefing_view=false
+            if [[ "${baseline}" == "prior-schema-briefing-views" ]]; then
+              expect_briefing_view=true
+            fi
+            echo "::group::Upgrade ${baseline}"
+
+            createdb \
+              --host localhost \
+              --username postgres \
+              "${database}"
+            psql \
+              --host localhost \
+              --username postgres \
+              --dbname "${database}" \
+              --set ON_ERROR_STOP=on \
+              --file "${fixture}"
+            DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${database}" \
+              pnpm --filter @workspace/db run push-force
+            psql \
+              --host localhost \
+              --username postgres \
+              --dbname "${database}" \
+              --set ON_ERROR_STOP=on \
+              --set "expect_briefing_view=${expect_briefing_view}" \
+              --file lib/db/test-fixtures/verify-upgrade.sql
+
+            echo "::endgroup::"
+          done
         env:
           PGPASSWORD: postgres

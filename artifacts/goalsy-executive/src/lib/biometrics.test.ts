@@ -32,6 +32,16 @@ import {
   getBiometricLockEnabled,
 } from './biometrics';
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('biometric lock', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,6 +51,51 @@ describe('biometric lock', () => {
     native.authenticate.mockResolvedValue(undefined);
     native.setPreference.mockResolvedValue(undefined);
     native.removePreference.mockResolvedValue(undefined);
+  });
+
+  it('keeps concurrent unlock requests pending until the shared authentication fails', async () => {
+    const authentication = deferred<void>();
+    native.authenticate.mockReturnValueOnce(authentication.promise);
+
+    const firstUnlock = authenticateForAppUnlock();
+    const secondUnlock = authenticateForAppUnlock();
+    let secondSettled = false;
+    void secondUnlock.then(
+      () => {
+        secondSettled = true;
+      },
+      () => {
+        secondSettled = true;
+      },
+    );
+
+    await Promise.resolve();
+    expect(native.authenticate).toHaveBeenCalledTimes(1);
+    expect(secondSettled).toBe(false);
+
+    authentication.reject(new Error('Biometric authentication cancelled'));
+    await expect(firstUnlock).rejects.toThrow('Biometric authentication cancelled');
+    await expect(secondUnlock).rejects.toThrow('Biometric authentication cancelled');
+  });
+
+  it('keeps concurrent unlock requests pending until the shared authentication succeeds', async () => {
+    const authentication = deferred<void>();
+    native.authenticate.mockReturnValueOnce(authentication.promise);
+
+    const firstUnlock = authenticateForAppUnlock();
+    const secondUnlock = authenticateForAppUnlock();
+    let secondSettled = false;
+    void secondUnlock.then(() => {
+      secondSettled = true;
+    });
+
+    await Promise.resolve();
+    expect(native.authenticate).toHaveBeenCalledTimes(1);
+    expect(secondSettled).toBe(false);
+
+    authentication.resolve();
+    await expect(Promise.all([firstUnlock, secondUnlock])).resolves.toEqual([undefined, undefined]);
+    expect(secondSettled).toBe(true);
   });
 
   it('enables the device lock only after a successful Face ID confirmation', async () => {
@@ -56,11 +111,25 @@ describe('biometric lock', () => {
     });
   });
 
-  it('does not open a second Face ID prompt when enabling biometrics returns the app to the foreground', async () => {
-    await enableBiometricLock();
+  it('shares the in-flight Face ID prompt when enabling biometrics triggers a foreground callback', async () => {
+    const authentication = deferred<void>();
+    native.authenticate.mockReturnValueOnce(authentication.promise);
+
+    const enable = enableBiometricLock();
+    await Promise.resolve();
+    const foregroundUnlock = authenticateForAppUnlock();
+    expect(native.authenticate).toHaveBeenCalledTimes(1);
+
+    authentication.resolve();
+    await expect(enable).resolves.toBe('Face ID');
+    await expect(foregroundUnlock).resolves.toBeUndefined();
+  });
+
+  it('requires a new authentication for a genuine foreground event after success', async () => {
+    await authenticateForAppUnlock();
     await authenticateForAppUnlock();
 
-    expect(native.authenticate).toHaveBeenCalledTimes(1);
+    expect(native.authenticate).toHaveBeenCalledTimes(2);
   });
 
   it('does not enable the lock when no enrolled biometric method is available', async () => {
