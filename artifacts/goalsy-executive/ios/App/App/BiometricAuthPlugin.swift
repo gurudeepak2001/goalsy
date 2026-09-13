@@ -10,7 +10,25 @@ public class BiometricAuthPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "authenticate", returnType: CAPPluginReturnPromise)
     ]
 
+    private var hasFaceIDUsageDescription: Bool {
+        guard let description = Bundle.main.object(
+            forInfoDictionaryKey: "NSFaceIDUsageDescription"
+        ) as? String else {
+            return false
+        }
+        return !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     @objc func checkBiometry(_ call: CAPPluginCall) {
+        guard hasFaceIDUsageDescription else {
+            call.resolve([
+                "isAvailable": false,
+                "biometryType": "none",
+                "reason": "Face ID is not configured in this app build. Please update Goalsy and try again."
+            ])
+            return
+        }
+
         let context = LAContext()
         var evaluationError: NSError?
         let isAvailable = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &evaluationError)
@@ -33,6 +51,11 @@ public class BiometricAuthPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func authenticate(_ call: CAPPluginCall) {
+        guard hasFaceIDUsageDescription else {
+            call.reject("Face ID is not configured in this app build. Please update Goalsy and try again.")
+            return
+        }
+
         let context = LAContext()
         let reason = call.getString("reason") ?? "Unlock your Goalsy account."
         var evaluationError: NSError?

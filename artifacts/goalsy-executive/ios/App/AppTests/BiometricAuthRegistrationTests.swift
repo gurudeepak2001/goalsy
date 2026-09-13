@@ -6,6 +6,17 @@ import XCTest
 final class BiometricAuthRegistrationTests: XCTestCase {
     private let pluginName = "BiometricAuth"
 
+    func testAppBundleIncludesFaceIDPrivacyDescription() throws {
+        let usageDescription = try XCTUnwrap(
+            Bundle.main.object(forInfoDictionaryKey: "NSFaceIDUsageDescription") as? String,
+            "The app bundle must include NSFaceIDUsageDescription before invoking LocalAuthentication"
+        )
+        XCTAssertFalse(
+            usageDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            "NSFaceIDUsageDescription must not be empty"
+        )
+    }
+
     func testBiometricAuthExportsJavaScriptBridgeMethods() {
         let plugin = BiometricAuthPlugin()
         let methodsByName = Dictionary(

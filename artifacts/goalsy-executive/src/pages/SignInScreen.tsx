@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSignIn } from '@clerk/react/legacy';
+import { Capacitor } from '@capacitor/core';
 import { toast } from '@/hooks/use-toast';
 import { Mail, Lock, Loader2, AlertCircle, ShieldCheck, ScanFace } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
@@ -38,6 +39,7 @@ function clearSignInDraft() {
 
 export default function SignInScreen() {
   const [, navigate] = useLocation();
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   // NOTE: useSignIn (not useClerk) is used for all sign-in operations throughout
   // this file so that every call — create, prepareFirstFactor, attemptFirstFactor,
   // prepareSecondFactor, attemptSecondFactor — operates on the same React-managed
@@ -97,6 +99,45 @@ export default function SignInScreen() {
       'Your saved Goalsy session has expired. Sign in with your password to reconnect Face ID.',
     );
   }, [isLoaded]);
+
+  const keepPasswordVisible = useCallback(() => {
+    const activeInput = document.activeElement;
+    if (activeInput instanceof HTMLInputElement) {
+      activeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    passwordInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+    let removeNativeListener: (() => Promise<void>) | undefined;
+
+    if (Capacitor.isNativePlatform()) {
+      void import('@capacitor/keyboard').then(({ Keyboard }) => {
+        if (disposed) return;
+        const listenerPromise = Capacitor.getPlatform() === 'ios'
+          ? Keyboard.addListener('keyboardWillShow', keepPasswordVisible)
+          : Keyboard.addListener('keyboardDidShow', keepPasswordVisible);
+        void listenerPromise.then((listener) => {
+          if (disposed) {
+            void listener.remove();
+          } else {
+            removeNativeListener = () => listener.remove();
+          }
+        });
+      });
+    }
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', keepPasswordVisible);
+
+    return () => {
+      disposed = true;
+      void removeNativeListener?.();
+      viewport?.removeEventListener('resize', keepPasswordVisible);
+    };
+  }, [keepPasswordVisible]);
 
   const handleBiometricSignIn = async () => {
     if (biometricSubmitting) return;
@@ -417,6 +458,7 @@ export default function SignInScreen() {
             />
 
             <ExecutiveInput
+              ref={passwordInputRef}
               label="Password"
               type="password"
               placeholder="••••••••"
