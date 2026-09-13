@@ -408,28 +408,6 @@ export default function SignInScreen() {
               </div>
             )}
 
-            {biometricType && mfaStep === 'none' && resetStep === 'none' && (
-              <div className="flex flex-col gap-4">
-                <button
-                  type="button"
-                  data-testid="biometric-sign-in-button"
-                  onClick={() => void handleBiometricSignIn()}
-                  disabled={biometricSubmitting}
-                  className="w-full min-h-14 rounded-2xl border border-[#3B82F6]/35 bg-[#2563EB]/10 px-5 flex items-center justify-center gap-3 text-white font-bold text-[15px] disabled:opacity-60"
-                >
-                  {biometricSubmitting
-                    ? <Loader2 size={20} className="animate-spin text-[#60A5FA]" />
-                    : <ScanFace size={22} className="text-[#60A5FA]" />}
-                  {biometricSubmitting ? `Checking ${biometricType}...` : `Sign in with ${biometricType}`}
-                </button>
-                <div className="flex items-center gap-3" aria-hidden="true">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <span className="text-[#64748B] text-xs font-bold uppercase tracking-[1px]">or use password</span>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
-              </div>
-            )}
-
             <ExecutiveInput
               label="Email Address"
               type="email"
@@ -618,7 +596,28 @@ export default function SignInScreen() {
             </div>
           </form>
 
-          <div className="pt-12 flex flex-col items-center gap-6">
+          <div className="pt-6 flex flex-col items-center gap-4">
+            {biometricType && mfaStep === 'none' && resetStep === 'none' && (
+              <>
+                <div className="w-full flex items-center gap-3" aria-hidden="true">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[#64748B] text-xs font-bold uppercase tracking-[1px]">or</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+                <button
+                  type="button"
+                  data-testid="biometric-sign-in-button"
+                  onClick={() => void handleBiometricSignIn()}
+                  disabled={biometricSubmitting}
+                  className="w-full min-h-14 rounded-2xl border border-[#3B82F6]/35 bg-[#2563EB]/10 px-5 flex items-center justify-center gap-3 text-white font-bold text-[15px] disabled:opacity-60"
+                >
+                  {biometricSubmitting
+                    ? <Loader2 size={20} className="animate-spin text-[#60A5FA]" />
+                    : <ScanFace size={22} className="text-[#60A5FA]" />}
+                  {biometricSubmitting ? `Checking ${biometricType}...` : `Sign in with ${biometricType}`}
+                </button>
+              </>
+            )}
           </div>
         </main>
 
