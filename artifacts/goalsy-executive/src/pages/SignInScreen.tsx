@@ -51,7 +51,9 @@ export default function SignInScreen() {
   const [password, setPassword] = useState(() => getSignInDraft().password);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [biometricType, setBiometricType] = useState<string | null>(null);
+  const [biometricType, setBiometricType] = useState<string | null>(
+    () => import.meta.env.DEV && !isNativeBiometricDevice() ? 'Face ID' : null,
+  );
   const [biometricSubmitting, setBiometricSubmitting] = useState(false);
 
   // ─── Verification state ───────────────────────────────────────────────────
@@ -102,6 +104,10 @@ export default function SignInScreen() {
 
   const handleBiometricSignIn = async () => {
     if (biometricSubmitting) return;
+    if (!isNativeBiometricDevice()) {
+      setErrorMessage('Face ID is available in the native Goalsy iOS app.');
+      return;
+    }
     setBiometricSubmitting(true);
     setErrorMessage(null);
 
