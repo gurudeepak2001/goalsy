@@ -10,7 +10,6 @@ import { getClerkErrorMessage } from '@/lib/clerkErrors';
 import {
   authenticateForAppUnlock,
   getAvailableBiometricType,
-  getBiometricLockEnabled,
   isNativeBiometricDevice,
 } from '@/lib/biometrics';
 
@@ -80,11 +79,8 @@ export default function SignInScreen() {
     if (!isNativeBiometricDevice()) return;
 
     let active = true;
-    void Promise.all([
-      getBiometricLockEnabled(),
-      getAvailableBiometricType(),
-    ]).then(([enabled, availableType]) => {
-      if (active && enabled && availableType) {
+    void getAvailableBiometricType().then((availableType) => {
+      if (active && availableType) {
         setBiometricType(availableType);
       }
     });
