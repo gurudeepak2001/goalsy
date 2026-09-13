@@ -51,7 +51,7 @@ export default function SignInScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [biometricType, setBiometricType] = useState<string | null>(
-    () => import.meta.env.DEV && !isNativeBiometricDevice() ? 'Face ID' : null,
+    () => isNativeBiometricDevice() || import.meta.env.DEV ? 'Face ID' : null,
   );
   const [biometricSubmitting, setBiometricSubmitting] = useState(false);
 
