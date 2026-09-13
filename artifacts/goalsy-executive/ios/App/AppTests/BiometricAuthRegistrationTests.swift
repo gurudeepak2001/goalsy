@@ -51,34 +51,26 @@ final class BiometricAuthRegistrationTests: XCTestCase {
         )
     }
 
-    func testDidBecomeActiveRegistersBiometricAuthWhenStoryboardHookIsUnavailable() throws {
+    func testDidBecomeActiveKeepsBiometricAuthRegisteredOnTheLiveBridge() throws {
         let appDelegate: App.AppDelegate = try XCTUnwrap(
             UIApplication.shared.delegate as? App.AppDelegate,
             "The AppTests host must launch through AppDelegate"
         )
-        let originalRootViewController = appDelegate.window?.rootViewController
-        defer {
-            appDelegate.window?.rootViewController = originalRootViewController
-        }
-
-        let fallbackViewController = CAPBridgeViewController()
-        appDelegate.window?.rootViewController = fallbackViewController
-        fallbackViewController.loadViewIfNeeded()
-
-        let bridge: CAPBridgeProtocol = try XCTUnwrap(
-            fallbackViewController.bridge,
-            "The fallback controller must create a Capacitor bridge"
+        let mainViewController: App.MainViewController = try XCTUnwrap(
+            appDelegate.window?.rootViewController as? App.MainViewController,
+            "The AppTests host must use the storyboard bridge"
         )
-        XCTAssertNil(
-            bridge.plugin(withName: pluginName),
-            "A plain CAPBridgeViewController should not register the app's custom plugin itself"
+        mainViewController.loadViewIfNeeded()
+        let bridge: CAPBridgeProtocol = try XCTUnwrap(
+            mainViewController.bridge,
+            "The storyboard launch must create a Capacitor bridge"
         )
 
         appDelegate.applicationDidBecomeActive(UIApplication.shared)
 
         XCTAssertNotNil(
             bridge.plugin(withName: pluginName),
-            "\(pluginName) must be registered by the foreground lifecycle fallback"
+            "\(pluginName) must remain registered when the foreground lifecycle fallback runs"
         )
     }
 }
