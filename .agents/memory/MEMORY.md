@@ -18,3 +18,4 @@
 - [Emergency fund profile setup](emergency-fund-profile-setup.md) — setup creates a three-month fund goal once; later profile edits change only its target.
 - [Score change attribution](score-change-attribution.md) — explain score movement by comparing stored driver points; never fabricate reasons from unrelated activity.
 - [Capacitor 8 iOS CI](capacitor-8-ios-ci.md) — SwiftPM builds require Xcode 26/Swift 6.2; clean runners must build shared declarations and copy native web assets before XCTest.
+- [Face ID lifecycle suppression](face-id-lifecycle-suppression.md) — iOS can emit a delayed active event after success; in-flight sharing alone cannot prevent the second prompt.

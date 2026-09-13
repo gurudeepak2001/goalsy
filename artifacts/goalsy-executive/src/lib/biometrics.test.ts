@@ -30,6 +30,7 @@ import {
   disableBiometricLock,
   enableBiometricLock,
   getBiometricLockEnabled,
+  resetBiometricAuthenticationStateForTesting,
 } from './biometrics';
 
 function deferred<T>() {
@@ -45,6 +46,7 @@ function deferred<T>() {
 describe('biometric lock', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetBiometricAuthenticationStateForTesting();
     native.isNativePlatform.mockReturnValue(true);
     native.getPreference.mockResolvedValue({ value: null });
     native.checkBiometry.mockResolvedValue({ isAvailable: true, biometryType: 'faceId' });
@@ -125,12 +127,30 @@ describe('biometric lock', () => {
     await expect(foregroundUnlock).resolves.toBeUndefined();
   });
 
-  it('requires a new authentication for a genuine foreground event after success', async () => {
+  it('suppresses the delayed active callback one second after Face ID succeeds', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-13T12:00:00Z'));
+
     await authenticateForAppUnlock();
+    vi.advanceTimersByTime(1_000);
     await authenticateForAppUnlock();
 
-    expect(native.checkBiometry).toHaveBeenCalledTimes(2);
+    expect(native.authenticate).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+  });
+
+  it('requires a new authentication for a genuine later foreground event', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-13T12:00:00Z'));
+
+    await authenticateForAppUnlock();
+    vi.advanceTimersByTime(2_001);
+    await authenticateForAppUnlock();
+
     expect(native.authenticate).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
   });
 
   it('handles the native availability result before requesting app unlock', async () => {

@@ -2,8 +2,10 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
 const BIOMETRIC_LOCK_KEY = 'goalsy_biometric_lock_enabled';
+const BIOMETRIC_PROMPT_LIFECYCLE_SETTLE_MS = 2_000;
 
 let biometricAuthenticationPromise: Promise<void> | null = null;
+let suppressBiometricAuthenticationUntil = 0;
 
 interface BiometricAuthPlugin {
   checkBiometry(): Promise<{
@@ -23,12 +25,20 @@ async function authenticateWithBiometrics(options: {
   if (biometricAuthenticationPromise) {
     return biometricAuthenticationPromise;
   }
+  if (Date.now() < suppressBiometricAuthenticationUntil) {
+    return;
+  }
 
   const authentication = BiometricAuth.authenticate(options);
   biometricAuthenticationPromise = authentication;
 
   try {
     await authentication;
+    // iOS can report the app active again shortly after Face ID succeeds.
+    // Keep that prompt-generated lifecycle callback from starting a second
+    // request after the in-flight promise has already settled.
+    suppressBiometricAuthenticationUntil =
+      Date.now() + BIOMETRIC_PROMPT_LIFECYCLE_SETTLE_MS;
   } finally {
     if (biometricAuthenticationPromise === authentication) {
       biometricAuthenticationPromise = null;
@@ -77,10 +87,16 @@ export async function authenticateForAppUnlock(): Promise<void> {
   }
 
   // Presenting Face ID can itself generate inactive/active app-state events.
-  // Concurrent foreground callbacks wait for the same in-flight native request.
-  // Once that request settles, every later foreground event authenticates again.
+  // Concurrent callbacks share the request, and the delayed active callback
+  // emitted shortly after success is suppressed while iOS settles.
   await authenticateWithBiometrics({
     reason: 'Unlock your Goalsy account.',
     cancelTitle: 'Use password',
   });
+}
+
+export function resetBiometricAuthenticationStateForTesting(): void {
+  if (!import.meta.env.DEV) return;
+  biometricAuthenticationPromise = null;
+  suppressBiometricAuthenticationUntil = 0;
 }
