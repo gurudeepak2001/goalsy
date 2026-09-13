@@ -56,6 +56,13 @@ export async function getBiometricLockEnabled(): Promise<boolean> {
   return value === 'true';
 }
 
+export async function getAvailableBiometricType(): Promise<string | null> {
+  if (!isNativeBiometricDevice()) return null;
+  const availability = await BiometricAuth.checkBiometry();
+  if (!availability.isAvailable) return null;
+  return availability.biometryType === 'faceId' ? 'Face ID' : 'device biometrics';
+}
+
 export async function enableBiometricLock(): Promise<string> {
   if (!isNativeBiometricDevice()) {
     throw new Error('Face ID and Touch ID are available in the Goalsy mobile app.');

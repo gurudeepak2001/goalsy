@@ -1,18 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSignIn } from '@clerk/react/legacy';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle, ShieldCheck, ScanFace } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import ExecutiveInput from '@/components/ExecutiveInput';
 import ExecutiveButton from '@/components/ExecutiveButton';
 import { getClerkErrorMessage } from '@/lib/clerkErrors';
+import {
+  authenticateForAppUnlock,
+  getAvailableBiometricType,
+  getBiometricLockEnabled,
+  isNativeBiometricDevice,
+} from '@/lib/biometrics';
 
 // Clerk's Capacitor startup can replace the native route tree once while it
 // resolves its anonymous client. Keep a very short-lived draft in JS memory so
 // that one remount cannot erase credentials the user has just typed. This is
 // deliberately not localStorage, Preferences, or any other persistent surface.
 const REMOUNT_DRAFT_TTL_MS = 15_000;
+const BIOMETRIC_SESSION_RETRY_KEY = 'goalsy_biometric_session_retry';
 let signInDraft = { email: '', password: '', updatedAt: 0 };
 
 function getSignInDraft() {
@@ -44,6 +51,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState(() => getSignInDraft().password);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [biometricType, setBiometricType] = useState<string | null>(null);
+  const [biometricSubmitting, setBiometricSubmitting] = useState(false);
 
   // ─── Verification state ───────────────────────────────────────────────────
   // Handles both needs_first_factor (Clerk bot-protection email challenge after
@@ -64,6 +73,51 @@ export default function SignInScreen() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isNativeBiometricDevice()) return;
+
+    let active = true;
+    void Promise.all([
+      getBiometricLockEnabled(),
+      getAvailableBiometricType(),
+    ]).then(([enabled, availableType]) => {
+      if (active && enabled && availableType) {
+        setBiometricType(availableType);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !sessionStorage.getItem(BIOMETRIC_SESSION_RETRY_KEY)) return;
+    sessionStorage.removeItem(BIOMETRIC_SESSION_RETRY_KEY);
+    setErrorMessage(
+      'Your saved Goalsy session has expired. Sign in with your password to reconnect Face ID.',
+    );
+  }, [isLoaded]);
+
+  const handleBiometricSignIn = async () => {
+    if (biometricSubmitting) return;
+    setBiometricSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      await authenticateForAppUnlock();
+      sessionStorage.setItem(BIOMETRIC_SESSION_RETRY_KEY, '1');
+      window.location.reload();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : `${biometricType ?? 'Biometric authentication'} did not verify. Try again or use your password.`,
+      );
+      setBiometricSubmitting(false);
+    }
+  };
 
   const handleSignIn = async () => {
     if (!isLoaded || submitting) return;
@@ -345,6 +399,28 @@ export default function SignInScreen() {
               <div className="flex items-start gap-2.5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl px-4 py-3">
                 <AlertCircle size={16} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
                 <span className="text-[#EF4444] font-semibold text-sm leading-5" style={{ whiteSpace: 'pre-line' }}>{errorMessage}</span>
+              </div>
+            )}
+
+            {biometricType && mfaStep === 'none' && resetStep === 'none' && (
+              <div className="flex flex-col gap-4">
+                <button
+                  type="button"
+                  data-testid="biometric-sign-in-button"
+                  onClick={() => void handleBiometricSignIn()}
+                  disabled={biometricSubmitting}
+                  className="w-full min-h-14 rounded-2xl border border-[#3B82F6]/35 bg-[#2563EB]/10 px-5 flex items-center justify-center gap-3 text-white font-bold text-[15px] disabled:opacity-60"
+                >
+                  {biometricSubmitting
+                    ? <Loader2 size={20} className="animate-spin text-[#60A5FA]" />
+                    : <ScanFace size={22} className="text-[#60A5FA]" />}
+                  {biometricSubmitting ? `Checking ${biometricType}...` : `Sign in with ${biometricType}`}
+                </button>
+                <div className="flex items-center gap-3" aria-hidden="true">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[#64748B] text-xs font-bold uppercase tracking-[1px]">or use password</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
               </div>
             )}
 

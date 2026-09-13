@@ -29,6 +29,7 @@ import {
   authenticateForAppUnlock,
   disableBiometricLock,
   enableBiometricLock,
+  getAvailableBiometricType,
   getBiometricLockEnabled,
   resetBiometricAuthenticationStateForTesting,
 } from './biometrics';
@@ -111,6 +112,20 @@ describe('biometric lock', () => {
       key: 'goalsy_biometric_lock_enabled',
       value: 'true',
     });
+  });
+
+  it('reports Face ID for a native sign-in option only when it is available', async () => {
+    await expect(getAvailableBiometricType()).resolves.toBe('Face ID');
+
+    native.checkBiometry.mockResolvedValueOnce({
+      isAvailable: false,
+      biometryType: 'faceId',
+      reason: 'Biometry is not enrolled.',
+    });
+    await expect(getAvailableBiometricType()).resolves.toBeNull();
+
+    native.isNativePlatform.mockReturnValue(false);
+    await expect(getAvailableBiometricType()).resolves.toBeNull();
   });
 
   it('shares the in-flight Face ID prompt when enabling biometrics triggers a foreground callback', async () => {
